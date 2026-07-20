@@ -1,4 +1,3 @@
-import React from 'react';
 import { Ticket } from 'lucide-react';
 
 interface LoadingScreenProps {
@@ -8,37 +7,24 @@ interface LoadingScreenProps {
 
 export default function LoadingScreen({ loadingTitle, loadingSubtitle }: LoadingScreenProps) {
   return (
-    <div style={{ 
-      flex: 1, display: 'flex', flexDirection: 'column',
-      backgroundColor: 'var(--background)', justifyContent: 'center', alignItems: 'center',
-      height: '100dvh', padding: '20px', boxSizing: 'border-box',
-    }}>
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px',
-        padding: '40px', borderRadius: '24px', border: '1px solid var(--glass-border)',
-        background: 'var(--glass-bg)', backdropFilter: 'blur(16px)',
-        boxShadow: 'var(--shadow-lg)', maxWidth: '360px', width: '100%', textAlign: 'center', boxSizing: 'border-box'
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '48px', height: '48px', borderRadius: '12px',
-            backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 20px rgba(var(--primary-rgb), 0.4)'
-          }}>
-            <Ticket size={28} color="#fff" style={{ transform: 'rotate(-45deg)' }} />
+    <div className="flex-1 flex flex-col bg-[var(--background)] justify-center items-center h-dvh p-5 box-border">
+      <div className="flex flex-col items-center gap-6 p-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-[16px] max-w-[360px] w-full text-center box-border">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-[var(--primary)] flex items-center justify-center shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)]">
+            <Ticket size={28} color="#fff" className="-rotate-45" />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <h1 style={{ fontSize: '20px', fontWeight: '850', color: 'var(--foreground)', margin: 0, letterSpacing: '-0.6px' }}>MIKMAN</h1>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>Cloud Hotspot Manager</p>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-xl font-[850] text-[var(--foreground)] m-0 tracking-tight">MIKMAN</h1>
+            <p className="text-[11px] text-[var(--text-muted)] font-semibold uppercase tracking-[1px] m-0">Cloud Hotspot Manager</p>
           </div>
         </div>
-        <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--secondary)', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+        <div className="w-full h-1 bg-[var(--secondary)] rounded-sm overflow-hidden relative">
           <style>{`@keyframes loading-bar-animation { 0% { left: -50%; } 50% { left: 100%; } 100% { left: -50%; } }`}</style>
-          <div style={{ position: 'absolute', height: '100%', width: '50%', backgroundColor: 'var(--primary)', borderRadius: '2px', animation: 'loading-bar-animation 1.5s infinite ease-in-out' }} />
+          <div className="absolute h-full w-1/2 bg-[var(--primary)] rounded-sm" style={{ animation: 'loading-bar-animation 1.5s infinite ease-in-out' }} />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <p style={{ color: 'var(--foreground)', fontSize: '13.5px', fontWeight: '700', margin: 0, letterSpacing: '0.1px' }}>{loadingTitle}</p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '500', margin: 0, letterSpacing: '0.1px' }}>{loadingSubtitle}</p>
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[var(--foreground)] text-[13.5px] font-bold m-0 tracking-[0.1px]">{loadingTitle}</p>
+          <p className="text-[var(--text-muted)] text-[11px] font-medium m-0 tracking-[0.1px]">{loadingSubtitle}</p>
         </div>
       </div>
     </div>

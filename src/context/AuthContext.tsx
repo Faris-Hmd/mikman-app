@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import useSWR from 'swr';
 import { supabase } from '../lib/supabase';
-import { setSupabaseIdToken, registerUserAPI } from '../api';
+import { setServerUrl, setSupabaseIdToken, registerUserAPI, fetchRouterProfilesWithUserAPI } from '../api';
+import type { UserData } from '../api';
 
 export interface AccountInfo {
   subscriptionState: 'active' | 'expired' | 'unapproved';
@@ -11,15 +12,42 @@ export interface AccountInfo {
 
 interface AuthState {
   user: any;
+  userData: UserData | null;
   accountInfo: AccountInfo | null;
   isAuthLoading: boolean;
   isSubLoading: boolean;
   signOut: () => Promise<void>;
 }
 
-const VPS_URL = 'https://2a02-4780-7-43e7--1.sslip.io';
-
 const AuthContext = createContext<AuthState | null>(null);
+
+function deriveAccountInfo(userData: UserData | null): AccountInfo | null {
+  if (!userData) return null;
+
+  const approved = userData.approved;
+  const expiresAt = userData.expiresAt;
+  const quota = userData.quota;
+
+  if (!approved) {
+    return { subscriptionState: 'unapproved', remainingTime: 0, plan: quota || '' };
+  }
+
+  if (expiresAt) {
+    const expiresAtDate = new Date(expiresAt);
+    const now = new Date();
+    const remainingMs = expiresAtDate.getTime() - now.getTime();
+    const remainingTimeSec = Math.max(0, Math.floor(remainingMs / 1000));
+
+    if (remainingTimeSec <= 0) {
+      return { subscriptionState: 'expired', remainingTime: 0, plan: quota || '' };
+    }
+
+    return { subscriptionState: 'active', remainingTime: remainingTimeSec, plan: quota || '' };
+  }
+
+  // No expiry — lifetime access
+  return { subscriptionState: 'active', remainingTime: 999999999, plan: quota || '' };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
@@ -27,16 +55,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Auth session tracking
   useEffect(() => {
-    // Get initial session first
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setSupabaseIdToken(session.access_token);
         setUser(session.user);
+        // Initialize server URL after auth is restored
+        const storedUrl = localStorage.getItem('@server_url') || '';
+        setServerUrl(storedUrl);
       }
       setIsAuthLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setSupabaseIdToken(session.access_token);
@@ -48,7 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setSupabaseIdToken(null);
         setUser(null);
-        localStorage.removeItem('@user_approved');
       }
       setIsAuthLoading(false);
     });
@@ -56,23 +84,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Subscription check — revalidates every 5 minutes
-  const { data: accountInfo, isLoading: isSubLoading } = useSWR(
-    user ? 'subscription' : null,
+  // Fetch router profiles + userData. SWR deduplicates — Landing.tsx uses the same key.
+  const { data, isLoading: isSubLoading } = useSWR(
+    user ? 'router-profiles' : null,
     async () => {
-      const token = (await supabase.auth.getSession()).data.session?.access_token;
-      if (!token) return null;
-
-      const res = await fetch(`${VPS_URL}/api/auth/check-subscription`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'x-api-key': import.meta.env.VITE_API_SECRET_KEY || 'mk-voucher-secret-2026'
-        }
-      });
-
-      if (res.ok) return await res.json() as AccountInfo;
-      console.warn(`[Auth] Subscription check returned status ${res.status}`);
-      return null;
+      const result = await fetchRouterProfilesWithUserAPI();
+      // console.log('[Auth] /routers/profiles response:', result);
+      return result;
     },
     {
       refreshInterval: 300000,
@@ -81,15 +99,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   );
 
+  const userData = data?.userData ?? null;
+  const accountInfo = deriveAccountInfo(userData);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-    // Auth listener will clear user state automatically
   }, []);
 
   return (
     <AuthContext.Provider value={{
       user,
-      accountInfo: accountInfo ?? null,
+      userData,
+      accountInfo,
       isAuthLoading,
       isSubLoading: user ? isSubLoading : false,
       signOut,

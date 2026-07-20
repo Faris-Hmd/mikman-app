@@ -1,23 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchRouterProfilesWithUserAPI, fetchAllRoutersStatusAPI, deleteRouterProfileAPI, formatUptimeAPI } from '../api';
+import { fetchRouterProfilesWithUserAPI, fetchAllRoutersStatusAPI, formatUptimeAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useSpeedUnit } from '../lib/speedUnit';
-import { RouterConfig } from '../store';
-import { getRemainingDays, getTemperature, formatSpeedCompact, getRouterImage, getWinboxAddress, skeletonStyle, getQuotaName } from '../lib/helpers';
-import { Server, Plus, Trash2, MoreVertical, Users, Activity, Cpu, Clock, RefreshCw, Settings, User as UserIcon, ExternalLink, Thermometer, Globe, SlidersHorizontal } from 'lucide-react';
+import { getRemainingDays, getTemperature, formatSpeedCompact, getRouterImage, skeletonStyle, getQuotaName } from '../lib/helpers';
+import { Server, Plus, Users, Activity, Cpu, Clock, RefreshCw, User as UserIcon, Thermometer, Globe, SlidersHorizontal } from 'lucide-react';
 
 export default function LandingPage() {
   const { user: currentUser } = useAuth();
-  const { showAlert, showConfirm } = useModal();
-  const { t, isRtl } = useLanguage();
+  const { showAlert } = useModal();
+  const { t } = useLanguage();
   const [speedUnit] = useSpeedUnit();
   const [nowTime, setNowTime] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<'status' | 'name' | 'users'>('status');
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
@@ -33,61 +30,55 @@ export default function LandingPage() {
   const userData = routerData?.userData ?? null;
   const routerStatuses = routerStatusesData || [];
 
+  const statusMap = React.useMemo(() => {
+    const map = new Map<string, typeof routerStatuses[number]>();
+    for (const s of routerStatuses) {
+      if (s.id) map.set(s.id, s);
+    }
+    return map;
+  }, [routerStatuses]);
+
   useEffect(() => { const timer = setTimeout(() => setNowTime(Date.now()), 0); return () => clearTimeout(timer); }, []);
 
-  useEffect(() => {
-    const handleGlobalClick = () => setActiveDropdownId(null);
-    window.addEventListener('click', handleGlobalClick);
-    return () => window.removeEventListener('click', handleGlobalClick);
-  }, []);
-
   const sortedRouters = React.useMemo(() => {
-    return [...savedRouters].sort((a, b) => {
-      const statusA = routerStatuses.find(s => s.id === a.id);
-      const statusB = routerStatuses.find(s => s.id === b.id);
-      if (sortBy === 'status') {
-        const isOnlineA = statusA?.status === 'online' ? 1 : 0;
-        const isOnlineB = statusB?.status === 'online' ? 1 : 0;
-        if (isOnlineA !== isOnlineB) return isOnlineB - isOnlineA;
+    return [...savedRouters]
+      .map(router => {
+        const status = router.id ? statusMap.get(router.id) : undefined;
+        return {
+          ...router,
+          _status: status,
+          _isOnline: status?.status === 'online',
+          _routerImg: getRouterImage(router),
+        };
+      })
+      .sort((a, b) => {
+        const statusA = a._status;
+        const statusB = b._status;
+        if (sortBy === 'status') {
+          const isOnlineA = statusA?.status === 'online' ? 1 : 0;
+          const isOnlineB = statusB?.status === 'online' ? 1 : 0;
+          if (isOnlineA !== isOnlineB) return isOnlineB - isOnlineA;
+          return (a.name || '').localeCompare(b.name || '');
+        }
+        if (sortBy === 'users') {
+          const usersA = (statusA?.status === 'online' && typeof statusA?.activeUsers === 'number') ? statusA.activeUsers : 0;
+          const usersB = (statusB?.status === 'online' && typeof statusB?.activeUsers === 'number') ? statusB.activeUsers : 0;
+          if (usersA !== usersB) return usersB - usersA;
+          return (a.name || '').localeCompare(b.name || '');
+        }
         return (a.name || '').localeCompare(b.name || '');
-      }
-      if (sortBy === 'users') {
-        const usersA = (statusA?.status === 'online' && typeof statusA?.activeUsers === 'number') ? statusA.activeUsers : 0;
-        const usersB = (statusB?.status === 'online' && typeof statusB?.activeUsers === 'number') ? statusB.activeUsers : 0;
-        if (usersA !== usersB) return usersB - usersA;
-        return (a.name || '').localeCompare(b.name || '');
-      }
-      return (a.name || '').localeCompare(b.name || '');
-    });
-  }, [savedRouters, routerStatuses, sortBy]);
+      });
+  }, [savedRouters, statusMap, sortBy]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const fresh = await fetchRouterProfilesWithUserAPI();
-      mutateRouters(fresh, false);
+      await mutateRouters();
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error(err);
       showAlert(t('dashboard.refreshFailed'), t('dashboard.refreshFailedMsg').replace('{error}', errMsg), 'error');
     } finally { setIsRefreshing(false); }
-  };
-
-  const handleDeleteRouter = (routerId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    showConfirm(t('dashboard.deleteRouterTitle'), t('dashboard.deleteRouterConfirm'), async () => {
-      try {
-        setIsLoading(true);
-        await deleteRouterProfileAPI(routerId);
-        const fresh = await fetchRouterProfilesWithUserAPI();
-        mutateRouters(fresh, false);
-        showAlert(t('dashboard.deleted'), t('dashboard.deleteSuccess'), 'success');
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        showAlert(t('dashboard.deleteFailed'), t('dashboard.deleteFailedMsg').replace('{error}', errMsg), 'error');
-      } finally { setIsLoading(false); }
-    });
   };
 
   const totalRouters = savedRouters.length;
@@ -104,7 +95,7 @@ export default function LandingPage() {
         <div><h2 className="page-title">{t('dashboard.dashboardTitle')}</h2></div>
         <div className="gateway-actions-container">
           <button onClick={() => setIsOptionsModalOpen(true)} className="gateway-refresh-btn" title="Sort & Unit Settings"><SlidersHorizontal size={16} color="var(--primary)" /></button>
-          <button onClick={handleRefresh} disabled={isRefreshing || isLoading} className="gateway-refresh-btn" title={t('dashboard.refreshGateways')}>
+          <button onClick={handleRefresh} disabled={isRefreshing} className="gateway-refresh-btn" title={t('dashboard.refreshGateways')}>
             <RefreshCw size={16} className={isRefreshing ? "spinner" : ""} />
           </button>
           <Link to="/register-router" className="gateway-add-btn"
@@ -166,57 +157,36 @@ export default function LandingPage() {
             <p style={{ fontSize: '12px', margin: 0 }}>Click the "Add Router" button to get started.</p>
           </div>
         ) : sortedRouters.map(router => {
-          const routerStatus = routerStatuses.find(s => s.id === router.id);
-          const isOnline = routerStatus?.status === 'online';
-          const routerImg = getRouterImage(router);
+          const status = (router as any)._status;
+          const isOnline = (router as any)._isOnline;
+          const routerImg = (router as any)._routerImg;
 
           return (
             <Link
               key={router.id}
               to={`/${router.id}`}
               className="router-card"
-              style={{ textDecoration: 'none', background: 'var(--card-bg)', border: '1px solid var(--glass-border)', borderRadius: '16px', padding: '16px', cursor: 'pointer', transition: 'all 0.2s', zIndex: activeDropdownId === router.id ? 10 : 1, display: 'block', opacity: routerStatus ? (isOnline ? 1 : 0.55) : 0.8 }}
+              style={{ textDecoration: 'none', background: 'var(--card-bg)', border: '1px solid var(--glass-border)', borderRadius: '16px', padding: '16px', cursor: 'pointer', transition: 'all 0.2s', display: 'block', opacity: status ? (isOnline ? 1 : 0.55) : 0.8 }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 2, gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '10px', minWidth: 0 }}>
                   <div style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
                     {routerImg ? <img src={routerImg} style={{ width: '36px', height: '36px', objectFit: 'contain' }} alt="Router" />
                     : <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: 'var(--input-bg)', display: 'flex', justifyContent: 'center', alignItems: 'center', border: '1px solid var(--glass-border)' }}><Cpu size={18} color="var(--text-muted)" /></div>}
-                    {isOnline && routerStatus && <div style={{ position: 'absolute', top: '-2px', right: '-2px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e', border: '1.5px solid var(--card-bg)', boxShadow: '0 0 4px #22c55e' }} />}
+                    {isOnline && status && <div style={{ position: 'absolute', top: '-2px', right: '-2px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e', border: '1.5px solid var(--card-bg)', boxShadow: '0 0 4px #22c55e' }} />}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--foreground)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{router.name || 'MikroTik Router'}</h3>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }} onClick={(e) => e.preventDefault()}>
-                  <div style={{ position: 'relative' }}>
-                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveDropdownId(activeDropdownId === router.id ? null : (router.id || null)); }} style={{ padding: '4px', cursor: 'pointer', background: 'none', border: 'none' }}><MoreVertical size={16} color="var(--text-muted)" /></button>
-                    {activeDropdownId === router.id && (
-                      <div style={{ position: 'absolute', top: 0, right: isRtl ? 'auto' : '24px', left: isRtl ? '24px' : 'auto', backgroundColor: 'var(--card-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)', width: '125px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)', zIndex: 100, display: 'flex', flexDirection: 'column' }}>
-                        <a href={`winbox://${getWinboxAddress(router)}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveDropdownId(null); const ip = getWinboxAddress(router); if (ip && navigator.clipboard) { navigator.clipboard.writeText(ip); showAlert(t('dashboard.winboxCopiedTitle'), t('dashboard.winboxCopiedDesc', { ip }), 'success'); } }}
-                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderBottom: '1px solid var(--glass-border)', color: 'var(--foreground)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', background: 'none', textDecoration: 'none', width: '100%', boxSizing: 'border-box' }}>
-                          <ExternalLink size={13} /> <span>Winbox</span>
-                        </a>
-                        <Link to={`/${router.id}/settings`} onClick={() => setActiveDropdownId(null)}
-                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderBottom: '1px solid var(--glass-border)', color: 'var(--foreground)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', background: 'none', textDecoration: 'none', width: '100%', boxSizing: 'border-box' }}>
-                          <Settings size={13} /> <span>{t('sidebar.settings')}</span>
-                        </Link>
-                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveDropdownId(null); handleDeleteRouter(router.id!, e); }}
-                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', color: '#ef4444', fontSize: '12px', fontWeight: 500, cursor: 'pointer', background: 'none', border: 'none', width: '100%', boxSizing: 'border-box' }}>
-                          <Trash2 size={13} color="#ef4444" /> <span>{t('common.delete')}</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px', paddingTop: '8px', borderTop: '1px solid var(--glass-border)', marginTop: '2px', opacity: isOnline ? 1 : 0.5 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && routerStatus ? (routerStatus.activeUsers || 0) : '—'}</strong></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Activity size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && routerStatus ? (routerStatus.cpuLoad_display || (routerStatus.cpuLoad !== undefined ? `${routerStatus.cpuLoad}%` : '—')) : '—'}</strong></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Cpu size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && routerStatus && typeof routerStatus.totalMemory === 'number' ? `${Math.round((routerStatus.totalMemory - routerStatus.freeMemory) / (1024 * 1024))}M` : '—'}</strong></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Thermometer size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && routerStatus ? (routerStatus.temperature_display || `${getTemperature(routerStatus) ?? '—'}°C`) : '—'}</strong></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Globe size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && routerStatus ? `↓${formatSpeedCompact(routerStatus.wanRxSpeed, speedUnit)}` : '—'}</strong></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={10} color="var(--primary)" /><strong style={{ color: isOnline ? 'var(--foreground)' : 'var(--text-muted)', fontSize: '11px' }}>{isOnline && routerStatus ? (routerStatus.uptime_display || (routerStatus.uptime ? formatUptimeAPI(routerStatus.uptime) : '—')) : '—'}</strong></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && status ? (status.activeUsers || 0) : '—'}</strong></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Activity size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && status ? (status.cpuLoad_display || (status.cpuLoad !== undefined ? `${status.cpuLoad}%` : '—')) : '—'}</strong></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Cpu size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && status && typeof status.totalMemory === 'number' ? `${Math.round((status.totalMemory - status.freeMemory) / (1024 * 1024))}M` : '—'}</strong></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Thermometer size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && status ? (status.temperature_display || `${getTemperature(status) ?? '—'}°C`) : '—'}</strong></div>
+                {/* <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Globe size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && status ? `↓${formatSpeedCompact(status.wanRxSpeed, speedUnit)}` : '—'}</strong></div> */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={10} color="var(--primary)" /><strong style={{ color: isOnline ? 'var(--foreground)' : 'var(--text-muted)', fontSize: '11px' }}>{isOnline && status ? (status.uptime_display || (status.uptime ? formatUptimeAPI(status.uptime) : '—')) : '—'}</strong></div>
               </div>
             </Link>
           );

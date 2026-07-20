@@ -184,7 +184,6 @@ export const fetchRouterProfilesWithUserAPI = async (): Promise<RouterProfilesRe
       '/routers/profiles',
       { cache: 'no-store' }
     );
-
     if (Array.isArray(response)) {
       return { profiles: response, userData: null };
     }

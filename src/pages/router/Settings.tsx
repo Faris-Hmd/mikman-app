@@ -1,18 +1,40 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchSingleRouterStatusAPI, RouterProvisionStatus } from '../../api';
+import { fetchSingleRouterStatusAPI, deleteRouterProfileAPI } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
+import { useModal } from '../../context/ModalContext';
+import { Trash2 } from 'lucide-react';
 
 export default function SettingsPage() {
   const { routerId } = useParams<{ routerId: string }>();
+  const navigate = useNavigate();
   const { t } = useLanguage();
+  const { showAlert, showConfirm } = useModal();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data: status, isLoading } = useSWR(
     routerId ? `router-settings-${routerId}` : null,
     () => fetchSingleRouterStatusAPI(routerId!),
     { revalidateOnFocus: true }
   );
+
+  const handleDelete = () => {
+    if (!routerId) return;
+    showConfirm(t('dashboard.deleteRouterTitle'), t('dashboard.deleteRouterConfirm'), async () => {
+      try {
+        setIsDeleting(true);
+        await deleteRouterProfileAPI(routerId);
+        showAlert(t('dashboard.deleted'), t('dashboard.deleteSuccess'), 'success');
+        navigate('/', { replace: true });
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        showAlert(t('dashboard.deleteFailed'), t('dashboard.deleteFailedMsg').replace('{error}', errMsg), 'error');
+      } finally {
+        setIsDeleting(false);
+      }
+    });
+  };
 
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -80,6 +102,35 @@ export default function SettingsPage() {
             ) : (
               <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>Memory data unavailable.</p>
             )}
+          </div>
+
+          {/* Delete router */}
+          <div style={{ background: 'var(--card-bg)', border: '1px solid var(--glass-border)', borderRadius: '16px', padding: '16px' }}>
+            <strong style={{ fontSize: '15px', color: '#ef4444' }}>Danger Zone</strong>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '8px 0 12px' }}>
+              Permanently delete this router and all associated data. This action cannot be undone.
+            </p>
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#ef4444',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: isDeleting ? 'not-allowed' : 'pointer',
+                opacity: isDeleting ? 0.6 : 1,
+              }}
+            >
+              <Trash2 size={14} />
+              <span>{isDeleting ? 'Deleting…' : 'Delete Router'}</span>
+            </button>
           </div>
         </div>
       )}
