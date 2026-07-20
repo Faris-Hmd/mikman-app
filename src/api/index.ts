@@ -2,15 +2,18 @@ import { RouterConfig } from '../store';
 
 const DEFAULT_VPS_URL = 'https://2a02-4780-7-43e7--1.sslip.io';
 
-// In Vite, default to empty string so API calls go through the Vite proxy (/api -> VPS)
-export let SERVER_URL = '';
+// In Vite dev, use empty string so API calls go through the Vite proxy (/api -> VPS).
+// In production (Vercel), use the VPS URL directly so API calls go to the backend.
+const isDev = import.meta.env.DEV;
+export let SERVER_URL = isDev ? '' : DEFAULT_VPS_URL;
 
 export const setServerUrl = (url: string) => {
   const targetUrl = url || DEFAULT_VPS_URL;
-  // For default VPS URLs, use empty string so requests go through Vite's proxy
-  if (targetUrl === DEFAULT_VPS_URL || targetUrl === 'https://187-127-234-201.nip.io') {
+  // For default VPS URLs, use empty string so requests go through Vite's proxy (dev only)
+  if (isDev) {
     SERVER_URL = '';
   } else {
+    // In production, always use the full VPS URL
     SERVER_URL = targetUrl;
   }
 };
