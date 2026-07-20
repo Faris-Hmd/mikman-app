@@ -1,0 +1,6 @@
+@import '../styles/theme.css';
+
+/* Any additional global styles */
+html, body, #__next {
+  height: 100%;
+}
