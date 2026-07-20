@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ModalProvider } from './context/ModalContext';
 
@@ -33,15 +33,47 @@ function PageFallback() {
   );
 }
 
+function AppRoutes() {
+  return (
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
+        <Route element={<AppShell />}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/register-router" element={<RegisterRouterPage />} />
+          
+          {/* Router-scoped routes */}
+          <Route path="/:routerId" element={<RouterDashboardPage />} />
+          <Route path="/:routerId/vouchers" element={<VouchersPage />} />
+          <Route path="/:routerId/profiles" element={<ProfilesPage />} />
+          <Route path="/:routerId/batch" element={<BatchPage />} />
+          <Route path="/:routerId/users" element={<UsersPage />} />
+          <Route path="/:routerId/aps" element={<ApsPage />} />
+          <Route path="/:routerId/records" element={<RecordsPage />} />
+          <Route path="/:routerId/revenue" element={<RevenuePage />} />
+          <Route path="/:routerId/settings" element={<SettingsPage />} />
+        </Route>
+        
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
+  );
+}
+
 function AppContent() {
   const { user, accountInfo, isAuthLoading, isSubLoading } = useAuth();
+  const location = useLocation();
+  const isAuthCallback = location.pathname === '/auth/callback';
 
-  // Loading state
-  if (isAuthLoading || (user && isSubLoading && !accountInfo)) {
+  // Loading state — skip if we're on the auth callback (Supabase is processing the hash)
+  if (isAuthLoading) {
     return (
       <LoadingScreen
-        loadingTitle={isAuthLoading ? 'Verifying session' : 'Verifying permissions'}
-        loadingSubtitle={isAuthLoading ? 'Checking authentication state...' : 'Checking admin approval status...'}
+        loadingTitle="Verifying session"
+        loadingSubtitle="Checking authentication state..."
       />
     );
   }
@@ -49,6 +81,22 @@ function AppContent() {
   // Not logged in
   if (!user) {
     return <SignIn />;
+  }
+
+  // Auth callback page — always render, even if accountInfo is still loading.
+  // The callback component itself waits for accountInfo before redirecting.
+  if (isAuthCallback) {
+    return <AuthCallback />;
+  }
+
+  // Still loading account info (but not on callback)
+  if (isSubLoading && !accountInfo) {
+    return (
+      <LoadingScreen
+        loadingTitle="Verifying permissions"
+        loadingSubtitle="Checking admin approval status..."
+      />
+    );
   }
 
   // Block unapproved/expired/no-plan users — redirect to plans page
@@ -59,31 +107,7 @@ function AppContent() {
   // Authenticated + subscribed — render app
   return (
     <ModalProvider>
-      <Suspense fallback={<PageFallback />}>
-        <Routes>
-          <Route element={<AppShell />}>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/account" element={<AccountPage />} />
-            <Route path="/register-router" element={<RegisterRouterPage />} />
-            
-            {/* Router-scoped routes */}
-            <Route path="/:routerId" element={<RouterDashboardPage />} />
-            <Route path="/:routerId/vouchers" element={<VouchersPage />} />
-            <Route path="/:routerId/profiles" element={<ProfilesPage />} />
-            <Route path="/:routerId/batch" element={<BatchPage />} />
-            <Route path="/:routerId/users" element={<UsersPage />} />
-            <Route path="/:routerId/aps" element={<ApsPage />} />
-            <Route path="/:routerId/records" element={<RecordsPage />} />
-            <Route path="/:routerId/revenue" element={<RevenuePage />} />
-            <Route path="/:routerId/settings" element={<SettingsPage />} />
-          </Route>
-          
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          
-          {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <AppRoutes />
     </ModalProvider>
   );
 }
