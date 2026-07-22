@@ -1,32 +1,37 @@
 import { Ticket } from 'lucide-react';
 
 interface LoadingScreenProps {
-  loadingTitle: string;
-  loadingSubtitle: string;
+  loadingTitle?: string;
+  loadingSubtitle?: string;
+  compact?: boolean;
 }
 
-export default function LoadingScreen({ loadingTitle, loadingSubtitle }: LoadingScreenProps) {
+export default function LoadingScreen({ loadingTitle, loadingSubtitle, compact }: LoadingScreenProps) {
   return (
-    <div className="flex-1 flex flex-col bg-[var(--background)] justify-center items-center h-dvh p-5 box-border">
-      <div className="flex flex-col items-center gap-6 p-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-[16px] max-w-[360px] w-full text-center box-border">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-[var(--primary)] flex items-center justify-center shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)]">
-            <Ticket size={28} color="#fff" className="-rotate-45" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-xl font-[850] text-[var(--foreground)] m-0 tracking-tight">MIKMAN</h1>
-            <p className="text-[11px] text-[var(--text-muted)] font-semibold uppercase tracking-[1px] m-0">Cloud Hotspot Manager</p>
-          </div>
-        </div>
-        <div className="w-full h-1 bg-[var(--secondary)] rounded-sm overflow-hidden relative">
-          <style>{`@keyframes loading-bar-animation { 0% { left: -50%; } 50% { left: 100%; } 100% { left: -50%; } }`}</style>
-          <div className="absolute h-full w-1/2 bg-[var(--primary)] rounded-sm" style={{ animation: 'loading-bar-animation 1.5s infinite ease-in-out' }} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <p className="text-[var(--foreground)] text-[13.5px] font-bold m-0 tracking-[0.1px]">{loadingTitle}</p>
-          <p className="text-[var(--text-muted)] text-[11px] font-medium m-0 tracking-[0.1px]">{loadingSubtitle}</p>
-        </div>
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 16, padding: '24px 20px',
+      minHeight: compact ? 200 : '100vh',
+      backgroundColor: compact ? 'transparent' : 'var(--background)',
+    }}>
+      <div style={{
+        width: 48, height: 48, borderRadius: 12,
+        background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 0 20px rgba(var(--primary-rgb), 0.4)',
+      }}>
+        <Ticket size={28} style={{ color: '#fff', transform: 'rotate(-45deg)' }} />
       </div>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{
+            width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)',
+            animation: `jumping-dot 1.2s ease-in-out ${i * 0.15}s infinite`,
+            opacity: 0.4,
+          }} />
+        ))}
+      </div>
+      {loadingTitle && <p style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 700, margin: 0 }}>{loadingTitle}</p>}
+      {loadingSubtitle && <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 500, margin: 0 }}>{loadingSubtitle}</p>}
     </div>
   );
 }

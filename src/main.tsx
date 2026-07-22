@@ -6,6 +6,10 @@ import { LanguageProvider } from './context/LanguageContext';
 import './styles/globals.css';
 import './styles/theme.css';
 
+// Remove inline HTML preloader once React mounts
+const preloader = document.getElementById('app-loading');
+if (preloader) preloader.style.display = 'none';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>

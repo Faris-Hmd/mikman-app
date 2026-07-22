@@ -180,7 +180,7 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px', paddingTop: '8px', borderTop: '1px solid var(--glass-border)', marginTop: '2px', opacity: isOnline ? 1 : 0.5 }}>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 2fr', gap: '4px', paddingTop: '8px', borderTop: '1px solid var(--glass-border)', marginTop: '2px', opacity: isOnline ? 1 : 0.5 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && status ? (status.activeUsers || 0) : '—'}</strong></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Activity size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && status ? (status.cpuLoad_display || (status.cpuLoad !== undefined ? `${status.cpuLoad}%` : '—')) : '—'}</strong></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Cpu size={10} color="var(--primary)" /><strong style={{ color: 'var(--foreground)', fontSize: '11px' }}>{isOnline && status && typeof status.totalMemory === 'number' ? `${Math.round((status.totalMemory - status.freeMemory) / (1024 * 1024))}M` : '—'}</strong></div>

@@ -37,7 +37,8 @@ export const translations: Record<Language, Record<string, any>> = {
       loadingConfigs: "Loading configurations",
       establishingVps: "Establishing secure connection to VPS...",
       signingOut: "Signing out...",
-      home: "Home"
+      home: "Home",
+      updated: "Updated",
     },
     sidebar: {
       mainMenu: "MAIN",
@@ -186,6 +187,15 @@ export const translations: Record<Language, Record<string, any>> = {
       otherModel: "Other",
       refreshGateways: "Refresh Gateways",
       registeredRouters: "Registered Routers",
+      history: "History",
+      history_24h: "24h",
+      history_1h: "1h",
+      historyMax: "MAX",
+      historyNoData: "No data",
+      historyChart_cpu: "CPU",
+      historyChart_users: "Users",
+      historyChart_ram: "RAM",
+      historyChart_temp: "Temp",
     },
     vouchers: {
       title: "Voucher Management",
@@ -255,7 +265,12 @@ export const translations: Record<Language, Record<string, any>> = {
       signOutConfirmTitle: "Sign Out", signOutConfirmDesc: "Are you sure you want to sign out?"
     },
     auth: { signInTitle: "Sign In to MIKMAN", signInSubtitle: "Cloud Hotspot Manager for MikroTik Routers" },
-    registerRouter: { title: "Register New Router", subtitle: "Create a cloud management profile" }
+      registerRouter: { title: "Register New Router", subtitle: "Create a cloud management profile" },
+      sections: {
+        deviceInfo: "Device Information",
+        adminCredentials: "Admin Credentials",
+        ownershipLocation: "Ownership & Location",
+      }
   },
   ar: {
     common: {
@@ -268,7 +283,7 @@ export const translations: Record<Language, Record<string, any>> = {
       verifyingSession: "التحقق من الجلسة", checkingAuthState: "جاري التحقق من حالة المصادقة...",
       verifyingPermissions: "التحقق من الصلاحيات", checkingApproval: "جاري التحقق من حالة موافقة المسؤول...",
       loadingConfigs: "جاري تحميل الإعدادات", establishingVps: "جاري إنشاء اتصال آمن بخادم الـ VPS...",
-      signingOut: "جاري تسجيل الخروج...", home: "الرئيسية"
+      signingOut: "جاري تسجيل الخروج...", home: "الرئيسية", updated: "تم التحديث",
     },
     sidebar: {
       mainMenu: "الرئيسية", mainPage: "الصفحة الرئيسية", routerMenu: "الراوتر",
@@ -316,11 +331,42 @@ export const translations: Record<Language, Record<string, any>> = {
       connectionFailed: "فشل الاتصال", connectionFailedMsg: "فشل الاتصال بالراوتر.",
       saved: "تم الحفظ", saveSuccess: "تم حفظ التغييرات بنجاح.",
       saveFailed: "فشل الحفظ", saveFailedMsg: "فشل حفظ التغييرات: {error}",
-      scriptError: "خطأ في السكربت", scriptErrorMsg: "فشل توليد سكربت الطرفية: {error}",
-      savingChanges: "جاري حفظ التغييرات...", saveChanges: "حفظ التغييرات",
-      generateScriptBtn: "توليد سكربت للـ RouterOS (واجهة الطرفية CLI)",
-      setupScriptTitle: "سكربت إعداد الـ RouterOS",
-      otherModel: "آخر", refreshGateways: "تحديث البوابات", registeredRouters: "الراوترات المسجلة",
+       inputRequired: "إدخال مطلوب",
+       deviceNameWifiSsidRequired: "يرجى إدخال اسم للجهاز أو اسم الشبكة.",
+       ownerRequired: "المالك مطلوب",
+       ownerEmailRequired: "يرجى إدخال بريد إلكتروني واحد على الأقل.",
+       deviceLabelProfileName: "اسم الجهاز",
+       placeholderDeviceLabel: "مثال: راوتر غرفة المعيشة",
+       hardwareModel: "موديل الجهاز",
+       adminUsername: "اسم المستخدم",
+       adminPassword: "كلمة المرور",
+       placeholderPassword: "اتركه فارغاً إذا لم يوجد",
+       authorizedOwners: "المشرفين (بريد إلكتروني، مفصولة بفواصل)",
+       placeholderOwners: "مثال: owner1@example.com, owner2@example.com",
+       setupScriptNotice: "انسخ الأوامر والصقها في نافذة الأوامر (WinBox) أو SSH على جهاز الميكروتك.",
+       submittingConfig: "الخطوة 1/2: جاري إرسال إعدادات الراوتر إلى الخادم...",
+       registeringWireguard: "الخطوة 2/2: جاري تسجيل وإعداد الاتصال الآمن على الراوتر...",
+       scriptError: "خطأ في الأوامر", scriptErrorMsg: "فشل إنشاء الأوامر: {error}",
+       savingChanges: "جاري حفظ التغييرات...", saveChanges: "حفظ التغييرات",
+       generateScriptBtn: "إنشاء أوامر الإعداد (لصق في الطرفية)",
+       setupScriptTitle: "أوامر إعداد الميكروتك",
+       editRouterConfig: "تعديل إعدادات الراوتر",
+       credentialsRequired: "بيانات الدخول مطلوبة",
+       credentialsRequiredMsg: "يرجى إدخال عنوان الجهاز وبيانات الدخول.",
+       vpnConfigured: "تم إعداد الاتصال الآمن",
+       vpnConfiguredMsg: "تم إعداد الاتصال الآمن بنجاح! الراوتر الآن مرتبط بالسحابة.",
+       provisioningFailed: "فشل الإعداد التلقائي",
+       provisioningFailedMsg: "فشل الإعداد التلقائي: {error}.",
+       otherModel: "آخر", refreshGateways: "تحديث البوابات", registeredRouters: "الراوترات المسجلة",
+       history: "السجل",
+       history_24h: "24س",
+       history_1h: "1س",
+       historyMax: "الحد الأعلى",
+       historyNoData: "لا توجد بيانات",
+       historyChart_cpu: "المعالج",
+       historyChart_users: "المستخدمين",
+       historyChart_ram: "الذاكرة",
+       historyChart_temp: "الحرارة",
     },
     vouchers: { title: "إدارة الكروت والقسائم", subtitle: "توليد، فحص، وإدارة كروت Hotspot ميكروتك الفردية" },
     profiles: { title: "البروفايلات", subtitle: "إعداد بروفايلات مستخدمي Hotspot ميكروتك" },
@@ -332,6 +378,11 @@ export const translations: Record<Language, Record<string, any>> = {
     settings: { title: "الإعدادات", other: "أخرى", systemSettings: "إعدادات النظام" },
     account: { title: "تفاصيل الحساب", subtitle: "إدارة ملف MIKMAN الشخصي", signOutBtn: "تسجيل الخروج", signOutConfirmTitle: "تسجيل الخروج", signOutConfirmDesc: "هل أنت متأكد من رغبتك في تسجيل الخروج؟" },
     auth: { signInTitle: "تسجيل الدخول إلى MIKMAN", signInSubtitle: "مدير Hotspot السحابي لأجهزة ميكروتك" },
-    registerRouter: { title: "تسجيل راوتر جديد", subtitle: "إنشاء ملف تعريف إدارة سحابي" }
+    registerRouter: { title: "تسجيل راوتر جديد", subtitle: "إنشاء ملف تعريف إدارة سحابي" },
+    sections: {
+      deviceInfo: "معلومات الجهاز",
+      adminCredentials: "بيانات الدخول",
+      ownershipLocation: "الملكية والموقع",
+    }
   }
 };

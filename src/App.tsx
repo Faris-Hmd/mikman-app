@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ModalProvider } from './context/ModalContext';
+import { useLanguage } from './context/LanguageContext';
 
 import LoadingScreen from './components/LoadingScreen';
 import SignIn from './components/SignIn';
@@ -50,6 +51,7 @@ function AppRoutes() {
 
 function AppContent() {
   const { user, accountInfo, isAuthLoading, isSubLoading } = useAuth();
+  const { t } = useLanguage();
   const location = useLocation();
   const isAuthCallback = location.pathname === '/auth/callback';
 
@@ -57,8 +59,8 @@ function AppContent() {
   if (isAuthLoading) {
     return (
       <LoadingScreen
-        loadingTitle="Verifying session"
-        loadingSubtitle="Checking authentication state..."
+        loadingTitle={t('common.verifyingSession')}
+        loadingSubtitle={t('common.checkingAuthState')}
       />
     );
   }
@@ -78,8 +80,8 @@ function AppContent() {
   if (isSubLoading && !accountInfo) {
     return (
       <LoadingScreen
-        loadingTitle="Verifying permissions"
-        loadingSubtitle="Checking admin approval status..."
+        loadingTitle={t('common.verifyingPermissions')}
+        loadingSubtitle={t('common.checkingApproval')}
       />
     );
   }
