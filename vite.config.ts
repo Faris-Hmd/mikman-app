@@ -28,7 +28,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://2a02-4780-7-43e7--1.sslip.io',
+        target: process.env.VITE_VPS_URL || 'https://2a02-4780-7-43e7--1.sslip.io',
         changeOrigin: true,
         secure: false,
       },
