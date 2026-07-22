@@ -1,20 +1,17 @@
 import { supabase } from '../lib/supabase';
 import type { RouterConfig } from '../store';
 
-const DEFAULT_VPS_URL = import.meta.env.VITE_VPS_URL || '';
-const FALLBACK_VPS_URL = import.meta.env.VITE_FALLBACK_VPS_URL || '';
-
 // In Vite dev, use empty string so API calls go through the Vite proxy (/api -> VPS).
-// In production (Vercel), use the VPS URL directly.
-const isDev = import.meta.env.DEV;
-export let SERVER_URL = isDev ? '' : DEFAULT_VPS_URL;
+// In production (Vercel), use the VPS URL from the VITE_VPS_URL env var.
+const VPS_URL = import.meta.env.VITE_VPS_URL || '';
+const isDev   = import.meta.env.DEV;
+export let SERVER_URL = isDev ? '' : VPS_URL;
 
 export const setServerUrl = (url: string) => {
-  const targetUrl = url || DEFAULT_VPS_URL;
   if (isDev) {
     SERVER_URL = '';
   } else {
-    SERVER_URL = targetUrl;
+    SERVER_URL = url || VPS_URL;
   }
 };
 
@@ -62,82 +59,26 @@ interface RequestOptions {
   timeoutMs?: number;
 }
 
-interface FetchResult {
-  res: Response;
-  usedFallback: boolean;
-}
-
 /**
- * Execute a single fetch with timeout support.
+ * Execute a fetch with timeout support.
  */
-const doFetch = (
+const doFetch = async (
   url: string,
   options: RequestInit,
   timeoutMs: number
-): { promise: Promise<Response>; controller: AbortController } => {
+): Promise<Response> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  const promise = fetch(url, { ...options, signal: controller.signal }).finally(() =>
-    clearTimeout(timeoutId)
-  );
-
-  return { promise, controller };
-};
-
-/**
- * Attempt to fetch from the primary URL, falling back to FALLBACK_VPS_URL on network error.
- * Only falls back when the primary URL matches DEFAULT_VPS_URL.
- */
-const fetchWithFallback = async (
-  url: string,
-  options: RequestInit,
-  timeoutMs: number
-): Promise<FetchResult> => {
-  const primaryHost = DEFAULT_VPS_URL ? new URL(DEFAULT_VPS_URL).hostname : '';
-
-  // Primary request
-  const primary = doFetch(url, options, timeoutMs);
   try {
-    const res = await primary.promise;
-    return { res, usedFallback: false };
+    return await fetch(url, { ...options, signal: controller.signal });
   } catch (err: any) {
-    // If the primary URL doesn't match the default VPS, no fallback to try
-    if (!primaryHost || !url.includes(primaryHost)) {
-      if (err?.name === 'AbortError') {
-        throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s.`);
-      }
-      throw new Error('Network error: Unable to reach server. Check your connection.');
+    if (err?.name === 'AbortError') {
+      throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s.`);
     }
-
-    // Build fallback URL
-    const fallbackHost = FALLBACK_VPS_URL
-      ? new URL(FALLBACK_VPS_URL).hostname
-      : null;
-    if (!fallbackHost) {
-      if (err?.name === 'AbortError') {
-        throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s.`);
-      }
-      throw new Error('Network error: Unable to reach server. Check your connection.');
-    }
-
-    console.warn(`Failed to reach ${url}. Retrying with fallback host: ${fallbackHost}`);
-    const fallbackUrl = url.replace(primaryHost, fallbackHost);
-
-    const fallback = doFetch(fallbackUrl, options, timeoutMs);
-    try {
-      const res = await fallback.promise;
-      // Update SERVER_URL so subsequent requests use the fallback
-      if (SERVER_URL.includes(primaryHost)) {
-        SERVER_URL = SERVER_URL.replace(primaryHost, fallbackHost);
-      }
-      return { res, usedFallback: true };
-    } catch (fallbackErr: any) {
-      if (fallbackErr?.name === 'AbortError') {
-        throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s.`);
-      }
-      throw new Error('Network error: Unable to reach server at either primary or fallback address.');
-    }
+    throw new Error('Network error: Unable to reach server. Check your connection.');
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 
@@ -186,7 +127,7 @@ export const apiCall = async <T = unknown>(
       cache,
     };
 
-    const { res } = await fetchWithFallback(url, fetchOptions, timeoutMs);
+    const res = await doFetch(url, fetchOptions, timeoutMs);
     return res;
   };
 
