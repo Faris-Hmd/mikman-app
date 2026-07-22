@@ -231,6 +231,71 @@ export interface RevenueStatsPayload {
   }>;
 }
 
+// ── Voucher batch types (updated to match new API response shapes) ──────────
+
+export interface VoucherBatch {
+  profile: string;
+  printLabel: string;
+  comment: string;
+  originalCount: number;
+  unusedCount: number;
+  activeCount: number;
+  expiredCount: number;
+}
+
+export interface VoucherSummary {
+  '.id': string;
+  name: string;
+  comment: string;
+  profile: string;
+  'limit-bytes-total': string;
+}
+
+export interface ActiveVoucher extends VoucherSummary {
+  startDate: string | null;
+  startTime: string | null;
+  expDate: string | null;
+  loginDate: string | null;
+  remainingSeconds: number | null;
+  remainingBytes: number | null;
+  limitBytesTotal: number;
+  timeLeftText: string;
+  deviceName: string;
+  isOnline: boolean;
+  sessionId: string | null;
+  ipAddress: string | null;
+  uptime: string | null;
+  bytesIn: string | null;
+  bytesOut: string | null;
+}
+
+export interface ExpiredVoucher extends VoucherSummary {
+  expDate: string | null;
+  loginDate: string | null;
+  remainingBytes: number | null;
+  limitBytesTotal: number;
+  timeLeftText: string;
+}
+
+export interface VoucherBatchDetail {
+  profile: string;
+  printLabel: string;
+  comment: string;
+  originalCount: number;
+  unusedCount: number;
+  activeCount: number;
+  expiredCount: number;
+  isProfileGroup: boolean;
+  unusedVouchers: VoucherSummary[];
+  activeVouchers: ActiveVoucher[];
+  expiredVouchers: ExpiredVoucher[];
+}
+
+export interface VoucherSearchResult extends ActiveVoucher {
+  isExpired: boolean;
+  isInUse: boolean;
+}
+
 interface GenerateScriptParams {
   id: string;
   name: string;
@@ -316,12 +381,14 @@ export const createProfileAPI = async (
 
 export const fetchRecordsAPI = async (routerId: string): Promise<any[]> => {
   try {
-    return await apiCall<any[]>('/records', { routerId, cache: 'no-store' });
+    return await apiCall<any[]>('/vouchers/records', { routerId, cache: 'no-store' });
   } catch (e) {
     logError('Fetch records error:', e);
     return [];
   }
 };
+
+// ── Voucher Management APIs (new endpoints) ────────────────────────────────
 
 export const createVouchersAPI = async (
   routerId: string,
@@ -330,13 +397,17 @@ export const createVouchersAPI = async (
   length: number,
   comment?: string,
   limitBytesTotal?: number
-): Promise<string[]> => {
-  const data = await apiCall<{ pins: string[] }>('/vouchers', {
-    method: 'POST',
-    body: { count, length, profile, comment, limitBytesTotal },
-    routerId,
-  });
-  return data.pins;
+): Promise<{ pins: string[]; jobId?: string }> => {
+  const data = await apiCall<{ pins: string[]; jobId?: string; success: boolean }>(
+    '/vouchers/create',
+    {
+      method: 'POST',
+      body: { count, length, profile, comment, limitBytesTotal },
+      routerId,
+      timeoutMs: 300_000,
+    }
+  );
+  return { pins: data.pins, jobId: data.jobId };
 };
 
 export const deleteVouchersAPI = async (routerId: string, ids: string[]): Promise<void> => {
@@ -352,19 +423,80 @@ export const fetchNetworkClientsAPI = async (routerId: string): Promise<unknown>
   return apiCall('/network-clients', { routerId, cache: 'no-store' });
 };
 
-export const fetchVoucherBatchesAPI = async (routerId: string): Promise<unknown> => {
-  return apiCall('/vouchers/batches', { routerId, cache: 'no-store' });
+// ── Voucher Batch APIs ─────────────────────────────────────────────────────
+
+export const fetchVoucherBatchesAPI = async (routerId: string): Promise<VoucherBatch[]> => {
+  return apiCall<VoucherBatch[]>('/vouchers/batches', { routerId, cache: 'no-store' });
 };
 
 export const fetchVoucherBatchDetailAPI = async (
   routerId: string,
   profile: string,
-  comment: string
-): Promise<unknown> => {
-  return apiCall(
-    `/vouchers/batches/detail?profile=${encodeURIComponent(profile)}&comment=${encodeURIComponent(comment)}`,
+  comment?: string,
+  printLabel?: string
+): Promise<VoucherBatchDetail> => {
+  const params = new URLSearchParams();
+  params.append('profile', profile);
+  if (comment) params.append('comment', comment);
+  if (printLabel) params.append('printLabel', printLabel);
+  return apiCall<VoucherBatchDetail>(
+    `/vouchers/batches/detail?${params.toString()}`,
     { routerId, cache: 'no-store' }
   );
+};
+
+/**
+ * Search for voucher codes within a batch (partial name match).
+ */
+export const searchVouchersAPI = async (
+  routerId: string,
+  query: string,
+  profile?: string,
+  comment?: string,
+  printLabel?: string
+): Promise<{ results: VoucherSearchResult[]; total: number }> => {
+  const params = new URLSearchParams();
+  params.append('q', query);
+  if (profile) params.append('profile', profile);
+  if (comment) params.append('comment', comment);
+  if (printLabel) params.append('printLabel', printLabel);
+  return apiCall(`/vouchers/search?${params.toString()}`, { routerId, cache: 'no-store' });
+};
+
+/**
+ * Get ALL voucher codes for a batch (lightweight, names only — for print/export).
+ */
+export const getVoucherCodesAPI = async (
+  routerId: string,
+  profile: string,
+  comment?: string,
+  printLabel?: string,
+  status?: 'unused' | 'active' | 'expired' | 'all'
+): Promise<{ codes: string[]; total: number }> => {
+  const params = new URLSearchParams();
+  params.append('profile', profile);
+  if (comment) params.append('comment', comment);
+  if (printLabel) params.append('printLabel', printLabel);
+  if (status) params.append('status', status);
+  return apiCall(`/vouchers/batches/detail/codes?${params.toString()}`, { routerId, cache: 'no-store' });
+};
+
+/**
+ * Get ALL vouchers for a specific status category (for "show all" button).
+ */
+export const getAllVouchersByStatusAPI = async (
+  routerId: string,
+  profile: string,
+  status: 'unused' | 'active' | 'expired',
+  comment?: string,
+  printLabel?: string
+): Promise<{ vouchers: (VoucherSummary | ActiveVoucher | ExpiredVoucher)[]; total: number; status: string }> => {
+  const params = new URLSearchParams();
+  params.append('profile', profile);
+  params.append('status', status);
+  if (comment) params.append('comment', comment);
+  if (printLabel) params.append('printLabel', printLabel);
+  return apiCall(`/vouchers/batches/detail/all?${params.toString()}`, { routerId, cache: 'no-store' });
 };
 
 export const removeActiveSessionAPI = async (routerId: string, id: string): Promise<void> => {

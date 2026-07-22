@@ -1,14 +1,7 @@
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchVoucherBatchesAPI } from '../../api';
+import { fetchVoucherBatchesAPI, type VoucherBatch } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
-
-interface Batch {
-  profile: string;
-  comment: string;
-  count: number;
-  created_at: string;
-}
 
 export default function BatchPage() {
   const { routerId } = useParams<{ routerId: string }>();
@@ -20,7 +13,7 @@ export default function BatchPage() {
     { revalidateOnFocus: true }
   );
 
-  const batchList: Batch[] = Array.isArray(batches) ? batches : [];
+  const batchList: VoucherBatch[] = Array.isArray(batches) ? batches : [];
 
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -46,18 +39,22 @@ export default function BatchPage() {
               }}
             >
               <div>
-                <strong style={{ fontSize: '16px' }}>{batch.profile}</strong>
+                <strong style={{ fontSize: '16px' }}>
+                  {batch.printLabel || batch.profile}
+                </strong>
                 <div style={{ marginTop: '4px', fontSize: '13px', color: 'var(--text-muted)' }}>
                   {batch.comment || 'No comment'}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontWeight: 600, fontSize: '15px' }}>{batch.count} vouchers</div>
-                {batch.created_at && (
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    {new Date(batch.created_at).toLocaleDateString()}
-                  </div>
-                )}
+                <div style={{ fontWeight: 600, fontSize: '15px' }}>
+                  {batch.originalCount} vouchers
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '8px' }}>
+                  <span style={{ color: 'var(--success)' }}>{batch.unusedCount} unused</span>
+                  <span style={{ color: 'var(--accent)' }}>{batch.activeCount} active</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{batch.expiredCount} expired</span>
+                </div>
               </div>
             </div>
           ))}
