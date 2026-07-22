@@ -4,7 +4,8 @@ import { fetchProfilesAPI } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 
 interface Profile {
-  id: string;
+  '.id': string;
+  id?: string;
   name: string;
   validity: string;
   limitMB?: number;
@@ -24,7 +25,7 @@ export default function ProfilesPage() {
     { revalidateOnFocus: true }
   );
 
-  const profileList: Profile[] = Array.isArray(profiles) ? profiles : [];
+  const profileList = Array.isArray(profiles) ? profiles : [];
 
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -36,9 +37,9 @@ export default function ProfilesPage() {
         <p style={{ color: 'var(--text-muted)' }}>No profiles found.</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {profileList.map((profile) => (
+          {profileList.map((profile: any) => (
             <div
-              key={profile.id}
+              key={profile['.id'] || profile.name || Math.random()}
               style={{
                 background: 'var(--card-bg)',
                 border: '1px solid var(--glass-border)',
