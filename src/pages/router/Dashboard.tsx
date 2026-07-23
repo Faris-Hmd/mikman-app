@@ -1,13 +1,13 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchRouterProfilesAPI, fetchSingleRouterStatusAPI, fetchRevenueStatsAPI, fetchRouterHistoryAPI, formatUptimeAPI } from '../../api';
+import { fetchRouterProfilesAPI, fetchSingleRouterStatusAPI, fetchRevenueStatsAPI, formatUptimeAPI } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 import { getTemperature, getRouterImage } from '../../lib/helpers';
 import LoadingScreen from '../../components/LoadingScreen';
 import {
-  Wifi, Activity, Cpu, Clock, Users, Thermometer, MapPin, Ticket,
-  Layers, FileText, Printer, Radio, Settings, AlertCircle, CheckCircle2
+  Wifi, Activity, Cpu, Clock, Users, Thermometer, Ticket,
+  Layers, FileText, Printer, Radio, Settings, AlertCircle
 } from 'lucide-react';
 
 /* ─── Shared styles ─── */
@@ -31,41 +31,9 @@ const S = {
   tabBtn: (active: boolean) => ({ padding: '5px 10px', borderRadius: 8, border: 'none', background: active ? 'var(--primary)' : 'var(--secondary)', color: active ? '#fff' : 'var(--text-muted)', fontSize: 10, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' } as React.CSSProperties),
 } as const;
 
-type ChartMetric = 'cpu' | 'users' | 'ram' | 'temp';
-type ChartRange = '1h' | '24h';
-
-const METRIC_KEYS: ChartMetric[] = ['cpu', 'users', 'ram', 'temp'];
-const getMetricLabel = (key: ChartMetric, t: (k: string) => string) => {
-  const map: Record<ChartMetric, string> = {
-    cpu: t('dashboard.historyChart_cpu') || 'CPU',
-    users: t('dashboard.historyChart_users') || 'Users',
-    ram: t('dashboard.historyChart_ram') || 'RAM',
-    temp: t('dashboard.historyChart_temp') || 'Temp',
-  };
-  return map[key];
-};
-const getMetricUnit = (key: ChartMetric) => ({ cpu: '%', users: '', ram: 'MB', temp: '°C' }[key]);
-const parseMetric = (key: ChartMetric, d: any): number | null => {
-  switch (key) {
-    case 'cpu': return d.cpu_load != null ? Number(d.cpu_load) : null;
-    case 'users': return d.active_users != null ? Number(d.active_users) : null;
-    case 'ram': return d.ram_used_mb != null ? Number(d.ram_used_mb) : null;
-    case 'temp': return d.temperature != null ? Number(d.temperature) : null;
-  }
-};
-
-function barColor(val: number, metric: ChartMetric): string {
-  if (metric === 'cpu') return val >= 80 ? '#ef4444' : val >= 50 ? '#f59e0b' : 'var(--primary)';
-  if (metric === 'ram') return val >= 90 ? '#ef4444' : val >= 75 ? '#f59e0b' : 'var(--primary)';
-  if (metric === 'temp') return val >= 80 ? '#ef4444' : val >= 65 ? '#f59e0b' : 'var(--primary)';
-  return 'var(--primary)';
-}
-
 export default function RouterDashboardPage() {
   const { routerId } = useParams<{ routerId: string }>();
   const { t } = useLanguage();
-  const [chartMetric, setChartMetric] = useState<ChartMetric>('cpu');
-  const [chartRange, setChartRange] = useState<ChartRange>('24h');
 
   const { data: status, isLoading: isStatusLoading } = useSWR(
     routerId ? `router-status-${routerId}` : null,
@@ -83,47 +51,6 @@ export default function RouterDashboardPage() {
     },
     { revalidateOnFocus: true }
   );
-
-  const historyHours = chartRange === '1h' ? 1 : 24;
-  const { data: history } = useSWR(
-    routerId ? `router-history-${routerId}-${historyHours}h` : null,
-    () => fetchRouterHistoryAPI(routerId!, historyHours, 500),
-    { revalidateOnFocus: true, dedupingInterval: 120000 }
-  );
-
-  const historyBuckets = useMemo(() => {
-    if (!history || history.length === 0) return [];
-    const now = Date.now();
-    const numBuckets = chartRange === '1h' ? 12 : 24; // 5-min or 1-hour buckets
-    const bucketMs = chartRange === '1h' ? 5 * 60 * 1000 : 3600 * 1000;
-    const totalMs = numBuckets * bucketMs;
-    const buckets: { label: string; values: number[] }[] = [];
-
-    for (let i = 0; i < numBuckets; i++) {
-      const slot = Math.floor((now - (numBuckets - 1 - i) * bucketMs) / bucketMs) * bucketMs;
-      const d = new Date(slot);
-      const label = chartRange === '1h'
-        ? d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-        : d.toLocaleTimeString('en-US', { hour: '2-digit', hour12: false });
-      buckets.push({ label, values: [] });
-    }
-
-    for (const entry of history) {
-      const ts = new Date(entry.recorded_at).getTime();
-      const slot = Math.floor(ts / bucketMs) * bucketMs;
-      const idx = numBuckets - 1 - Math.floor((now - slot) / bucketMs);
-      if (idx >= 0 && idx < numBuckets) {
-        const val = parseMetric(chartMetric, entry);
-        if (val != null) buckets[idx].values.push(val);
-      }
-    }
-
-    return buckets.map(b => ({
-      label: b.label,
-      max: b.values.length > 0 ? Math.round(Math.max(...b.values)) : null,
-      avg: b.values.length > 0 ? Math.round(b.values.reduce((a, b) => a + b, 0) / b.values.length) : null,
-    }));
-  }, [history, chartRange, chartMetric]);
 
   const { data: revenue } = useSWR(
     routerId ? `router-dash-rev-${routerId}` : null,
@@ -150,7 +77,6 @@ export default function RouterDashboardPage() {
 
   const [now, setNow] = useState(Date.now());
   const [lastChecked, setLastChecked] = useState<number | null>(null);
-  const [hoveredBar, setHoveredBar] = useState<{ idx: number; data: any } | null>(null);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
   useEffect(() => { if (status !== undefined) setLastChecked(Date.now()); }, [status]);
   const lastCheckedDisplay = useMemo(() => {
@@ -290,86 +216,7 @@ export default function RouterDashboardPage() {
         </div>
       </div>
 
-      {/* History chart — single chart with metric + range selectors */}
-      {isConnected && historyBuckets && historyBuckets.length > 0 && (
-        <div>
-          {/* Section header with metric tabs + range tabs */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Activity size={12} style={{ color: 'var(--primary)' }} />
-              <span style={S.sectionBadge}>{t('dashboard.history') || 'History'}</span>
-            </div>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button style={S.tabBtn(chartRange === '1h')} onClick={() => setChartRange('1h')}>{t('dashboard.history_1h') || '1h'}</button>
-              <button style={S.tabBtn(chartRange === '24h')} onClick={() => setChartRange('24h')}>{t('dashboard.history_24h') || '24h'}</button>
-            </div>
-          </div>
 
-          {/* Metric tabs */}
-          <div style={{ ...S.card, padding: 0, marginBottom: 8, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', padding: '4px', gap: 4, background: 'var(--secondary)', borderRadius: '14px 14px 0 0' }}>
-              {METRIC_KEYS.map(key => (
-                <button key={key} style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: 'none', background: chartMetric === key ? 'var(--card-bg)' : 'transparent', color: chartMetric === key ? 'var(--foreground)' : 'var(--text-muted)', fontSize: 10, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
-                  onClick={() => setChartMetric(key)}>
-                  {getMetricLabel(key, t)}
-                </button>
-              ))}
-            </div>
-
-            {/* Chart body */}
-            <div style={{ padding: '14px 16px', position: 'relative', overflow: 'visible' }}>
-              <div style={{ ...S.flexBetween, marginBottom: 10 }}>
-                <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--foreground)' }}>{getMetricLabel(chartMetric, t)} ({getMetricUnit(chartMetric)})</span>
-                <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>
-                  {t('dashboard.historyMax') || 'MAX'}: {Math.max(...historyBuckets.map(d => d.max ?? 0), 0)}{getMetricUnit(chartMetric)}
-                </span>
-              </div>
-              {(() => {
-                const dataPoints = historyBuckets.map(d => d.max);
-                const globalMax = Math.max(...dataPoints.filter(v => v != null) as number[], 1);
-                const chartH = 120;
-                return (
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: chartRange === '1h' ? 2 : 4, height: chartH, paddingBottom: 18, position: 'relative' }}>
-                    {historyBuckets.map((bucket, i: number) => {
-                      const val = bucket.max;
-                      const h = val != null ? Math.max(3, (val / globalMax) * chartH) : 0;
-                      const bc = val != null ? barColor(val, chartMetric) : 'transparent';
-                      const isHov = hoveredBar?.idx === i;
-                      return (
-                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', cursor: val != null ? 'pointer' : 'default' }}
-                          onMouseEnter={() => val != null && setHoveredBar({ idx: i, data: bucket })}
-                          onMouseLeave={() => setHoveredBar(null)}>
-                          {isHov && val != null && (
-                            <div style={{ position: 'absolute', bottom: chartH + 26, left: '50%', transform: 'translateX(-50%)', background: 'var(--foreground)', color: 'var(--background)', padding: '4px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', zIndex: 10, pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-                              {bucket.label} · {t('dashboard.historyMax') || 'MAX'} {val}{getMetricUnit(chartMetric)}
-                            </div>
-                          )}
-                          {/* Overlap: bar (max) + dot (avg) */}
-                          <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <div style={{ width: '100%', height: h, background: bc, borderRadius: '2px 2px 0 0', opacity: isHov ? 1 : (val != null ? 0.5 : 0.08), transition: 'opacity 0.15s' }} />
-                            {bucket.avg != null && (
-                              <div style={{
-                                width: 6, height: 6, borderRadius: '50%', background: 'var(--foreground)',
-                                position: 'absolute', bottom: h - 3, border: '1.5px solid var(--card-bg)',
-                                opacity: isHov ? 1 : 0.7, transition: 'opacity 0.15s',
-                              }} />
-                            )}
-                          </div>
-                          {(i % (chartRange === '1h' ? 3 : 3) === 0 || i === historyBuckets.length - 1) && (
-                            <span style={{ fontSize: 7, color: 'var(--text-muted)', position: 'absolute', bottom: 0, whiteSpace: 'nowrap', fontWeight: 600 }}>
-                              {bucket.label}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Revenue summary */}
       {revenue && (

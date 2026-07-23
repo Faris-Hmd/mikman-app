@@ -199,7 +199,9 @@ export default function LandingPage() {
                   transition: 'all 0.2s ease',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '8px'
+                  gap: '8px',
+                  opacity: isOnline ? 1 : 0.6,
+                  filter: isOnline ? 'none' : 'grayscale(0.2)',
                 }}
               >
                 {/* Router Header */}

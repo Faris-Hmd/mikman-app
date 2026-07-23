@@ -734,9 +734,9 @@ export const registerUserAPI = async (): Promise<{ success: boolean; message: st
 };
 
 export const fetchRouterHistoryAPI = async (
-  routerId: string,
-  hours = 24,
-  limit = 500
+  _routerId: string,
+  _hours = 24,
+  _limit = 500
 ): Promise<any[]> => {
-  return apiCall<any[]>(`/history?hours=${hours}&limit=${limit}`, { routerId, cache: 'no-store' });
+  return Promise.resolve([]);
 };
