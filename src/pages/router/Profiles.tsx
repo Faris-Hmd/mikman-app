@@ -441,13 +441,13 @@ export default function ProfilesPage() {
         </div>
       </div>
 
-      {/* Profiles Compact Cards Grid */}
+      {/* Profiles Cards Grid */}
       {isLoading ? (
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-            gap: '8px',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: '12px',
           }}
         >
           {Array.from({ length: 6 }).map((_, i) => (
@@ -456,22 +456,24 @@ export default function ProfilesPage() {
               style={{
                 ...cardGlassStyle,
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '8px',
-                padding: '8px 12px',
+                flexDirection: 'column',
+                padding: '14px 16px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                <div className="skeleton" style={{ width: '28px', height: '28px', borderRadius: '7px', flexShrink: 0 }} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-                  <div className="skeleton" style={{ width: '60%', height: '12px' }} />
-                  <div className="skeleton" style={{ width: '85%', height: '10px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                  <div className="skeleton" style={{ width: '34px', height: '34px', borderRadius: '8px', flexShrink: 0 }} />
+                  <div className="skeleton" style={{ width: '50%', height: '14px' }} />
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <div className="skeleton" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
+                  <div className="skeleton" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
-                <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
+              <div style={{ height: '1px', background: 'var(--glass-border, rgba(255, 255, 255, 0.08))', margin: '12px 0' }} />
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div className="skeleton" style={{ width: '35%', height: '12px' }} />
+                <div className="skeleton" style={{ width: '35%', height: '12px' }} />
               </div>
             </div>
           ))}
@@ -486,8 +488,8 @@ export default function ProfilesPage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-            gap: '8px',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: '12px',
           }}
         >
           {profileList.map((profile) => {
@@ -500,115 +502,124 @@ export default function ProfilesPage() {
                 style={{
                   ...cardGlassStyle,
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px',
-                  padding: '8px 12px',
+                  flexDirection: 'column',
+                  padding: '14px 16px',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                 }}
               >
-                {/* Left Info Column */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '7px',
-                      background: 'rgba(59, 130, 246, 0.12)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#3b82f6',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Layers size={14} />
+                {/* Header Row: Icon, Title, Revenue Tag & Actions */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        width: '34px',
+                        height: '34px',
+                        borderRadius: '9px',
+                        background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%)',
+                        border: '1px solid rgba(59, 130, 246, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#3b82f6',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Layers size={17} />
+                    </div>
+
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                        <strong style={{ fontSize: '14px', fontWeight: 700, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {profile.name}
+                        </strong>
+                        {(() => {
+                          const revVal = profile.revenue ?? profile.price;
+                          const numRev = revVal != null && revVal !== '' ? Number(revVal) : NaN;
+                          if (!isNaN(numRev) && numRev > 0) {
+                            return (
+                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#22c55e', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.25)', padding: '1.5px 6px', borderRadius: '5px', flexShrink: 0 }}>
+                                ${numRev.toFixed(2)}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    </div>
                   </div>
 
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
-                      <strong style={{ fontSize: '13px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {profile.name}
-                      </strong>
-                      {(() => {
-                        const revVal = profile.revenue ?? profile.price;
-                        const numRev = revVal != null && revVal !== '' ? Number(revVal) : NaN;
-                        if (!isNaN(numRev) && numRev > 0) {
-                          return (
-                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)', padding: '1px 5px', borderRadius: '4px', flexShrink: 0 }}>
-                              ${numRev.toFixed(2)}
-                            </span>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
+                  {/* Actions: Edit & Delete Buttons */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <button
+                      onClick={() => handleOpenEditModal(profile)}
+                      title="Edit Profile"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.07)',
+                        border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.12))',
+                        borderRadius: '7px',
+                        width: '28px',
+                        height: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--foreground)',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s ease',
+                      }}
+                    >
+                      <Pencil size={13} />
+                    </button>
 
-                    {/* Compact Badges Row */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', fontSize: '10px', color: 'var(--text-muted)' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                        <Clock size={10} style={{ color: '#38bdf8' }} />
-                        {displayValidity}
-                      </span>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                        <HardDrive size={10} style={{ color: '#a855f7' }} />
-                        {profile.isUnlimited || !profile.limitMB ? t('profiles.unlimited') : `${profile.limitMB}MB`}
-                      </span>
-                      {profile.printLabel && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                          <Tag size={10} />
-                          {profile.printLabel}
-                        </span>
+                    <button
+                      onClick={() => handleDeleteProfile(profile)}
+                      disabled={deletingId === profile['.id']}
+                      title="Delete Profile"
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        borderRadius: '7px',
+                        width: '28px',
+                        height: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s ease',
+                      }}
+                    >
+                      {deletingId === profile['.id'] ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={13} />
                       )}
-                    </div>
+                    </button>
                   </div>
                 </div>
 
-                {/* Right Action Icons: Edit & Delete */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                  {/* Edit Profile Button */}
-                  <button
-                    onClick={() => handleOpenEditModal(profile)}
-                    title="Edit Profile"
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.06)',
-                      border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.12))',
-                      borderRadius: '6px',
-                      width: '24px',
-                      height: '24px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--foreground)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <Pencil size={12} />
-                  </button>
+                {/* Divider between Card Header & Detail Items */}
+                <div style={{ height: '1px', background: 'var(--glass-border, rgba(255, 255, 255, 0.08))', margin: '10px 0' }} />
 
-                  {/* Delete Profile Button */}
-                  <button
-                    onClick={() => handleDeleteProfile(profile)}
-                    disabled={deletingId === profile['.id']}
-                    title="Delete Profile"
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.08)',
-                      border: '1px solid rgba(239, 68, 68, 0.15)',
-                      borderRadius: '6px',
-                      width: '24px',
-                      height: '24px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#ef4444',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {deletingId === profile['.id'] ? (
-                      <Loader2 size={11} className="animate-spin" />
-                    ) : (
-                      <Trash2 size={12} />
-                    )}
-                  </button>
+                {/* Detail Items Row */}
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(56, 189, 248, 0.08)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.15)' }}>
+                    <Clock size={12} style={{ color: '#38bdf8' }} />
+                    <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>{displayValidity}</span>
+                  </div>
+
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(168, 85, 247, 0.08)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(168, 85, 247, 0.15)' }}>
+                    <HardDrive size={12} style={{ color: '#a855f7' }} />
+                    <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>
+                      {profile.isUnlimited || !profile.limitMB ? t('profiles.unlimited') : `${profile.limitMB} MB`}
+                    </span>
+                  </div>
+
+                  {profile.printLabel && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(234, 179, 8, 0.08)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(234, 179, 8, 0.15)' }}>
+                      <Tag size={12} style={{ color: '#eab308' }} />
+                      <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>{profile.printLabel}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
