@@ -161,33 +161,28 @@ export default function BatchPage() {
       }}
     >
       {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <PackageOpen size={18} style={{ color: 'var(--primary, #3b82f6)' }} />
-            {t('batch.title')}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '8px' }}>
+        <div style={{ minWidth: 0 }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <PackageOpen size={18} style={{ color: 'var(--primary, #3b82f6)', flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t('batch.title')}</span>
           </h2>
-          <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '12px' }}>
+          <p className="hide-sm" style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '12px' }}>
             {t('batch.subtitle')}
           </p>
         </div>
-        <button onClick={goToCreate} style={btnPrimaryStyle}>
+        <button onClick={goToCreate} style={{ ...btnPrimaryStyle, flexShrink: 0, whiteSpace: 'nowrap', padding: '6px 12px', fontSize: '12px' }}>
           <Plus size={14} />
           <span>{t('batch.generateBtn')}</span>
         </button>
       </div>
 
       {/* Summary Statistics Cards */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '12px',
-        }}
-      >
+      <div className="batch-stat-grid">
         {/* Card 1: Total Batches */}
-        <div style={{ ...cardGlassStyle, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="batch-stat-card" style={cardGlassStyle}>
           <div
+            className="batch-stat-card-icon"
             style={{
               width: '38px',
               height: '38px',
@@ -202,19 +197,20 @@ export default function BatchPage() {
           >
             <Layers size={20} />
           </div>
-          <div>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500 }}>
+          <div style={{ minWidth: 0 }}>
+            <span className="batch-stat-card-label" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.totalBatches')}
             </span>
-            <strong style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)' }}>
+            <strong className="batch-stat-card-val" style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)' }}>
               {stats.totalBatches}
             </strong>
           </div>
         </div>
 
         {/* Card 2: Total Vouchers */}
-        <div style={{ ...cardGlassStyle, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="batch-stat-card" style={cardGlassStyle}>
           <div
+            className="batch-stat-card-icon"
             style={{
               width: '38px',
               height: '38px',
@@ -229,19 +225,20 @@ export default function BatchPage() {
           >
             <Ticket size={20} />
           </div>
-          <div>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500 }}>
+          <div style={{ minWidth: 0 }}>
+            <span className="batch-stat-card-label" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.totalVouchers')}
             </span>
-            <strong style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)' }}>
+            <strong className="batch-stat-card-val" style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)' }}>
               {stats.totalVouchers}
             </strong>
           </div>
         </div>
 
         {/* Card 3: Unused Vouchers */}
-        <div style={{ ...cardGlassStyle, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="batch-stat-card" style={cardGlassStyle}>
           <div
+            className="batch-stat-card-icon"
             style={{
               width: '38px',
               height: '38px',
@@ -256,19 +253,20 @@ export default function BatchPage() {
           >
             <CheckCircle2 size={20} />
           </div>
-          <div>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500 }}>
+          <div style={{ minWidth: 0 }}>
+            <span className="batch-stat-card-label" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.unusedVouchers')}
             </span>
-            <strong style={{ fontSize: '18px', fontWeight: 800, color: '#22c55e' }}>
+            <strong className="batch-stat-card-val" style={{ fontSize: '18px', fontWeight: 800, color: '#22c55e' }}>
               {stats.totalUnused}
             </strong>
           </div>
         </div>
 
         {/* Card 4: Active Vouchers */}
-        <div style={{ ...cardGlassStyle, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="batch-stat-card" style={cardGlassStyle}>
           <div
+            className="batch-stat-card-icon"
             style={{
               width: '38px',
               height: '38px',
@@ -283,11 +281,11 @@ export default function BatchPage() {
           >
             <Zap size={20} />
           </div>
-          <div>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500 }}>
+          <div style={{ minWidth: 0 }}>
+            <span className="batch-stat-card-label" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.activeVouchers')}
             </span>
-            <strong style={{ fontSize: '18px', fontWeight: 800, color: '#3b82f6' }}>
+            <strong className="batch-stat-card-val" style={{ fontSize: '18px', fontWeight: 800, color: '#3b82f6' }}>
               {stats.totalActive}
             </strong>
           </div>
@@ -571,6 +569,7 @@ export default function BatchPage() {
 
                 {/* Footer Metrics */}
                 <div
+                  className="batch-footer-metrics"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(4, 1fr)',

@@ -26,8 +26,16 @@ export default function UsersPage() {
 
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <h2>{t('users.title')}</h2>
-      <p style={{ margin: 0, color: 'var(--text-muted)' }}>Router: {routerId}</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '8px' }}>
+        <div style={{ minWidth: 0 }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {t('users.title')}
+          </h2>
+          <p className="hide-sm" style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '12px' }}>
+            Router: {routerId}
+          </p>
+        </div>
+      </div>
       {isLoading ? (
         <p>Loading users…</p>
       ) : clientList.length === 0 ? (

@@ -166,13 +166,13 @@ export default function VouchersPage() {
       }}
     >
       {/* Header Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Ticket size={18} style={{ color: 'var(--primary, #3b82f6)' }} />
-            {t('vouchers.generateBatchTitle')}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '8px' }}>
+        <div style={{ minWidth: 0 }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <Ticket size={18} style={{ color: 'var(--primary, #3b82f6)', flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t('vouchers.generateBatchTitle')}</span>
           </h2>
-          <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '12px' }}>
+          <p className="hide-sm" style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '12px' }}>
             {t('vouchers.generateBatchSubtitle')}
           </p>
         </div>

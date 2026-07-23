@@ -12,7 +12,38 @@ html, body, #root {
     display: none !important;
   }
   .batch-metrics-grid {
-    grid-template-columns: repeat(3, minmax(50px, 65px)) !important;
+    grid-template-columns: repeat(3, minmax(34px, 46px)) !important;
+    gap: 2px !important;
+  }
+  .batch-metrics-grid span {
+    font-size: 8.5px !important;
+  }
+  .batch-metrics-grid strong {
+    font-size: 11px !important;
+  }
+  .batch-footer-metrics span {
+    font-size: 8.5px !important;
+  }
+  .batch-footer-metrics strong {
+    font-size: 11px !important;
+  }
+}
+@media (max-width: 480px) {
+  .batch-metrics-grid {
+    grid-template-columns: repeat(3, minmax(28px, 40px)) !important;
+    gap: 1px !important;
+  }
+  .batch-metrics-grid span {
+    font-size: 8px !important;
+  }
+  .batch-metrics-grid strong {
+    font-size: 10px !important;
+  }
+  .batch-footer-metrics span {
+    font-size: 8px !important;
+  }
+  .batch-footer-metrics strong {
+    font-size: 10px !important;
   }
 }
 @media (min-width: 641px) {

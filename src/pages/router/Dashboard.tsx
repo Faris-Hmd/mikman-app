@@ -97,12 +97,13 @@ export default function RouterDashboardPage() {
     return <LoadingScreen compact loadingTitle={t('common.loading') || 'Loading router status...'} />;
   }
 
-  const StatRow = ({ icon: Icon, label, value }: { icon: any; label: string; value: React.ReactNode }) => (
-    <div style={{ ...S.card, ...S.statCard, padding: '10px 12px' }}>
-      <div style={S.statIcon}><Icon size={14} style={{ color: 'var(--primary)' }} /></div>
-      <div style={{ minWidth: 0 }}><div style={S.label}>{label}</div><div style={{ ...S.value, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div></div>
+  const StatRow = ({ icon: Icon, label, value, title, valueStyle }: { icon: any; label: string; value: React.ReactNode; title?: string; valueStyle?: React.CSSProperties }) => (
+    <div className="stat-card-compact" title={title || (typeof value === 'string' ? value : undefined)}>
+      <div className="stat-icon-compact"><Icon size={14} style={{ color: 'var(--primary)' }} /></div>
+      <div style={{ minWidth: 0, flex: 1 }}><div style={S.label}>{label}</div><div style={{ ...S.value, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', ...valueStyle }}>{value}</div></div>
     </div>
   );
+
   const StatLabel = ({ children }: { children: React.ReactNode }) => <div style={S.section}>{children}</div>;
 
   const renderBarChart = () => {
@@ -148,23 +149,23 @@ export default function RouterDashboardPage() {
 
 
   return (
-    <div style={S.page as React.CSSProperties}>
+    <div className="dashboard-page">
       {/* Status banner + clock */}
-      <div style={{ ...S.card, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+      <div style={{ ...S.card, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           {routerImg ? (
             <div style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
-              <img src={routerImg} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+              <img src={routerImg} alt="" style={{ width: 30, height: 30, objectFit: 'contain' }} />
               {isConnected && <div style={{ position: 'absolute', top: -2, right: -2, width: 7, height: 7, borderRadius: '50%', backgroundColor: '#22c55e', border: '1.5px solid var(--card-bg)', boxShadow: '0 0 4px #22c55e', animation: 'pulse-dot 2s ease-in-out infinite' }} />}
             </div>
           ) : (
-            isConnected ? <div style={S.pulseDot} /> : <AlertCircle size={18} style={{ color: '#ef4444', flexShrink: 0 }} />
+            isConnected ? <div style={S.pulseDot} /> : <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
           )}
           <div style={{ minWidth: 0 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 800, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{routerName}</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1, flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{routerName}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1, flexWrap: 'wrap' }}>
               {profileData?.model && <span style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{profileData.model}</span>}
-              <span style={S.pill(isConnected)}>{isConnected ? t('common.online') || 'Online' : t('common.offline') || 'Offline'}</span>
+              <span className="hide-sm" style={S.pill(isConnected)}>{isConnected ? t('common.online') || 'Online' : t('common.offline') || 'Offline'}</span>
               {status?.timezone && <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{status.timezone}</span>}
               {!isConnected && lastChecked && <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }).format(lastChecked)}</span>}
               {lastCheckedDisplay && (
@@ -175,7 +176,7 @@ export default function RouterDashboardPage() {
         </div>
         {isConnected && routerTime && (
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums', letterSpacing: 0.5 }}>{routerTime}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums', letterSpacing: 0.3 }}>{routerTime}</div>
             <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 1 }}>{routerDate}</div>
           </div>
         )}
@@ -184,15 +185,15 @@ export default function RouterDashboardPage() {
       {/* System health */}
       <div>
         <StatLabel><Activity size={12} style={{ color: 'var(--primary)' }} /><span style={S.sectionBadge}>{t('dashboard.systemHealth') || 'System Health'}</span></StatLabel>
-        <div style={S.grid('repeat(auto-fill, minmax(180px, 1fr))')}>
+        <div className="system-health-grid">
           <StatRow icon={Cpu} label={t('header.cpuLoad') || 'CPU'} value={<span style={S.cpuColor(status?.cpuLoad)}>{isConnected && cpuDisp ? cpuDisp : '—'}</span>} />
-          <div style={{ ...S.card, ...S.statCard, padding: '10px 12px' }}>
-            <div style={S.statIcon}><Activity size={14} style={{ color: 'var(--primary)' }} /></div>
+          <div className="stat-card-compact">
+            <div className="stat-icon-compact"><Activity size={14} style={{ color: 'var(--primary)' }} /></div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={S.label}>{t('header.ram') || 'RAM'}</div>
               {isConnected && memUsed != null && memTotal != null ? (
-                <div><div style={S.valueSm}>{memUsed} / {memTotal} MB</div>
-                  <div style={{ height: 3, background: 'var(--secondary)', borderRadius: 2, marginTop: 3, overflow: 'hidden' }}>
+                <div><div style={{ ...S.valueSm, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{memUsed} / {memTotal} MB</div>
+                  <div style={{ height: 3, background: 'var(--secondary)', borderRadius: 2, marginTop: 2, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${Math.min(100, memPct || 0)}%`, background: (memPct || 0) >= 90 ? '#ef4444' : (memPct || 0) >= 75 ? '#f59e0b' : 'var(--primary)', borderRadius: 2, transition: 'width 0.3s' }} />
                   </div>
                 </div>
@@ -202,19 +203,26 @@ export default function RouterDashboardPage() {
           <StatRow icon={Thermometer} label={t('header.temp') || 'Temp'} value={isConnected && tmpDisp ? tmpDisp : '—'} />
           <StatRow icon={Clock} label={t('header.uptime') || 'Uptime'} value={isConnected && upDisp ? upDisp : '—'} />
           <StatRow icon={Users} label={t('dashboard.activeSessions') || 'Users'} value={isConnected && status?.activeUsers != null ? status.activeUsers : '—'} />
-          <StatRow icon={Wifi} label={t('header.ssid') || 'SSID'} value={isConnected && status?.wifiName ? status.wifiName : '—'} />
+          <StatRow
+            icon={Wifi}
+            label={t('header.ssid') || 'SSID'}
+            title={status?.wifiName}
+            valueStyle={{ fontSize: 10.5, fontWeight: 700 }}
+            value={isConnected && status?.wifiName ? (status.wifiName.length > 12 ? `${status.wifiName.slice(0, 11)}…` : status.wifiName) : '—'}
+          />
         </div>
       </div>
 
       {/* Quick actions */}
       <div>
         <StatLabel><Ticket size={12} style={{ color: 'var(--primary)' }} /><span style={S.sectionBadge}>{t('dashboard.quickActions') || 'Quick Actions'}</span></StatLabel>
-        <div style={S.grid('repeat(auto-fill, minmax(80px, 1fr))')}>
+        <div className="quick-actions-grid">
           {([ { Icon: Ticket, tk: 'vouchers', slug: 'vouchers' }, { Icon: Layers, tk: 'profiles', slug: 'profiles' }, { Icon: Printer, tk: 'batchPrint', slug: 'batch' }, { Icon: Users, tk: 'users', slug: 'users' }, { Icon: Radio, tk: 'devices', slug: 'aps' }, { Icon: FileText, tk: 'revenue', slug: 'revenue' }, { Icon: Settings, tk: 'settings', slug: 'settings' } ] as const).map(({ Icon, tk, slug }) => (
             <Link key={slug} to={`/${routerId}/${slug}`} style={{ ...S.card, ...S.quickLink }}><Icon size={16} style={{ color: 'var(--primary)' }} /><span style={{ fontSize: 10, fontWeight: 700 }}>{t(`sidebar.${tk}`) || tk}</span></Link>
           ))}
         </div>
       </div>
+
 
 
 

@@ -45,7 +45,8 @@ export default function RouterStatusHeader() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
+        flexWrap: 'nowrap',
+        overflowX: 'auto',
         gap: '8px',
         fontSize: '11px',
         fontWeight: 600,
@@ -71,10 +72,22 @@ export default function RouterStatusHeader() {
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {routerDisplayName}
           </span>
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: isStatusLoading ? '#9ca3af' : isOnline ? '#22c55e' : '#ef4444',
+              boxShadow: isOnline ? '0 0 6px #22c55e' : 'none',
+              flexShrink: 0,
+            }}
+            title={isStatusLoading ? 'Connecting...' : isOnline ? 'Online' : 'Offline'}
+          />
         </div>
 
-        {/* Status Pill */}
+        {/* Status Pill (Hidden on mobile) */}
         <div
+          className="hide-sm"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -102,15 +115,6 @@ export default function RouterStatusHeader() {
             }`,
           }}
         >
-          <span
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: isStatusLoading ? '#9ca3af' : isOnline ? '#22c55e' : '#ef4444',
-              boxShadow: isOnline ? '0 0 6px #22c55e' : 'none',
-            }}
-          />
           <span>
             {isStatusLoading
               ? t('header.connecting')

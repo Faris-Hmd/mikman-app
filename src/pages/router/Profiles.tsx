@@ -300,13 +300,13 @@ export default function ProfilesPage() {
       }}
     >
       {/* Standardized Page Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Layers size={18} style={{ color: 'var(--primary, #3b82f6)' }} />
-            {t('profiles.title')}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '8px' }}>
+        <div style={{ minWidth: 0 }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <Layers size={18} style={{ color: 'var(--primary, #3b82f6)', flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t('profiles.title')}</span>
           </h2>
-          <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '12px' }}>
+          <p className="hide-sm" style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '12px' }}>
             {t('profiles.subtitle')}
           </p>
         </div>
@@ -318,7 +318,7 @@ export default function ProfilesPage() {
             color: '#ffffff',
             border: 'none',
             borderRadius: '8px',
-            padding: '7px 13px',
+            padding: '6px 12px',
             fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -326,6 +326,8 @@ export default function ProfilesPage() {
             alignItems: 'center',
             gap: '5px',
             boxShadow: '0 2px 10px rgba(37, 99, 235, 0.3)',
+            flexShrink: 0,
+            whiteSpace: 'nowrap',
           }}
         >
           <Plus size={14} />

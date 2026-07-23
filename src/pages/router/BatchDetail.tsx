@@ -1060,8 +1060,8 @@ export default function BatchDetailPage() {
           boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
         }}>
           {/* Header Row: Back, Title, Chips & Print */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 240px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1, overflow: 'hidden' }}>
               <button
                 onClick={backToList}
                 style={{
@@ -1080,7 +1080,7 @@ export default function BatchDetailPage() {
                 <ChevronLeft size={18} />
               </button>
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: '2px' }}>
                 <h2 style={{
                   margin: 0,
                   fontSize: '15px',
@@ -1089,6 +1089,7 @@ export default function BatchDetailPage() {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}>
                   {printLabel || profile}
                 </h2>
@@ -1103,6 +1104,8 @@ export default function BatchDetailPage() {
                   fontWeight: 700,
                   background: 'rgba(var(--primary-rgb), 0.12)',
                   color: 'var(--primary)',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}>
                   <Tag size={10} />
                   {profile}
@@ -1118,13 +1121,15 @@ export default function BatchDetailPage() {
                   fontWeight: 700,
                   background: 'rgba(255, 255, 255, 0.06)',
                   color: 'var(--text-muted)',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}>
                   <Wifi size={10} />
                   {wifiName}
                 </span>
 
                 {comment && (
-                  <span style={{
+                  <span className="hide-sm" style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
@@ -1134,6 +1139,8 @@ export default function BatchDetailPage() {
                     fontWeight: 600,
                     background: 'rgba(255, 255, 255, 0.05)',
                     color: 'var(--text-muted)',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
                   }}>
                     <MessageSquare size={10} />
                     {comment}
@@ -1158,6 +1165,8 @@ export default function BatchDetailPage() {
                 alignItems: 'center',
                 gap: '6px',
                 cursor: printLoading ? 'not-allowed' : 'pointer',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
               }}
             >
               <Printer size={14} />
@@ -1167,11 +1176,7 @@ export default function BatchDetailPage() {
 
           {/* Compact Stat Cards Grid */}
           {detail && (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '8px',
-            }}>
+            <div className="batch-stat-grid" style={{ gap: '8px' }}>
               {/* TOTAL Card */}
               <button
                 onClick={() => setStatusFilter('all')}
