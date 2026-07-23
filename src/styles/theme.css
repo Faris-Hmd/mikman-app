@@ -95,9 +95,20 @@ input, textarea { font-family: inherit; }
 @keyframes jumping-dot { 0%, 100% { transform: translateY(0); opacity: 0.4; } 50% { transform: translateY(-10px); opacity: 1; } }
 .spinner { animation: spin 1s linear infinite; }
 
-/* ─── Modal Animations ─── */
+/* ─── Modal Animations & Skeleton ─── */
 @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modalScaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes skeletonShimmer {
+  0% { opacity: 0.35; }
+  50% { opacity: 0.75; }
+  100% { opacity: 0.35; }
+}
+
+.skeleton {
+  background: var(--glass-border, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
 
 .modal-overlay {
   position: fixed;

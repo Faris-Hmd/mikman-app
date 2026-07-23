@@ -1,18 +1,22 @@
 import { useState, useCallback } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import useSWR, { mutate } from 'swr';
+import { jsPDF } from 'jspdf';
 import {
   fetchVoucherBatchDetailAPI,
   deleteVouchersAPI,
   searchVouchersAPI,
   getVoucherCodesAPI,
   getAllVouchersByStatusAPI,
+  fetchRouterProfilesAPI,
+  fetchSingleRouterStatusAPI,
   type VoucherBatchDetail,
   type VoucherSummary,
   type ActiveVoucher,
   type ExpiredVoucher,
   type VoucherSearchResult,
 } from '../../api';
+import { useLanguage } from '../../context/LanguageContext';
 import {
   Trash2,
   Search,
@@ -22,18 +26,101 @@ import {
   ChevronLeft,
   X,
   Info,
+  Layers,
+  CheckCircle2,
+  Zap,
+  Clock,
+  Wifi,
+  Tag,
+  MessageSquare,
 } from 'lucide-react';
 
 type StatusFilter = 'all' | 'unused' | 'active' | 'expired';
+
+const chunkArray = <T,>(arr: T[], size: number): T[][] => {
+  const res: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    res.push(arr.slice(i, i + size));
+  }
+  return res;
+};
+
+const getVoucherName = (v: any): string => {
+  if (!v) return '';
+  if (typeof v === 'string') return v;
+  return v.name || v['.id'] || '';
+};
+
+const parseBatchDate = (comment: string | null | undefined): Date | null => {
+  if (!comment) return null;
+  const clean = comment.split(' | ')[0].trim();
+  const dateRegex = /^(\d{4})[-/](\d{2})[-/](\d{2})(?:\s+(\d{2}):(\d{2}))?/;
+  const match = clean.match(dateRegex);
+  if (!match) {
+    if (/\d{4}/.test(clean)) {
+      const ts = Date.parse(clean);
+      if (!isNaN(ts)) return new Date(ts);
+    }
+    return null;
+  }
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10) - 1;
+  const day = parseInt(match[3], 10);
+  const hour = match[4] ? parseInt(match[4], 10) : 0;
+  const minute = match[5] ? parseInt(match[5], 10) : 0;
+  const date = new Date(year, month, day, hour, minute);
+  if (isNaN(date.getTime())) return null;
+  return date;
+};
+
+const formatBatchTime = (comment: string | null | undefined): string => {
+  if (!comment) return 'Legacy Vouchers';
+  if (comment.startsWith('profile:')) {
+    return comment.replace('profile:', '');
+  }
+  const namePart = comment.split(' | ').find(p => p.startsWith('NAME:'));
+  if (namePart) {
+    return namePart.replace('NAME:', '');
+  }
+  const dateObj = parseBatchDate(comment);
+  if (!dateObj) {
+    return comment.split(' | ')[0];
+  }
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const hours = String(dateObj.getHours()).padStart(2, '0');
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+};
 
 export default function BatchDetailPage() {
   const { routerId } = useParams<{ routerId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t, isRtl } = useLanguage();
 
   const profile = searchParams.get('profile') || '';
   const comment = searchParams.get('comment') || undefined;
   const printLabel = searchParams.get('printLabel') || undefined;
+
+  // Router profile info & live status for Wi-Fi SSID
+  const { data: routerProfilesData } = useSWR('router-profiles', fetchRouterProfilesAPI);
+  const { data: routerStatus } = useSWR(
+    routerId ? `router-status-${routerId}` : null,
+    () => fetchSingleRouterStatusAPI(routerId!),
+    { refreshInterval: 30000, revalidateOnFocus: true, dedupingInterval: 5000 }
+  );
+
+  const routersList = Array.isArray(routerProfilesData)
+    ? routerProfilesData
+    : Array.isArray((routerProfilesData as any)?.profiles)
+    ? (routerProfilesData as any).profiles
+    : [];
+  const activeRouter = routersList.find((r: any) => r.id === routerId || r.name === routerId);
+  const defaultWifiName = activeRouter?.wifiName || routerStatus?.wifiName || activeRouter?.name || 'Mikrotik wifi';
+  const [wifiInput, setWifiInput] = useState<string | null>(null);
+  const wifiName = (wifiInput !== null && wifiInput.trim() !== '') ? wifiInput.trim() : defaultWifiName;
 
   // Detail state
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,6 +139,9 @@ export default function BatchDetailPage() {
   const [printCodes, setPrintCodes] = useState<string[] | null>(null);
   const [printLoading, setPrintLoading] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
+  const [printDate, setPrintDate] = useState('');
+  const [printableVouchers, setPrintableVouchers] = useState<any[]>([]);
 
   // Selection for deletion
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set());
@@ -178,62 +268,214 @@ export default function BatchDetailPage() {
     }
   }, [routerId, searchQuery, profile, comment, printLabel]);
 
-  // ── Print / Export ──
+  // ── Print / Export (MK-Voucher-Web Template) ──
 
   const handlePrintVouchers = async () => {
     if (!routerId) return;
+    const originalTitle = document.title;
     try {
       setPrintLoading(true);
-      const result = await getVoucherCodesAPI(
-        routerId,
-        profile,
-        comment,
-        printLabel,
-        'all'
-      );
-      const codes = result.codes || [];
-      if (codes.length === 0) {
-        showToast('No vouchers to print.', 'error');
+
+      let vouchersToPrint: any[] = [];
+      if (batchDetail?.unusedVouchers && batchDetail.unusedVouchers.length > 0) {
+        vouchersToPrint = batchDetail.unusedVouchers;
+      }
+
+      if (vouchersToPrint.length === 0 || (batchDetail && batchDetail.unusedCount > vouchersToPrint.length)) {
+        const result = await getAllVouchersByStatusAPI(
+          routerId,
+          profile,
+          'unused',
+          comment,
+          printLabel
+        );
+        if (result.vouchers && result.vouchers.length > 0) {
+          vouchersToPrint = result.vouchers;
+        }
+      }
+
+      if (vouchersToPrint.length === 0) {
+        showToast('No unused vouchers available to print.', 'error');
         return;
       }
-      const w = window.open('', '_blank', 'width=800,height=900');
-      if (!w) {
-        setPrintCodes(codes);
-        setShowPrintModal(true);
-        return;
+
+      setPrintableVouchers(vouchersToPrint);
+
+      const label = printLabel || profile;
+      const batchName = comment ? formatBatchTime(comment) : profile;
+      const count = vouchersToPrint.length;
+      const originalTitle = document.title;
+
+      const now = new Date();
+      const formattedDate = now.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      setPrintDate(formattedDate);
+
+      // Page size A4 is 210 x 297 mm
+      // At 300 DPI, A4 canvas is 2480 x 3508 pixels
+      const scale = 2480 / 210;
+
+      const cols = 7;
+      const rows = 14;
+      const cardWidth = 26.5 * scale;
+      const cardHeight = 18.5 * scale;
+      const colGap = 1.2 * scale;
+      const rowGap = 0.8 * scale;
+      const startX = 8.6 * scale;
+      const startY = 16 * scale;
+      const itemsPerPage = cols * rows;
+
+      const fontHeader = '33px "Cairo", system-ui, -apple-system, sans-serif';
+      const fontWifiName = 'bold 28px "Cairo", system-ui, -apple-system, sans-serif';
+      const fontVoucherCode = 'bold 44px "Cairo", system-ui, -apple-system, sans-serif';
+      const fontProfile = 'bold 28px "Cairo", system-ui, -apple-system, sans-serif';
+
+      const pages = chunkArray(vouchersToPrint, itemsPerPage);
+
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+        const pageVouchers = pages[pageIdx];
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 2480;
+        canvas.height = 3508;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Could not get 2D context');
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.font = fontHeader;
+        ctx.fillStyle = '#505050';
+        ctx.textBaseline = 'top';
+
+        ctx.textAlign = 'left';
+        ctx.fillText(`WiFi: ${wifiName} | Profile: ${label} | Batch: ${batchName}`, 8.6 * scale, 9.5 * scale);
+
+        ctx.textAlign = 'right';
+        ctx.fillText(`Total Vouchers: ${count} | Printed: ${formattedDate}`, (210 - 8.6) * scale, 9.5 * scale);
+
+        ctx.strokeStyle = '#d5d5d5';
+        ctx.lineWidth = 0.2 * scale;
+        ctx.beginPath();
+        ctx.moveTo(8.6 * scale, 12.5 * scale);
+        ctx.lineTo((210 - 8.6) * scale, 12.5 * scale);
+        ctx.stroke();
+
+        pageVouchers.forEach((v, index) => {
+          const name = getVoucherName(v);
+          const colIndex = index % cols;
+          const rowIndex = Math.floor(index / cols);
+
+          const x = startX + colIndex * (cardWidth + colGap);
+          const y = startY + rowIndex * (cardHeight + rowGap);
+
+          ctx.strokeStyle = '#444444';
+          ctx.lineWidth = 0.25 * scale;
+          ctx.beginPath();
+          const rx = 1 * scale;
+          if (ctx.roundRect) {
+            ctx.roundRect(x, y, cardWidth, cardHeight, rx);
+          } else {
+            ctx.rect(x, y, cardWidth, cardHeight);
+          }
+          ctx.stroke();
+
+          ctx.font = fontWifiName;
+          const textWidth = ctx.measureText(wifiName).width;
+          const iconWidth = 2.5 * scale;
+          const totalWidth = iconWidth + textWidth;
+          const wifiStartX = x + (cardWidth - totalWidth) / 2;
+          const iconCX = wifiStartX + 0.8 * scale;
+          const textX = wifiStartX + 2.5 * scale;
+
+          ctx.fillStyle = '#000000';
+          ctx.beginPath();
+          ctx.arc(iconCX, y + 4.2 * scale, 0.3 * scale, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 0.22 * scale;
+          ctx.lineCap = 'round';
+
+          ctx.beginPath();
+          ctx.moveTo(iconCX - 0.6 * scale, y + 3.6 * scale);
+          ctx.quadraticCurveTo(iconCX, y + 3.1 * scale, iconCX + 0.6 * scale, y + 3.6 * scale);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(iconCX - 1.1 * scale, y + 3.1 * scale);
+          ctx.quadraticCurveTo(iconCX, y + 2.4 * scale, iconCX + 1.1 * scale, y + 3.1 * scale);
+          ctx.stroke();
+
+          ctx.fillStyle = '#000000';
+          ctx.font = fontWifiName;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(wifiName, textX, y + 4.2 * scale);
+
+          ctx.fillStyle = '#000000';
+          ctx.font = fontVoucherCode;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(name, x + cardWidth / 2, y + 10.5 * scale);
+
+          ctx.fillStyle = '#444444';
+          ctx.font = fontProfile;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(label, x + cardWidth / 2, y + 15.5 * scale);
+        });
+
+        if (pageIdx > 0) {
+          doc.addPage();
+        }
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        doc.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
       }
-      const title = printLabel || profile;
-      const cards = codes.map((code: string) => `
-        <tr class="vn">
-          <td class="vl">HOTSPOT VOUCHER</td>
-          <td class="vc" rowspan="2">${code}</td>
-        </tr>
-        <tr class="vn">
-          <td class="vm">${title}<br/><span style="font-size:7px;color:#aaa">${new Date().toLocaleDateString()}</span></td>
-        </tr>`).join('\n');
-      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Courier New',monospace;color:#000;background:#fff;padding:20px}
-  h2{text-align:center;font-size:16px;margin-bottom:2px}
-  h3{text-align:center;font-size:10px;color:#666;font-weight:400;margin-bottom:16px;border-bottom:1px solid #ccc;padding-bottom:8px}
-  table{width:100%;border-collapse:collapse}
-  tr.vn{border-bottom:1px dashed #ccc}
-  td.vl{font-size:7px;color:#999;text-transform:uppercase;letter-spacing:1px;padding:8px 8px 4px;vertical-align:top}
-  td.vc{font-size:17px;font-weight:900;letter-spacing:2px;padding:8px 12px;vertical-align:middle;text-align:right;border-left:1px solid #e0e0e0;width:1%;white-space:nowrap}
-  td.vm{font-size:8px;color:#666;padding:4px 8px 8px;vertical-align:bottom}
-  @media print{
-    body{padding:0}
-    @page{margin:8mm}
-  }
-</style></head>
-<body><h2>${title}</h2><h3>${codes.length} vouchers</h3><table>${cards}</table></body></html>`;
-      w.document.write(html);
-      w.document.close();
-      w.focus();
-      setTimeout(() => w.print(), 500);
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to print.', 'error');
+
+      const pdfBlob = doc.output('blob');
+      const safeWifiName = wifiName.replace(/[\s|/\\:*?"<>|]/g, '_');
+      const safeLabel = label.replace(/[\s|/\\:*?"<>|]/g, '_');
+      const cleanFileName = `${safeWifiName}-${count}-${safeLabel}.pdf`;
+
+      const file = new File([pdfBlob], cleanFileName, { type: 'application/pdf' });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Vouchers - ${wifiName} - ${count} Vouchers - ${label}`,
+          text: `Vouchers PDF for WiFi SSID: ${wifiName} | Count: ${count} | Profile: ${label}`,
+        });
+      } else {
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = cleanFileName;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Failed to generate PDF, falling back to window.print():', error);
+      document.title = `${wifiName} - ${printLabel || profile} - Vouchers`;
+      const restoreTitle = () => {
+        document.title = originalTitle;
+        window.removeEventListener('afterprint', restoreTitle);
+      };
+      window.addEventListener('afterprint', restoreTitle);
+      setTimeout(() => {
+        window.print();
+      }, 150);
+      setTimeout(restoreTitle, 5000);
     } finally {
       setPrintLoading(false);
     }
@@ -620,6 +862,165 @@ export default function BatchDetailPage() {
     );
   };
 
+  // ── Render: Print Confirmation Modal ──
+
+  const renderPrintConfirmModal = () => {
+    if (!showPrintConfirmModal) return null;
+
+    const countToPrint = batchDetail?.unusedCount ?? (batchDetail?.unusedVouchers?.length || 0);
+
+    const rows: { label: string; value: React.ReactNode }[] = [
+      {
+        label: t('batch.printedWifiName'),
+        value: (
+          <input
+            type="text"
+            value={wifiInput !== null ? wifiInput : defaultWifiName}
+            onChange={(e) => setWifiInput(e.target.value)}
+            placeholder={defaultWifiName}
+            style={{
+              width: '100%',
+              maxWidth: '200px',
+              padding: '6px 10px',
+              borderRadius: '8px',
+              border: '1.5px solid var(--primary)',
+              background: 'var(--input-bg, rgba(255, 255, 255, 0.05))',
+              color: 'var(--foreground)',
+              fontSize: '12px',
+              fontWeight: 700,
+              textAlign: isRtl ? 'left' : 'right',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+        ),
+      },
+      { label: t('batch.profileName'), value: printLabel || profile },
+      { label: t('batch.batchInfoComment'), value: comment || '—' },
+      { label: t('batch.unusedVouchersToPrint'), value: <span style={{ fontWeight: 800, color: 'var(--success)' }}>{countToPrint}</span> },
+      { label: t('batch.totalBatchSize'), value: batchDetail?.originalCount ?? '—' },
+    ];
+
+    return (
+      <div
+        className="modal-overlay"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '20px',
+          direction: isRtl ? 'rtl' : 'ltr',
+        }}
+        onClick={() => setShowPrintConfirmModal(false)}
+      >
+        <div
+          style={{
+            ...cardStyle,
+            width: '100%',
+            maxWidth: '440px',
+            background: 'var(--card-bg)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'rgba(var(--primary-rgb), 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--primary)',
+                }}
+              >
+                <Printer size={18} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
+                  {t('batch.printConfirmTitle')}
+                </h3>
+                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
+                  {t('batch.printConfirmDesc')}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowPrintConfirmModal(false)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Details Table */}
+          <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '12px 16px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr key={i} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--glass-border)' : 'none' }}>
+                    <td style={{ padding: '8px 0', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', width: '50%', textAlign: isRtl ? 'right' : 'left' }}>
+                      {row.label}
+                    </td>
+                    <td style={{ padding: '8px 0', fontSize: '13px', color: 'var(--foreground)', textAlign: isRtl ? 'left' : 'right' }}>
+                      {row.value}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+            <button
+              onClick={() => setShowPrintConfirmModal(false)}
+              style={{ ...btnSecondary, flex: 1, padding: '10px', fontSize: '13px', justifyContent: 'center' }}
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={async () => {
+                setShowPrintConfirmModal(false);
+                await handlePrintVouchers();
+              }}
+              disabled={printLoading}
+              style={{
+                ...btnPrimary,
+                flex: 1.5,
+                padding: '10px',
+                fontSize: '13px',
+                justifyContent: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <Printer size={16} />
+              <span>{printLoading ? '...' : t('batch.printVouchers')}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ── Render: Detail View ──
 
   const renderDetailView = () => {
@@ -645,143 +1046,329 @@ export default function BatchDetailPage() {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Unified Toolbar Block */}
+        {/* Compact Glass Toolbar Block */}
         <div style={{
           ...cardStyle,
-          padding: '20px',
+          padding: '14px 16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px',
+          gap: '12px',
+          background: 'var(--card-bg, rgba(20, 20, 20, 0.75))',
+          backdropFilter: 'blur(16px)',
+          borderRadius: '16px',
+          border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
         }}>
-          {/* Row 1: Back + Title + Print */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button onClick={backToList} style={{ ...btnSecondary, padding: '8px 12px' }}>
-              <ChevronLeft size={16} />
-            </button>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 style={{ margin: 0, fontSize: '16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {printLabel || profile}
-              </h2>
-              {comment && (
-                <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {comment}
-                </p>
-              )}
+          {/* Header Row: Back, Title, Chips & Print */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 240px' }}>
+              <button
+                onClick={backToList}
+                style={{
+                  ...btnSecondary,
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+                title={t('batch.backToBatches')}
+              >
+                <ChevronLeft size={18} />
+              </button>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexWrap: 'wrap' }}>
+                <h2 style={{
+                  margin: 0,
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  color: 'var(--foreground)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {printLabel || profile}
+                </h2>
+
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 7px',
+                  borderRadius: '12px',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  background: 'rgba(var(--primary-rgb), 0.12)',
+                  color: 'var(--primary)',
+                }}>
+                  <Tag size={10} />
+                  {profile}
+                </span>
+
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 7px',
+                  borderRadius: '12px',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  color: 'var(--text-muted)',
+                }}>
+                  <Wifi size={10} />
+                  {wifiName}
+                </span>
+
+                {comment && (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 7px',
+                    borderRadius: '12px',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: 'var(--text-muted)',
+                  }}>
+                    <MessageSquare size={10} />
+                    {comment}
+                  </span>
+                )}
+              </div>
             </div>
-            <button onClick={handlePrintVouchers} style={{ ...btnSecondary, padding: '8px 12px' }} disabled={printLoading}>
-              <Printer size={16} />
+
+            <button
+              onClick={() => {
+                if (wifiInput === null) setWifiInput(defaultWifiName);
+                setShowPrintConfirmModal(true);
+              }}
+              disabled={printLoading}
+              style={{
+                ...btnPrimary,
+                padding: '6px 12px',
+                borderRadius: '10px',
+                fontSize: '12px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: printLoading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <Printer size={14} />
+              <span>{printLoading ? '...' : t('batch.printBtn')}</span>
             </button>
           </div>
 
-          {/* Row 2: Stat counters */}
+          {/* Compact Stat Cards Grid */}
           {detail && (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch', flexWrap: 'wrap' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '8px',
+            }}>
+              {/* TOTAL Card */}
               <button
                 onClick={() => setStatusFilter('all')}
                 style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  padding: '10px 16px', borderRadius: '12px', border: '1px solid var(--glass-border)',
-                  background: statusFilter === 'all' ? 'var(--primary)' : 'rgba(var(--primary-rgb), 0.05)',
-                  cursor: 'pointer', transition: 'all 0.15s', minWidth: '60px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  border: statusFilter === 'all' ? '1.5px solid var(--primary)' : '1px solid var(--glass-border)',
+                  background: statusFilter === 'all' ? 'rgba(var(--primary-rgb), 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <span style={{ fontSize: '18px', fontWeight: 800, lineHeight: 1.1, color: statusFilter === 'all' ? '#fff' : 'var(--foreground)' }}>
-                  {detail.originalCount}
-                </span>
-                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '2px', color: statusFilter === 'all' ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}>
-                  TOTAL
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', color: statusFilter === 'all' ? 'var(--primary)' : 'var(--text-muted)' }}>
+                    {t('batch.total')}
+                  </span>
+                  <span style={{ fontSize: '16px', fontWeight: 800, lineHeight: 1, color: statusFilter === 'all' ? 'var(--primary)' : 'var(--foreground)' }}>
+                    {detail.originalCount}
+                  </span>
+                </div>
+                <Layers size={14} style={{ color: statusFilter === 'all' ? 'var(--primary)' : 'var(--text-muted)', opacity: 0.7 }} />
               </button>
+
+              {/* UNUSED Card */}
               <button
                 onClick={() => setStatusFilter(statusFilter === 'unused' ? 'all' : 'unused')}
                 style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  padding: '10px 16px', borderRadius: '12px', border: '1px solid var(--glass-border)',
-                  background: statusFilter === 'unused' ? 'var(--success)' : 'rgba(34,197,94,0.06)',
-                  cursor: 'pointer', transition: 'all 0.15s', minWidth: '60px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  border: statusFilter === 'unused' ? '1.5px solid #22c55e' : '1px solid var(--glass-border)',
+                  background: statusFilter === 'unused' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(34, 197, 94, 0.04)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <span style={{ fontSize: '18px', fontWeight: 800, lineHeight: 1.1, color: statusFilter === 'unused' ? '#fff' : 'var(--success)' }}>
-                  {detail.unusedCount}
-                </span>
-                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '2px', color: statusFilter === 'unused' ? 'rgba(255,255,255,0.7)' : 'var(--success)' }}>
-                  UNUSED
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', color: '#22c55e' }}>
+                    {t('batch.unused')}
+                  </span>
+                  <span style={{ fontSize: '16px', fontWeight: 800, lineHeight: 1, color: '#22c55e' }}>
+                    {detail.unusedCount}
+                  </span>
+                </div>
+                <CheckCircle2 size={14} style={{ color: '#22c55e', opacity: 0.7 }} />
               </button>
+
+              {/* ACTIVE Card */}
               <button
                 onClick={() => setStatusFilter(statusFilter === 'active' ? 'all' : 'active')}
                 style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  padding: '10px 16px', borderRadius: '12px', border: '1px solid var(--glass-border)',
-                  background: statusFilter === 'active' ? 'var(--accent)' : 'rgba(59,130,246,0.06)',
-                  cursor: 'pointer', transition: 'all 0.15s', minWidth: '60px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  border: statusFilter === 'active' ? '1.5px solid #3b82f6' : '1px solid var(--glass-border)',
+                  background: statusFilter === 'active' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.04)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <span style={{ fontSize: '18px', fontWeight: 800, lineHeight: 1.1, color: statusFilter === 'active' ? '#fff' : 'var(--accent)' }}>
-                  {detail.activeCount}
-                </span>
-                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '2px', color: statusFilter === 'active' ? 'rgba(255,255,255,0.7)' : 'var(--accent)' }}>
-                  ACTIVE
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', color: '#3b82f6' }}>
+                    {t('batch.active')}
+                  </span>
+                  <span style={{ fontSize: '16px', fontWeight: 800, lineHeight: 1, color: '#3b82f6' }}>
+                    {detail.activeCount}
+                  </span>
+                </div>
+                <Zap size={14} style={{ color: '#3b82f6', opacity: 0.7 }} />
               </button>
+
+              {/* EXPIRED Card */}
               <button
                 onClick={() => setStatusFilter(statusFilter === 'expired' ? 'all' : 'expired')}
                 style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  padding: '10px 16px', borderRadius: '12px', border: '1px solid var(--glass-border)',
-                  background: statusFilter === 'expired' ? '#ef4444' : 'rgba(239,68,68,0.06)',
-                  cursor: 'pointer', transition: 'all 0.15s', minWidth: '60px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  border: statusFilter === 'expired' ? '1.5px solid #ef4444' : '1px solid var(--glass-border)',
+                  background: statusFilter === 'expired' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.04)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <span style={{ fontSize: '18px', fontWeight: 800, lineHeight: 1.1, color: statusFilter === 'expired' ? '#fff' : '#ef4444' }}>
-                  {detail.expiredCount}
-                </span>
-                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '2px', color: statusFilter === 'expired' ? 'rgba(255,255,255,0.7)' : '#ef4444' }}>
-                  EXPIRED
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', color: '#ef4444' }}>
+                    {t('batch.expired')}
+                  </span>
+                  <span style={{ fontSize: '16px', fontWeight: 800, lineHeight: 1, color: '#ef4444' }}>
+                    {detail.expiredCount}
+                  </span>
+                </div>
+                <Clock size={14} style={{ color: '#ef4444', opacity: 0.7 }} />
               </button>
             </div>
           )}
 
-          {/* Pie Chart */}
-          {detail && renderDonutChart(detail.unusedCount, detail.activeCount, detail.expiredCount)}
-
-          {/* Row 3: Search */}
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* Micro Progress Bar & Search */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <div style={{ flex: 1, position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <Search
+                size={14}
+                style={{
+                  position: 'absolute',
+                  left: isRtl ? 'auto' : '12px',
+                  right: isRtl ? '12px' : 'auto',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                }}
+              />
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); if (!e.target.value) setSearchResults(null); }}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (!e.target.value) setSearchResults(null);
+                }}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Search vouchers by code..."
+                placeholder={t('batch.searchVouchersPlaceholder')}
                 style={{
-                  width: '100%', boxSizing: 'border-box',
-                  padding: '10px 12px 10px 36px',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: isRtl ? '8px 34px 8px 12px' : '8px 12px 8px 34px',
                   borderRadius: '10px',
                   border: '1px solid var(--glass-border)',
-                  background: 'rgba(var(--primary-rgb), 0.04)',
-                  color: 'var(--foreground)', fontSize: '13px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  color: 'var(--foreground)',
+                  fontSize: '12px',
+                  outline: 'none',
                 }}
               />
             </div>
+
             {searchQuery.trim() && (
-              <button onClick={handleSearch} style={btnPrimary} disabled={searchLoading}>
-                {searchLoading ? '...' : 'Search'}
+              <button
+                onClick={handleSearch}
+                style={{ ...btnPrimary, padding: '8px 14px', borderRadius: '10px', fontSize: '12px' }}
+                disabled={searchLoading}
+              >
+                {searchLoading ? '...' : t('common.search')}
               </button>
             )}
+
             {searchResults && (
-              <button onClick={() => { setSearchResults(null); setSearchQuery(''); }} style={btnSecondary}>
-                <X size={16} />
+              <button
+                onClick={() => {
+                  setSearchResults(null);
+                  setSearchQuery('');
+                }}
+                style={{ ...btnSecondary, padding: '8px 12px', borderRadius: '10px' }}
+              >
+                <X size={14} />
               </button>
             )}
           </div>
         </div>
 
-        {/* Voucher List */}
         {detailLoading ? (
-          <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: '8px',
+            }}
+          >
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--glass-border)',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                  <div className="skeleton" style={{ width: '70%', height: '14px' }} />
+                  <div className="skeleton" style={{ width: '40%', height: '10px' }} />
+                </div>
+                <div className="skeleton" style={{ width: '18px', height: '18px', borderRadius: '4px' }} />
+              </div>
+            ))}
+          </div>
         ) : isEmpty && !hasSearch ? (
           <p style={{ color: 'var(--text-muted)' }}>No vouchers in this batch.</p>
         ) : hasSearch ? (
@@ -801,20 +1388,25 @@ export default function BatchDetailPage() {
             {visible.unused && visible.unused.length > 0 && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <h3 style={{ margin: 0, fontSize: '14px', color: 'var(--success)' }}>
-                    Unused ({detail?.unusedCount || visible.unused.length})
-                  </h3>
-                  {statusFilter === 'unused' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
+                      Unused Vouchers
+                    </span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                      ({detail?.unusedCount || visible.unused.length})
+                    </span>
+                  </div>
+                  {(statusFilter === 'unused' || visible.unused.length > 5) && (
                     <button
                       onClick={() => handleShowAll('unused')}
-                      style={{ ...btnSecondary, fontSize: '11px', padding: '4px 10px' }}
+                      style={{ ...btnSecondary, fontSize: '11px', padding: '3px 8px', borderRadius: '6px' }}
                     >
-                      Show All
+                      Show All {visible.unused.length > 5 ? `(${visible.unused.length})` : ''}
                     </button>
                   )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {visible.unused.slice(0, 50).map((v) => renderVoucherCard(v, 'unused'))}
+                  {visible.unused.slice(0, 5).map((v) => renderVoucherCard(v, 'unused'))}
                 </div>
               </div>
             )}
@@ -822,13 +1414,18 @@ export default function BatchDetailPage() {
             {visible.active && visible.active.length > 0 && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <h3 style={{ margin: 0, fontSize: '14px', color: 'var(--accent)' }}>
-                    Active ({detail?.activeCount || visible.active.length})
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
+                      Active Vouchers
+                    </span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                      ({detail?.activeCount || visible.active.length})
+                    </span>
+                  </div>
                   {statusFilter === 'active' && (
                     <button
                       onClick={() => handleShowAll('active')}
-                      style={{ ...btnSecondary, fontSize: '11px', padding: '4px 10px' }}
+                      style={{ ...btnSecondary, fontSize: '11px', padding: '3px 8px', borderRadius: '6px' }}
                     >
                       Show All
                     </button>
@@ -843,13 +1440,18 @@ export default function BatchDetailPage() {
             {visible.expired && visible.expired.length > 0 && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <h3 style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>
-                    Expired ({detail?.expiredCount || visible.expired.length})
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
+                      Expired Vouchers
+                    </span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                      ({detail?.expiredCount || visible.expired.length})
+                    </span>
+                  </div>
                   {statusFilter === 'expired' && (
                     <button
                       onClick={() => handleShowAll('expired')}
-                      style={{ ...btnSecondary, fontSize: '11px', padding: '4px 10px' }}
+                      style={{ ...btnSecondary, fontSize: '11px', padding: '3px 8px', borderRadius: '6px' }}
                     >
                       Show All
                     </button>
@@ -871,7 +1473,12 @@ export default function BatchDetailPage() {
   const renderShowAllModal = () => {
     if (!showAllModal) return null;
 
-    const statusLabel = showAllModal === 'unused' ? 'Unused' : showAllModal === 'active' ? 'Active' : 'Expired';
+    const statusLabel =
+      showAllModal === 'unused'
+        ? t('batch.statusUnused')
+        : showAllModal === 'active'
+        ? t('batch.statusActive')
+        : t('batch.statusExpired');
     const statusColor =
       showAllModal === 'unused' ? 'var(--success)' : showAllModal === 'active' ? 'var(--accent)' : 'var(--text-muted)';
 
@@ -885,6 +1492,7 @@ export default function BatchDetailPage() {
           alignItems: 'center',
           justifyContent: 'center',
           background: 'rgba(0,0,0,0.5)',
+          direction: isRtl ? 'rtl' : 'ltr',
         }}
         onClick={() => { setShowAllModal(null); setAllVouchers(null); }}
       >
@@ -903,7 +1511,7 @@ export default function BatchDetailPage() {
           onClick={(e) => e.stopPropagation()}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ margin: 0, color: statusColor }}>{statusLabel} Vouchers</h3>
+            <h3 style={{ margin: 0, color: statusColor }}>{statusLabel} ({t('batch.totalVouchers')})</h3>
             <button
               onClick={() => { setShowAllModal(null); setAllVouchers(null); }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}
@@ -914,7 +1522,7 @@ export default function BatchDetailPage() {
 
           <div className="custom-scroll" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {allVouchersLoading ? (
-              <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+              <p style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>
             ) : allVouchers && allVouchers.length > 0 ? (
               allVouchers.map((v) => {
                 const name = v.name || (v as any)['.id'] || '';
@@ -1088,40 +1696,292 @@ export default function BatchDetailPage() {
 
   // ── Main Render ──
 
+  const printStyles = `
+  @page {
+    size: A4;
+    margin: 0 !important;
+  }
+  @media print {
+    .no-print,
+    header,
+    .app-header,
+    .mobile-telemetry-bar,
+    aside,
+    nav,
+    footer,
+    button,
+    input,
+    select,
+    textarea,
+    .modal-overlay,
+    .layout-content-wrapper > header,
+    .desktop-sidebar-wrapper,
+    .mobile-nav {
+      display: none !important;
+      height: 0 !important;
+      width: 0 !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      overflow: hidden !important;
+    }
+    
+    html, body {
+      width: 210mm !important;
+      height: 297mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+      color: #000 !important;
+      overflow: visible !important;
+    }
+    
+    .layout-container,
+    .layout-content-wrapper,
+    .layout-main,
+    .layout-page-inner,
+    .layout-page-content {
+      display: block !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      border: none !important;
+      width: auto !important;
+      height: auto !important;
+      min-height: 0 !important;
+      position: static !important;
+      transform: none !important;
+      overflow: visible !important;
+    }
+    
+    .print-container { 
+      display: block !important; 
+      width: 210mm !important; 
+      margin: 0 !important;
+      padding: 0 !important;
+      background: transparent !important;
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      z-index: 99999 !important;
+    }
+    
+    .a4-page {
+      width: 210mm !important;
+      height: 296mm !important;
+      page-break-after: always !important;
+      break-after: page !important;
+      display: flex !important;
+      flex-direction: column !important;
+      padding: 4mm 4mm !important;
+      box-sizing: border-box !important;
+      background: white !important;
+      overflow: hidden !important;
+    }
+
+    .print-page-header {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      width: 100% !important;
+      height: 6mm !important;
+      border-bottom: 1px dashed #555 !important;
+      margin-bottom: 1.5mm !important;
+      padding-bottom: 0.5mm !important;
+      box-sizing: border-box !important;
+    }
+
+    .print-header-left, .print-header-right {
+      font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+      color: #333 !important;
+      font-size: 8.5px !important;
+      line-height: 1 !important;
+    }
+
+    .print-header-left {
+      font-weight: 700 !important;
+    }
+
+    .print-header-right {
+      font-weight: 600 !important;
+    }
+
+    .vouchers-grid {
+      display: grid !important;
+      grid-template-columns: repeat(7, 1fr) !important;
+      grid-template-rows: repeat(14, 1fr) !important;
+      row-gap: 0.8mm !important;
+      column-gap: 1.2mm !important;
+      height: calc(100% - 8mm) !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    
+    .print-voucher { 
+      border: 1px solid #555 !important; 
+      border-radius: 5px !important;
+      padding: 2px !important; 
+      text-align: center !important; 
+      background-color: #fff !important;
+      color: #000 !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: space-around !important;
+      height: 100% !important;
+      box-sizing: border-box !important;
+    }
+    
+    .voucher-wifi, .voucher-code, .voucher-profile {
+      font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+    }
+    
+    .voucher-wifi {
+      font-size: 9px !important;
+      font-weight: 700 !important;
+      color: #000 !important;
+      line-height: 1.1 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      width: 100% !important;
+      margin: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 2px !important;
+      direction: rtl !important;
+    }
+    
+    .voucher-wifi-icon {
+      width: 8.5px !important;
+      height: 8.5px !important;
+      stroke: #000 !important;
+    }
+    
+    .voucher-code {
+      font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+      font-size: 14px !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.1px !important;
+      color: #000 !important;
+      line-height: 1.1 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      direction: ltr !important;
+    }
+    
+    .voucher-profile {
+      font-size: 9px !important;
+      color: #000 !important;
+      font-weight: 600 !important;
+      line-height: 1.1 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      width: 100% !important;
+      margin: 0 !important;
+      direction: rtl !important;
+    }
+  }
+  `;
+
+  const vouchersToPrintList = printableVouchers.length > 0 ? printableVouchers : (batchDetail?.unusedVouchers || []);
+
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Toast */}
-      {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            zIndex: 300,
-            padding: '12px 20px',
-            borderRadius: '10px',
-            background: toast.type === 'success' ? 'var(--success)' : '#ef4444',
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: '13px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
-          }}
-        >
-          {toast.message}
-        </div>
-      )}
+      <style dangerouslySetInnerHTML={{ __html: printStyles }} />
 
-      {/* Info Modal */}
-      {renderInfoModal()}
+      <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Toast */}
+        {toast && (
+          <div
+            style={{
+              position: 'fixed',
+              top: '20px',
+              right: '20px',
+              zIndex: 300,
+              padding: '12px 20px',
+              borderRadius: '10px',
+              background: toast.type === 'success' ? 'var(--success)' : '#ef4444',
+              color: '#fff',
+              fontWeight: 600,
+              fontSize: '13px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+            }}
+          >
+            {toast.message}
+          </div>
+        )}
 
-      {/* Show All Modal */}
-      {renderShowAllModal()}
+        {/* Info Modal */}
+        {renderInfoModal()}
 
-      {/* Print Modal */}
-      {renderPrintModal()}
+        {/* Show All Modal */}
+        {renderShowAllModal()}
 
-      {/* Content */}
-      {renderDetailView()}
+        {/* Print Confirmation Modal */}
+        {renderPrintConfirmModal()}
+
+        {/* Print Modal */}
+        {renderPrintModal()}
+
+        {/* Content */}
+        {renderDetailView()}
+      </div>
+
+      {/* Print Container for window.print() */}
+      <div className="print-container" style={{ display: 'none' }}>
+        {chunkArray(vouchersToPrintList, 98).map((pageVouchers: any[], pageIdx: number) => {
+          const batchName = comment ? formatBatchTime(comment) : profile;
+          const totalUnused = vouchersToPrintList.length;
+          return (
+            <div key={pageIdx} className="a4-page">
+              <div className="print-page-header">
+                <span className="print-header-left">
+                  WiFi: {wifiName} | Profile: {printLabel || profile} | Batch: {batchName}
+                </span>
+                <span className="print-header-right">
+                  Total Vouchers: {totalUnused} | Printed: {printDate}
+                </span>
+              </div>
+              <div className="vouchers-grid">
+                {pageVouchers.map((u: any) => {
+                  const name = getVoucherName(u);
+                  return (
+                    <div key={name} className="print-voucher">
+                      <div className="voucher-wifi">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="8.5"
+                          height="8.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="voucher-wifi-icon"
+                        >
+                          <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                          <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+                        </svg>
+                        <span>{wifiName}</span>
+                      </div>
+                      <div className="voucher-code">{name}</div>
+                      <div className="voucher-profile">{printLabel || profile}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

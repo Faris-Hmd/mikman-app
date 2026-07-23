@@ -5,3 +5,18 @@
 html, body, #root {
   height: 100%;
 }
+
+/* ─── Responsive Batch Telemetry Utilities ─── */
+@media (max-width: 640px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+  .batch-metrics-grid {
+    grid-template-columns: repeat(3, minmax(50px, 65px)) !important;
+  }
+}
+@media (min-width: 641px) {
+  .batch-metrics-grid {
+    grid-template-columns: repeat(4, minmax(55px, 70px)) !important;
+  }
+}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import RouterStatusHeader from './RouterStatusHeader';
 
 export default function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -14,6 +15,7 @@ export default function AppShell() {
           onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           isMobileMenuOpen={isMobileMenuOpen}
         />
+        <RouterStatusHeader />
         <main className="layout-main" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div className="layout-page-inner" style={{ width: '100%', maxWidth: '1200px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div className="layout-page-content" style={{ width: '100%', maxWidth: '1200px', flex: 1, display: 'flex', flexDirection: 'column' }}>

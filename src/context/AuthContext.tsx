@@ -53,6 +53,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
+  const [cachedUserData, setCachedUserData] = useState<UserData | null>(() => {
+    try {
+      const saved = localStorage.getItem('@cached_user_data');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   // Auth session tracking
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -77,6 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setSupabaseIdToken(null);
         setUser(null);
+        setCachedUserData(null);
+        try { localStorage.removeItem('@cached_user_data'); } catch {}
       }
       setIsAuthLoading(false);
     });
@@ -89,30 +100,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user ? 'router-profiles' : null,
     async () => {
       const result = await fetchRouterProfilesWithUserAPI();
-      // console.log('[Auth] /routers/profiles response:', result);
       return result;
     },
     {
       refreshInterval: 300000,
       revalidateOnFocus: true,
       dedupingInterval: 60000,
+      keepPreviousData: true,
     }
   );
 
-  const userData = data?.userData ?? null;
-  const accountInfo = deriveAccountInfo(userData);
+  useEffect(() => {
+    if (data?.userData) {
+      setCachedUserData(data.userData);
+      try {
+        localStorage.setItem('@cached_user_data', JSON.stringify(data.userData));
+      } catch (e) {
+        console.warn('Failed to cache user data:', e);
+      }
+    }
+  }, [data]);
+
+  const activeUserData = data?.userData || cachedUserData;
+  const accountInfo = deriveAccountInfo(activeUserData);
 
   const signOut = useCallback(async () => {
+    try { localStorage.removeItem('@cached_user_data'); } catch {}
+    setCachedUserData(null);
     await supabase.auth.signOut();
   }, []);
 
   return (
     <AuthContext.Provider value={{
       user,
-      userData,
+      userData: activeUserData,
       accountInfo,
       isAuthLoading,
-      isSubLoading: user ? isSubLoading : false,
+      isSubLoading: user ? (isSubLoading && !activeUserData) : false,
       signOut,
     }}>
       {children}

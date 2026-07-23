@@ -338,7 +338,43 @@ export const fetchRouterProfilesWithUserAPI = async (): Promise<RouterProfilesRe
 };
 
 export const fetchProfilesAPI = async (routerId: string): Promise<unknown> => {
-  return apiCall('/profiles', { routerId, cache: 'no-store' });
+  const res = await apiCall<any>('/profiles', { routerId, cache: 'no-store' });
+  let list: any[] = [];
+  if (Array.isArray(res)) {
+    list = res;
+  } else if (res && typeof res === 'object') {
+    if (Array.isArray(res.profiles)) {
+      list = res.profiles;
+    } else if (Array.isArray(res.data)) {
+      list = res.data;
+    }
+  }
+  return list
+    .map((p: any) => {
+      let rev = p.revenue ?? p.price;
+      if ((rev === undefined || rev === null || rev === '') && typeof p['on-login'] === 'string') {
+        const match = p['on-login'].match(/(?:price|revenue|rev)\s*[:=]?\s*\$?\s*(\d+(?:\.\d+)?)/i);
+        if (match) rev = parseFloat(match[1]);
+      }
+      if ((rev === undefined || rev === null || rev === '') && typeof p.onlogin === 'string') {
+        const match = p.onlogin.match(/(?:price|revenue|rev)\s*[:=]?\s*\$?\s*(\d+(?:\.\d+)?)/i);
+        if (match) rev = parseFloat(match[1]);
+      }
+      if ((rev === undefined || rev === null || rev === '') && typeof p.comment === 'string') {
+        const match = p.comment.match(/(?:price|revenue|rev)\s*[:=]?\s*\$?\s*(\d+(?:\.\d+)?)/i);
+        if (match) rev = parseFloat(match[1]);
+      }
+      const numRev = rev !== undefined && rev !== null && rev !== '' ? Number(rev) : null;
+      return {
+        ...p,
+        revenue: numRev !== null && !isNaN(numRev) ? numRev : p.revenue ?? p.price,
+        price: numRev !== null && !isNaN(numRev) ? numRev : p.price ?? p.revenue,
+      };
+    })
+    .filter((p: any) => {
+      const name = (p.name || p.id || '').toString().toLowerCase().trim();
+      return name !== 'default';
+    });
 };
 
 export const deleteProfileAPI = async (routerId: string, id: string): Promise<void> => {
@@ -354,11 +390,14 @@ export const renameProfileAPI = async (
   id: string,
   newName: string,
   printLabel?: string,
-  revenue?: string | number
+  revenue?: string | number,
+  validity?: string,
+  limitMB?: number,
+  isUnlimited?: boolean
 ): Promise<void> => {
   await apiCall('/profiles/set', {
     method: 'POST',
-    body: { id, name: newName, printLabel, revenue },
+    body: { id, name: newName, printLabel, revenue, validity, limitMB, isUnlimited },
     routerId,
   });
 };
