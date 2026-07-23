@@ -159,7 +159,7 @@ export default function BatchDetailPage() {
       ? `batch-detail-${routerId}-${profile}-${comment || 'none'}`
       : null,
     () => fetchVoucherBatchDetailAPI(routerId!, profile, comment, printLabel),
-    { revalidateOnFocus: true }
+    { revalidateOnFocus: false, dedupingInterval: 15000, keepPreviousData: true }
   );
 
   // ── Helpers ──

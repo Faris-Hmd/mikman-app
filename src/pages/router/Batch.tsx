@@ -33,7 +33,7 @@ export default function BatchPage() {
   const { data: batches, isLoading: batchesLoading } = useSWR(
     routerId ? `batch-list-${routerId}` : null,
     () => fetchVoucherBatchesAPI(routerId!),
-    { revalidateOnFocus: true }
+    { revalidateOnFocus: false, dedupingInterval: 15000, keepPreviousData: true }
   );
   const batchList: VoucherBatch[] = Array.isArray(batches) ? batches : [];
 
