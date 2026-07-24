@@ -105,6 +105,7 @@ export default function VouchersPage() {
       setTimeout(() => {
         const params = new URLSearchParams();
         params.set('profile', selectedProfile);
+        if (res?.batchId) params.set('batchId', res.batchId);
         if (comment.trim()) params.set('comment', comment.trim());
         navigate(`/${routerId}/batch/detail?${params.toString()}`);
       }, 1000);

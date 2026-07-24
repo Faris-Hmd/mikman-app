@@ -439,8 +439,8 @@ export const createVouchersAPI = async (
   length: number,
   comment?: string,
   limitBytesTotal?: number
-): Promise<{ pins: string[]; jobId?: string }> => {
-  const data = await apiCall<{ pins: string[]; jobId?: string; success: boolean }>(
+): Promise<{ pins: string[]; jobId?: string; batchId?: string }> => {
+  const data = await apiCall<{ pins: string[]; jobId?: string; batchId?: string; success: boolean }>(
     '/vouchers/create',
     {
       method: 'POST',
@@ -449,7 +449,7 @@ export const createVouchersAPI = async (
       timeoutMs: 300_000,
     }
   );
-  return { pins: data.pins, jobId: data.jobId };
+  return { pins: data.pins, jobId: data.jobId, batchId: data.batchId };
 };
 
 export const deleteVouchersAPI = async (routerId: string, ids: string[]): Promise<void> => {
