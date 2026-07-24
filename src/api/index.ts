@@ -305,7 +305,7 @@ interface GenerateScriptParams {
   model: string;
   wifiName: string;
   user: string;
-  password: string;
+  password?: string;
   supportName?: string;
   supportPhone?: string;
   owners?: string[];

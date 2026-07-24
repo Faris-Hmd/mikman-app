@@ -9,6 +9,7 @@ import {
   provisionHotspotServerAPI,
   provisionHotspotFilesAPI,
   deleteRouterProfileAPI,
+  generateCloudScriptAPI,
 } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 import { useModal } from '../../context/ModalContext';
@@ -29,6 +30,9 @@ import {
   Clock,
   ShieldAlert,
   Plus,
+  Terminal,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 const HARDWARE_MODELS: { value: string; label: string }[] = [
@@ -159,6 +163,11 @@ export default function SettingsPage() {
 
   // Hotspot Files Form State
   const [hotspotWifiName, setHotspotWifiName] = useState('');
+
+  // Provisioning Terminal Script State
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false);
+  const [generatedScript, setGeneratedScript] = useState<string | null>(null);
+  const [copiedScript, setCopiedScript] = useState(false);
 
   // Fetch telemetry status
   const { data: status, isLoading: isStatusLoading, mutate: mutateStatus } = useSWR(
@@ -338,6 +347,37 @@ export default function SettingsPage() {
     } finally {
       setIsProvisioningFiles(false);
     }
+  };
+
+  // 5. Generate / Re-generate Terminal Provisioning Script
+  const handleGenerateProvisionScript = async () => {
+    if (!routerId) return;
+    try {
+      setIsGeneratingScript(true);
+      setCopiedScript(false);
+      const res = await generateCloudScriptAPI({
+        id: routerId,
+        name: infoForm.name.trim() || 'Router',
+        model: infoForm.model || 'other',
+        wifiName: wifiSsid.trim() || 'MikroTik Wi-Fi',
+        user: 'admin',
+        owners: safeOwners,
+        timezone: infoForm.timezone || 'Africa/Khartoum',
+      });
+      setGeneratedScript(res.script || '');
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      showAlert(t('dashboard.scriptError') || 'Script Error', errMsg, 'error');
+    } finally {
+      setIsGeneratingScript(false);
+    }
+  };
+
+  const handleCopyScript = () => {
+    if (!generatedScript) return;
+    navigator.clipboard.writeText(generatedScript);
+    setCopiedScript(true);
+    setTimeout(() => setCopiedScript(false), 2500);
   };
 
   // 5. Delete Router Profile
@@ -850,7 +890,92 @@ export default function SettingsPage() {
           </div>
         </form>
 
-        {/* ── 5. Danger Zone Card ── */}
+        {/* ── 5. Provisioning Terminal Script Card ── */}
+        <div style={cardStyle}>
+          <div style={sectionHeaderStyle}>
+            <div style={iconCircleStyle('rgba(59, 130, 246, 0.15)', '#3b82f6')}>
+              <Terminal size={16} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--foreground)' }}>
+                {t('settings.provisionScriptTitle')}
+              </h3>
+              <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
+                {t('settings.provisionScriptSubtitle')}
+              </p>
+            </div>
+          </div>
+
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+            {t('settings.provisionScriptDesc')}
+          </p>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleGenerateProvisionScript}
+              disabled={isGeneratingScript}
+              style={{
+                ...primaryBtnStyle(isGeneratingScript),
+                background: isGeneratingScript ? 'var(--text-muted)' : '#3b82f6',
+              }}
+            >
+              <RefreshCw size={14} className={isGeneratingScript ? 'spin' : ''} />
+              <span>{isGeneratingScript ? t('settings.generatingScript') : t('settings.generateScriptBtn')}</span>
+            </button>
+          </div>
+
+          {generatedScript && (
+            <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--foreground)' }}>
+                  {t('settings.terminalScript')}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyScript}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: copiedScript ? '#10b981' : 'var(--primary)',
+                    color: '#fff',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {copiedScript ? <Check size={14} /> : <Copy size={14} />}
+                  <span>{copiedScript ? t('settings.copied') : t('settings.copyScript')}</span>
+                </button>
+              </div>
+
+              <textarea
+                readOnly
+                value={generatedScript}
+                rows={10}
+                style={{
+                  width: '100%',
+                  fontFamily: 'monospace',
+                  fontSize: '11px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: 'var(--surface-dark, #0f172a)',
+                  color: '#38bdf8',
+                  border: '1px solid var(--border-color)',
+                  resize: 'vertical',
+                  whiteSpace: 'pre',
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ── 6. Danger Zone Card ── */}
         <div style={{ ...cardStyle, border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.03)' }}>
           <div style={sectionHeaderStyle}>
             <div style={iconCircleStyle('rgba(239, 68, 68, 0.15)', '#ef4444')}>
