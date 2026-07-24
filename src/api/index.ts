@@ -190,6 +190,7 @@ export interface RouterProvisionStatus {
   online: boolean;
   timezone: string;
   wifiName: string;
+  routerTime?: string | null;
   uptime?: string;
   uptime_display?: string;
   cpuLoad?: number | null;
