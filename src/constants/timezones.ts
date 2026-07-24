@@ -1,0 +1,26 @@
+export const TIMEZONES = [
+  'UTC',
+  // Middle East & North Africa (MENA) & Regional
+  'Africa/Khartoum',
+  'Africa/Cairo',
+  'Africa/Casablanca',
+  'Africa/Tripoli',
+  'Africa/Tunis',
+  'Africa/Algiers',
+  'Asia/Riyadh',
+  'Asia/Baghdad',
+  'Asia/Kuwait',
+  'Asia/Qatar',
+  'Asia/Bahrain',
+  'Asia/Muscat',
+  'Asia/Amman',
+  'Asia/Beirut',
+  'Asia/Damascus',
+  'Asia/Gaza',
+  'Asia/Jerusalem',
+  // Sub-Saharan Africa
+  'Africa/Addis_Ababa',
+  'Africa/Johannesburg',
+  'Africa/Lagos',
+  'Africa/Nairobi',
+];
