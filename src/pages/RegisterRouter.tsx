@@ -4,7 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { useAuth } from '../context/AuthContext';
 import { generateCloudScriptAPI } from '../api';
-import { Router, Cpu, User, Lock, Users, MapPin, ArrowLeft, Terminal, Copy, Check } from 'lucide-react';
+import { Router, Cpu, User, Lock, Users, MapPin, ArrowLeft, Terminal, Copy, Check, Plus, Trash2 } from 'lucide-react';
 
 const HARDWARE_MODELS: { value: string; label: string }[] = [
   { value: 'hap-ax3', label: 'hAP AX³' },
@@ -111,7 +111,14 @@ export default function RegisterRouterPage() {
 
   const currentUserEmail = user?.email || '';
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    model: string;
+    user: string;
+    password: string;
+    owners: string[];
+    timezone: string;
+  }>({
     name: '',
     model: 'hap-ax3',
     user: 'admin',
@@ -130,6 +137,28 @@ export default function RegisterRouterPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleOwnerChange = (index: number, value: string) => {
+    setFormData((prev) => {
+      const updated = [...prev.owners];
+      updated[index] = value;
+      return { ...prev, owners: updated };
+    });
+  };
+
+  const handleAddOwner = () => {
+    setFormData((prev) => ({
+      ...prev,
+      owners: [...prev.owners, ''],
+    }));
+  };
+
+  const handleRemoveOwner = (index: number) => {
+    setFormData((prev) => {
+      const updated = prev.owners.filter((_, i) => i !== index);
+      return { ...prev, owners: updated.length > 0 ? updated : [''] };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -143,17 +172,7 @@ export default function RegisterRouterPage() {
       return;
     }
 
-    if (!formData.owners.trim()) {
-      showAlert(
-        t('dashboard.ownerRequired') || 'Owner Required',
-        t('dashboard.ownerEmailRequired') || 'At least one owner email is required.',
-        'error'
-      );
-      return;
-    }
-
     const ownersArray = formData.owners
-      .split(',')
       .map((o: string) => o.trim())
       .filter((o: string) => o.length > 0);
 
@@ -488,20 +507,66 @@ export default function RegisterRouterPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div>
-              <label htmlFor="owners" style={labelStyle}>
+              <label style={labelStyle}>
                 <Users size={10} />
                 {t('dashboard.authorizedOwners') || 'Authorized Owners'}
               </label>
-              <input
-                id="owners"
-                name="owners"
-                type="text"
-                value={formData.owners}
-                onChange={handleChange}
-                placeholder={t('dashboard.placeholderOwners') || 'e.g. owner1@example.com, owner2@example.com'}
-                style={inputStyle}
-                required
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {formData.owners.map((ownerEmail, index) => (
+                  <div key={index} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <input
+                      type="email"
+                      value={ownerEmail}
+                      onChange={(e) => handleOwnerChange(index, e.target.value)}
+                      placeholder={t('dashboard.placeholderOwners') || 'e.g. owner@example.com'}
+                      style={inputStyle}
+                      required={index === 0}
+                    />
+                    {formData.owners.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveOwner(index)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          padding: '6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '6px',
+                        }}
+                        title={t('common.delete') || 'Remove'}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={handleAddOwner}
+                  style={{
+                    alignSelf: 'flex-start',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--glass-border)',
+                    color: 'var(--primary)',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    marginTop: '2px',
+                    padding: '5px 10px',
+                    borderRadius: '8px',
+                  }}
+                >
+                  <Plus size={13} />
+                  <span>{t('dashboard.addOwner') || 'Add Owner Email'}</span>
+                </button>
+              </div>
             </div>
 
             <div>
