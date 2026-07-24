@@ -235,6 +235,7 @@ export interface RevenueStatsPayload {
 // ── Voucher batch types (updated to match new API response shapes) ──────────
 
 export interface VoucherBatch {
+  batchId?: string;
   profile: string;
   printLabel: string;
   comment: string;
@@ -279,6 +280,7 @@ export interface ExpiredVoucher extends VoucherSummary {
 }
 
 export interface VoucherBatchDetail {
+  batchId?: string;
   profile: string;
   printLabel: string;
   comment: string;
@@ -473,12 +475,14 @@ export const fetchVoucherBatchDetailAPI = async (
   routerId: string,
   profile: string,
   comment?: string,
-  printLabel?: string
+  printLabel?: string,
+  batchId?: string
 ): Promise<VoucherBatchDetail> => {
   const params = new URLSearchParams();
   params.append('profile', profile);
   if (comment) params.append('comment', comment);
   if (printLabel) params.append('printLabel', printLabel);
+  if (batchId) params.append('batchId', batchId);
   return apiCall<VoucherBatchDetail>(
     `/vouchers/batches/detail?${params.toString()}`,
     { routerId, cache: 'no-store' }
@@ -493,13 +497,15 @@ export const searchVouchersAPI = async (
   query: string,
   profile?: string,
   comment?: string,
-  printLabel?: string
+  printLabel?: string,
+  batchId?: string
 ): Promise<{ results: VoucherSearchResult[]; total: number }> => {
   const params = new URLSearchParams();
   params.append('q', query);
   if (profile) params.append('profile', profile);
   if (comment) params.append('comment', comment);
   if (printLabel) params.append('printLabel', printLabel);
+  if (batchId) params.append('batchId', batchId);
   return apiCall(`/vouchers/search?${params.toString()}`, { routerId, cache: 'no-store' });
 };
 
@@ -511,13 +517,15 @@ export const getVoucherCodesAPI = async (
   profile: string,
   comment?: string,
   printLabel?: string,
-  status?: 'unused' | 'active' | 'expired' | 'all'
+  status?: 'unused' | 'active' | 'expired' | 'all',
+  batchId?: string
 ): Promise<{ codes: string[]; total: number }> => {
   const params = new URLSearchParams();
   params.append('profile', profile);
   if (comment) params.append('comment', comment);
   if (printLabel) params.append('printLabel', printLabel);
   if (status) params.append('status', status);
+  if (batchId) params.append('batchId', batchId);
   return apiCall(`/vouchers/batches/detail/codes?${params.toString()}`, { routerId, cache: 'no-store' });
 };
 
@@ -529,13 +537,15 @@ export const getAllVouchersByStatusAPI = async (
   profile: string,
   status: 'unused' | 'active' | 'expired',
   comment?: string,
-  printLabel?: string
+  printLabel?: string,
+  batchId?: string
 ): Promise<{ vouchers: (VoucherSummary | ActiveVoucher | ExpiredVoucher)[]; total: number; status: string }> => {
   const params = new URLSearchParams();
   params.append('profile', profile);
   params.append('status', status);
   if (comment) params.append('comment', comment);
   if (printLabel) params.append('printLabel', printLabel);
+  if (batchId) params.append('batchId', batchId);
   return apiCall(`/vouchers/batches/detail/all?${params.toString()}`, { routerId, cache: 'no-store' });
 };
 

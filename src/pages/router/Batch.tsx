@@ -85,6 +85,7 @@ export default function BatchPage() {
   const openBatchDetail = (batch: VoucherBatch) => {
     const params = new URLSearchParams();
     params.set('profile', batch.profile);
+    if (batch.batchId) params.set('batchId', batch.batchId);
     if (batch.comment) params.set('comment', batch.comment);
     if (batch.printLabel) params.set('printLabel', batch.printLabel);
     navigate(`/${routerId}/batch/detail?${params.toString()}`);

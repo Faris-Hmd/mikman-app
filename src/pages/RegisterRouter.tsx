@@ -123,7 +123,7 @@ export default function RegisterRouterPage() {
     model: 'hap-ax3',
     user: 'admin',
     password: '',
-    owners: currentUserEmail,
+    owners: currentUserEmail ? [currentUserEmail] : [''],
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
   });
 
@@ -132,6 +132,12 @@ export default function RegisterRouterPage() {
   const [generatedScript, setGeneratedScript] = useState('');
   const [scriptCopied, setScriptCopied] = useState(false);
 
+  const safeOwners = Array.isArray(formData.owners)
+    ? formData.owners
+    : typeof formData.owners === 'string'
+    ? (formData.owners as string).split(',').map((s) => s.trim())
+    : [''];
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -139,22 +145,23 @@ export default function RegisterRouterPage() {
 
   const handleOwnerChange = (index: number, value: string) => {
     setFormData((prev) => {
-      const updated = [...prev.owners];
-      updated[index] = value;
-      return { ...prev, owners: updated };
+      const current = Array.isArray(prev.owners) ? [...prev.owners] : [String(prev.owners || '')];
+      current[index] = value;
+      return { ...prev, owners: current };
     });
   };
 
   const handleAddOwner = () => {
-    setFormData((prev) => ({
-      ...prev,
-      owners: [...prev.owners, ''],
-    }));
+    setFormData((prev) => {
+      const current = Array.isArray(prev.owners) ? [...prev.owners] : [String(prev.owners || '')];
+      return { ...prev, owners: [...current, ''] };
+    });
   };
 
   const handleRemoveOwner = (index: number) => {
     setFormData((prev) => {
-      const updated = prev.owners.filter((_, i) => i !== index);
+      const current = Array.isArray(prev.owners) ? prev.owners : [String(prev.owners || '')];
+      const updated = current.filter((_, i) => i !== index);
       return { ...prev, owners: updated.length > 0 ? updated : [''] };
     });
   };
@@ -172,7 +179,7 @@ export default function RegisterRouterPage() {
       return;
     }
 
-    const ownersArray = formData.owners
+    const ownersArray = safeOwners
       .map((o: string) => o.trim())
       .filter((o: string) => o.length > 0);
 
@@ -378,15 +385,26 @@ export default function RegisterRouterPage() {
             <ArrowLeft size={14} /> {t('common.cancel') || 'Back'}
           </button>
           <button
-            onClick={() => { copyScript(); setTimeout(() => navigate('/', { replace: true }), 300); }}
+            onClick={() => {
+              copyScript();
+              setTimeout(() => navigate('/', { replace: true }), 500);
+            }}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '10px 20px', borderRadius: '10px',
-              border: 'none', background: 'var(--primary)', color: '#fff',
+              border: 'none',
+              background: scriptCopied ? '#16a34a' : 'var(--primary)',
+              color: '#fff',
               fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+              transition: 'background-color 0.2s',
             }}
           >
-            {t('dashboard.registerBtn') || 'Register Router'}
+            {scriptCopied ? <Check size={15} /> : <Copy size={15} />}
+            <span>
+              {scriptCopied
+                ? (t('common.copied') || 'Copied!')
+                : (t('dashboard.copyScriptFinish') || 'Copy Script & Finish')}
+            </span>
           </button>
         </div>
       </div>
@@ -512,7 +530,7 @@ export default function RegisterRouterPage() {
                 {t('dashboard.authorizedOwners') || 'Authorized Owners'}
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {formData.owners.map((ownerEmail, index) => (
+                {safeOwners.map((ownerEmail, index) => (
                   <div key={index} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <input
                       type="email"
@@ -522,7 +540,7 @@ export default function RegisterRouterPage() {
                       style={inputStyle}
                       required={index === 0}
                     />
-                    {formData.owners.length > 1 && (
+                    {safeOwners.length > 1 && (
                       <button
                         type="button"
                         onClick={() => handleRemoveOwner(index)}

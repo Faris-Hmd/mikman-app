@@ -103,6 +103,7 @@ export default function BatchDetailPage() {
   const profile = searchParams.get('profile') || '';
   const comment = searchParams.get('comment') || undefined;
   const printLabel = searchParams.get('printLabel') || undefined;
+  const batchId = searchParams.get('batchId') || undefined;
 
   // Router profile info & live status for Wi-Fi SSID
   const { data: routerProfilesData } = useSWR('router-profiles', fetchRouterProfilesAPI);
@@ -156,9 +157,9 @@ export default function BatchDetailPage() {
   // Fetch batch detail
   const { data: batchDetail, isLoading: detailLoading } = useSWR(
     routerId && profile
-      ? `batch-detail-${routerId}-${profile}-${comment || 'none'}`
+      ? `batch-detail-${routerId}-${profile}-${batchId || comment || 'none'}`
       : null,
-    () => fetchVoucherBatchDetailAPI(routerId!, profile, comment, printLabel),
+    () => fetchVoucherBatchDetailAPI(routerId!, profile, comment, printLabel, batchId),
     { revalidateOnFocus: false, dedupingInterval: 15000, keepPreviousData: true }
   );
 
@@ -171,7 +172,7 @@ export default function BatchDetailPage() {
 
   const refreshDetail = () => {
     if (routerId && profile) {
-      mutate(`batch-detail-${routerId}-${profile}-${comment || 'none'}`);
+      mutate(`batch-detail-${routerId}-${profile}-${batchId || comment || 'none'}`);
     }
   };
 
@@ -258,7 +259,8 @@ export default function BatchDetailPage() {
         searchQuery.trim(),
         profile,
         comment,
-        printLabel
+        printLabel,
+        batchId
       );
       setSearchResults(result.results);
     } catch (err: any) {
@@ -266,7 +268,7 @@ export default function BatchDetailPage() {
     } finally {
       setSearchLoading(false);
     }
-  }, [routerId, searchQuery, profile, comment, printLabel]);
+  }, [routerId, searchQuery, profile, comment, printLabel, batchId]);
 
   // ── Print / Export (MK-Voucher-Web Template) ──
 
@@ -287,7 +289,8 @@ export default function BatchDetailPage() {
           profile,
           'unused',
           comment,
-          printLabel
+          printLabel,
+          batchId
         );
         if (result.vouchers && result.vouchers.length > 0) {
           vouchersToPrint = result.vouchers;
@@ -491,7 +494,8 @@ export default function BatchDetailPage() {
         profile,
         status,
         comment,
-        printLabel
+        printLabel,
+        batchId
       );
       setAllVouchers(result.vouchers);
     } catch (err: any) {

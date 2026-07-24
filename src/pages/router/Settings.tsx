@@ -213,25 +213,32 @@ export default function SettingsPage() {
     }
   }, [status?.wifiName, status?.timezone]);
 
+  const safeOwners = Array.isArray(infoForm.owners)
+    ? infoForm.owners
+    : typeof infoForm.owners === 'string'
+    ? (infoForm.owners as string).split(',').map((s) => s.trim())
+    : [''];
+
   // Owners list handlers
   const handleOwnerChange = (index: number, value: string) => {
     setInfoForm((prev) => {
-      const updated = [...prev.owners];
-      updated[index] = value;
-      return { ...prev, owners: updated };
+      const current = Array.isArray(prev.owners) ? [...prev.owners] : [String(prev.owners || '')];
+      current[index] = value;
+      return { ...prev, owners: current };
     });
   };
 
   const handleAddOwner = () => {
-    setInfoForm((prev) => ({
-      ...prev,
-      owners: [...prev.owners, ''],
-    }));
+    setInfoForm((prev) => {
+      const current = Array.isArray(prev.owners) ? [...prev.owners] : [String(prev.owners || '')];
+      return { ...prev, owners: [...current, ''] };
+    });
   };
 
   const handleRemoveOwner = (index: number) => {
     setInfoForm((prev) => {
-      const updated = prev.owners.filter((_, i) => i !== index);
+      const current = Array.isArray(prev.owners) ? prev.owners : [String(prev.owners || '')];
+      const updated = current.filter((_, i) => i !== index);
       return { ...prev, owners: updated.length > 0 ? updated : [''] };
     });
   };
@@ -243,7 +250,7 @@ export default function SettingsPage() {
     e.preventDefault();
     if (!routerId) return;
 
-    const ownersArray = infoForm.owners
+    const ownersArray = safeOwners
       .map((o) => o.trim())
       .filter((o) => o.length > 0);
 
@@ -655,7 +662,7 @@ export default function SettingsPage() {
                 <Users size={11} /> {t('dashboard.authorizedOwners')}
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {infoForm.owners.map((ownerEmail, index) => (
+                {safeOwners.map((ownerEmail, index) => (
                   <div key={index} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <input
                       type="email"
@@ -665,7 +672,7 @@ export default function SettingsPage() {
                       style={inputStyle}
                       required={index === 0}
                     />
-                    {infoForm.owners.length > 1 && (
+                    {safeOwners.length > 1 && (
                       <button
                         type="button"
                         onClick={() => handleRemoveOwner(index)}
