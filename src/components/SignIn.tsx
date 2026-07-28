@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, Mail, Lock, ShieldCheck, Sun, Moon, Globe } from 'lucide-react';
+import { Zap, Mail, Lock, ShieldCheck, Sun, Moon, Globe } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -114,8 +114,8 @@ export default function SignIn() {
         className="relative flex flex-col items-center p-7 sm:p-9 rounded-3xl border border-[var(--glass-border)] bg-[var(--card-bg)] backdrop-blur-2xl max-w-[420px] w-full text-center z-10 box-border shadow-[0_20px_50px_rgba(0,0,0,0.25)] before:absolute before:top-0 before:left-6 before:right-6 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-[var(--primary)]/40 before:to-transparent"
       >
         {/* Brand Logo Header */}
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#2563eb] to-[#3b82f6] flex items-center justify-center mb-4 shadow-[0_8px_20px_-4px_rgba(37,99,235,0.5)] border border-white/20">
-          <Ticket size={28} color="#ffffff" className="-rotate-45 stroke-[2.2]" />
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: '#3B82F6', boxShadow: '0 8px 24px -4px rgba(59,130,246,0.55)' }}>
+          <Zap size={28} color="#ffffff" strokeWidth={2.5} />
         </div>
 
         <h1 className="text-2xl sm:text-[26px] font-[900] text-[var(--foreground)] m-0 mb-1.5 tracking-tight">

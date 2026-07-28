@@ -136,8 +136,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center', width: '100%', padding: '6px 0', borderBottom: '1px solid var(--glass-border)', marginBottom: '4px' }}>
                 {/* Avatar / Account Link */}
                 <Link to="/account" onClick={() => { if (isMobile && onClose) onClose(); }} title={t('sidebar.accountDetails')}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', cursor: 'pointer', boxSizing: 'border-box', transition: 'transform 0.2s', textDecoration: 'none' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', border: '1.5px solid var(--primary)', backgroundColor: 'var(--card-bg)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', cursor: 'pointer', boxSizing: 'border-box', transition: 'transform 0.2s', textDecoration: 'none' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid var(--primary)', backgroundColor: 'var(--card-bg)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {userPhoto ? <img src={userPhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
                     : <div style={{ width: '100%', height: '100%', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: 'bold' }}>{userDisplayName ? userDisplayName.charAt(0).toUpperCase() : 'U'}</div>}
                   </div>
@@ -176,7 +176,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <Link to="/account" onClick={() => { if (isMobile && onClose) onClose(); }} title={t('sidebar.accountDetails')}
                     style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', textDecoration: 'none', minWidth: 0, flex: 1 }}>
-                    <div style={{ width: '30px', height: '30px', borderRadius: '50%', overflow: 'hidden', border: '1.5px solid var(--primary)', backgroundColor: 'var(--card-bg)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '30px', height: '30px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid var(--primary)', backgroundColor: 'var(--card-bg)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {userPhoto ? <img src={userPhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
                       : <div style={{ width: '100%', height: '100%', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>{userDisplayName ? userDisplayName.charAt(0).toUpperCase() : 'U'}</div>}
                     </div>

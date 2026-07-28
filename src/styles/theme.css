@@ -246,6 +246,14 @@ input, textarea { font-family: inherit; }
 }
 .header-action-btn:hover { background-color: var(--secondary); }
 
+@media (max-width: 768px) {
+  .header-action-btn {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+  }
+}
+
 @media (min-width: 769px) {
   .app-header { height: 56px; }
   .header-container { padding: 0 16px; }

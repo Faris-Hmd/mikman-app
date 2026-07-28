@@ -185,10 +185,7 @@ export default function LandingPage() {
             <span>{totalRouters}/{maxRouters}</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#22c55e', fontWeight: '600', backgroundColor: 'rgba(34, 197, 94, 0.1)', padding: '2px 7px', borderRadius: '6px' }}>
-            <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
-            <span>{onlineRouters} {language === 'ar' ? 'متصل' : 'online'}</span>
-          </div>
+
 
           <Link
             to="/account"

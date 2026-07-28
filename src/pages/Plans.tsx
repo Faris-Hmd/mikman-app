@@ -3,7 +3,7 @@ import useSWR from 'swr';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchRouterProfilesWithUserAPI, fetchPlansCatalogAPI, PlanCatalogItem } from '../api';
-import { Ticket, LogOut, Globe, Check, MessageCircle, Server, CheckCircle2, Circle, AlertTriangle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Zap, LogOut, Globe, Check, MessageCircle, Server, CheckCircle2, Circle, AlertTriangle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const WHATSAPP_NUMBER = '249966626693';
@@ -146,7 +146,7 @@ export default function PlansPage() {
                 justifyContent: 'center',
                 width: '34px',
                 height: '34px',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 backgroundColor: 'var(--card-bg)',
                 border: '1px solid var(--glass-border)',
                 color: 'var(--foreground)',
@@ -163,15 +163,15 @@ export default function PlansPage() {
                 style={{
                   width: '32px',
                   height: '32px',
-                  borderRadius: '8px',
-                  backgroundColor: 'var(--primary)',
+                  borderRadius: '10px',
+                  backgroundColor: '#3B82F6',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 4px 10px rgba(var(--primary-rgb, 99, 102, 241), 0.25)',
+                  boxShadow: '0 2px 8px rgba(59,130,246,0.4)',
                 }}
               >
-                <Ticket size={18} color="#fff" style={{ transform: 'rotate(-45deg)' }} />
+                <Zap size={18} color="#fff" strokeWidth={2.5} />
               </div>
               <span style={{ fontSize: '16px', fontWeight: '850', color: 'var(--foreground)', letterSpacing: '0.5px' }}>
                 MIKMAN
@@ -193,7 +193,7 @@ export default function PlansPage() {
                 alignItems: 'center',
                 gap: '6px',
                 padding: '6px 12px',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 backgroundColor: 'var(--card-bg)',
                 border: '1px solid var(--glass-border)',
                 color: 'var(--foreground)',
@@ -217,7 +217,7 @@ export default function PlansPage() {
                   alignItems: 'center',
                   gap: '5px',
                   padding: '6px 12px',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   backgroundColor: 'rgba(255,255,255,0.04)',
                   border: '1px solid var(--glass-border)',
                   color: 'var(--text-muted)',
