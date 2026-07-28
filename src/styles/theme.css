@@ -248,7 +248,7 @@ input, textarea { font-family: inherit; }
 
 @media (min-width: 769px) {
   .app-header { height: 60px; }
-  .header-container { padding: 0 24px; }
+  .header-container { padding: 0 16px; }
 }
 @media (max-width: 768px) {
   .app-header { height: 50px; }
@@ -257,6 +257,7 @@ input, textarea { font-family: inherit; }
 }
 
 @media (max-width: 480px) {
+  .header-container { padding: 0 10px; }
   .header-action-btn { width: 28px; height: 28px; border-radius: 7px; }
 }
 
@@ -488,7 +489,7 @@ input, textarea { font-family: inherit; }
 
 @media (max-width: 640px) {
   .batch-stat-card {
-    padding: 8px 10px;
+    padding: 8px 10px !important;
     gap: 8px;
     border-radius: 8px !important;
   }
@@ -517,10 +518,10 @@ input, textarea { font-family: inherit; }
 
 /* ─── Mobile Padding Optimization ─── */
 .responsive-container {
-  padding: 20px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
@@ -530,29 +531,29 @@ input, textarea { font-family: inherit; }
 .responsive-card {
   background: var(--card-bg);
   border: 1px solid var(--glass-border);
-  border-radius: 18px;
-  padding: 20px;
+  border-radius: 12px;
+  padding: 10px 12px;
   box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
   .responsive-container {
     padding: 10px 10px !important;
-    gap: 12px !important;
+    gap: 10px !important;
   }
   .responsive-card {
-    padding: 12px 12px !important;
-    border-radius: 14px !important;
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
   }
 }
 
 @media (max-width: 480px) {
   .responsive-container {
     padding: 8px 8px !important;
-    gap: 10px !important;
+    gap: 8px !important;
   }
   .responsive-card {
-    padding: 10px 10px !important;
-    border-radius: 12px !important;
+    padding: 8px 8px !important;
+    border-radius: 9px !important;
   }
 }

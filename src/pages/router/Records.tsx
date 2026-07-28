@@ -69,28 +69,6 @@ export default function RecordsPage() {
             <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('records.title')}
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              {routerId && !routerId.startsWith('cloud_') && (
-                <>
-                  <span style={{
-                    fontFamily: 'monospace',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    color: 'var(--primary)',
-                    background: 'rgba(var(--primary-rgb), 0.1)',
-                    padding: '1px 5px',
-                    borderRadius: '5px',
-                    flexShrink: 0
-                  }}>
-                    {routerId}
-                  </span>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>•</span>
-                </>
-              )}
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {recordList.length} {t('records.totalRecords') || 'connection logs'}
-              </span>
-            </div>
           </div>
         </div>
 

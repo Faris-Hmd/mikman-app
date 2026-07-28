@@ -24,6 +24,7 @@ import {
   Copy,
   Check,
   ChevronLeft,
+  ChevronRight,
   X,
   Info,
   Layers,
@@ -523,12 +524,16 @@ export default function BatchDetailPage() {
 
   // ── Styles ──
 
-  const cardStyle: React.CSSProperties = {
-    background: 'var(--card-bg)',
-    border: '1px solid var(--glass-border)',
-    borderRadius: '16px',
-    padding: '16px',
+  const cardGlassStyle: React.CSSProperties = {
+    background: 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+    borderRadius: '10px',
+    padding: '8px 10px',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+    transition: 'all 0.15s ease',
   };
+  const cardStyle = cardGlassStyle;
 
   const btnPrimary: React.CSSProperties = {
     padding: '8px 18px',
@@ -670,17 +675,17 @@ export default function BatchDetailPage() {
         key={name}
         style={{
           ...cardStyle,
-          padding: '10px 14px',
+          padding: '5px 8px',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: '4px',
           borderColor: isExpired ? 'rgba(239, 68, 68, 0.25)' : 'var(--glass-border)',
           background: isExpired ? 'rgba(239, 68, 68, 0.06)' : 'var(--card-bg)',
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <strong style={{ fontSize: '13px', fontFamily: 'monospace', color: isExpired ? 'var(--text-muted)' : 'var(--foreground)' }}>{name}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <strong style={{ fontSize: '12px', fontFamily: 'monospace', color: isExpired ? 'var(--text-muted)' : 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</strong>
             <button
               onClick={() => copySingleCode(name)}
               style={{
@@ -689,16 +694,16 @@ export default function BatchDetailPage() {
                 cursor: 'pointer',
                 padding: '2px',
                 color: copiedCode === name ? 'var(--success)' : 'var(--text-muted)',
+                flexShrink: 0,
               }}
               title="Copy code"
             >
-              {copiedCode === name ? <Check size={14} /> : <Copy size={14} />}
+              {copiedCode === name ? <Check size={13} /> : <Copy size={13} />}
             </button>
           </div>
           {isActive && (
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              {active.deviceName && <span>Device: {active.deviceName}</span>}
-              {active.ipAddress && <span>IP: {active.ipAddress}</span>}
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {active.deviceName && <span>{active.deviceName}</span>}
               {active.timeLeftText && <span style={{ color: 'var(--accent)' }}>{active.timeLeftText}</span>}
             </div>
           )}
@@ -712,13 +717,14 @@ export default function BatchDetailPage() {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            padding: '4px',
+            padding: '2px',
             color: 'var(--text-muted)',
-            borderRadius: '6px',
+            borderRadius: '4px',
+            flexShrink: 0,
           }}
           title="View details"
         >
-          <Info size={14} />
+          <Info size={13} />
         </button>
         <button
           onClick={() => handleDeleteSingle(name)}
@@ -726,13 +732,14 @@ export default function BatchDetailPage() {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            padding: '4px',
+            padding: '2px',
             color: 'var(--text-muted)',
-            borderRadius: '6px',
+            borderRadius: '4px',
+            flexShrink: 0,
           }}
           title="Delete voucher"
         >
-          <Trash2 size={14} />
+          <Trash2 size={13} />
         </button>
       </div>
     );
@@ -1049,56 +1056,68 @@ export default function BatchDetailPage() {
     const hasSearch = !!searchResults;
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Compact Glass Toolbar Block */}
-        <div style={{
-          ...cardStyle,
-          padding: '8px 12px',
+      <div
+        className="responsive-container"
+        style={{
+          direction: isRtl ? 'rtl' : 'ltr',
+        }}
+      >
+        {/* Page Header Card */}
+        <div className="responsive-card" style={{
           display: 'flex',
-          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'nowrap',
           gap: '8px',
-          background: 'var(--card-bg, rgba(20, 20, 20, 0.75))',
-          backdropFilter: 'blur(16px)',
-          borderRadius: '16px',
-          border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          padding: '8px 12px'
         }}>
-          {/* Header Row: Back, Title, Chips & Print */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'nowrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1, overflow: 'hidden' }}>
-              <button
-                onClick={backToList}
-                style={{
-                  ...btnSecondary,
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '9px',
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-                title={t('batch.backToBatches')}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: '2px' }}>
-                <h2 style={{
-                  margin: 0,
-                  fontSize: '14px',
-                  fontWeight: 800,
-                  color: 'var(--foreground)',
-                  letterSpacing: '-0.2px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}>
-                  {printLabel || profile}
-                </h2>
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+            <button
+              onClick={backToList}
+              style={{
+                ...btnSecondary,
+                width: '32px',
+                height: '32px',
+                borderRadius: '9px',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+              title={t('batch.backToBatches')}
+            >
+              {isRtl ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            </button>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '9px',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(79,70,229,0.4) 100%)',
+              color: '#6366f1',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid rgba(99,102,241,0.3)',
+              flexShrink: 0
+            }}>
+              <Printer size={16} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '14px',
+                fontWeight: 800,
+                color: 'var(--foreground)',
+                letterSpacing: '-0.2px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {printLabel || profile}
+              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -1115,7 +1134,6 @@ export default function BatchDetailPage() {
                   <Tag size={10} />
                   {profile}
                 </span>
-
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -1132,7 +1150,6 @@ export default function BatchDetailPage() {
                   <Wifi size={10} />
                   {wifiName}
                 </span>
-
                 {comment && (
                   <span className="hide-sm" style={{
                     display: 'inline-flex',
@@ -1153,142 +1170,230 @@ export default function BatchDetailPage() {
                 )}
               </div>
             </div>
-
-            <button
-              onClick={() => {
-                if (wifiInput === null) setWifiInput(defaultWifiName);
-                setShowPrintConfirmModal(true);
-              }}
-              disabled={printLoading}
-              style={{
-                ...btnPrimary,
-                padding: '6px 10px',
-                borderRadius: '8px',
-                fontSize: '11px',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                cursor: printLoading ? 'not-allowed' : 'pointer',
-                flexShrink: 0,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <Printer size={13} />
-              <span>{printLoading ? '...' : t('batch.printBtn')}</span>
-            </button>
           </div>
 
-          {/* Compact Stat Cards Grid */}
-          {detail && (
-            <div className="batch-stat-grid" style={{ gap: '8px' }}>
-              {/* TOTAL Card */}
-              <button
-                onClick={() => setStatusFilter('all')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 10px',
-                  borderRadius: '10px',
-                  border: statusFilter === 'all' ? '1.5px solid var(--primary)' : '1px solid var(--glass-border)',
-                  background: statusFilter === 'all' ? 'rgba(var(--primary-rgb), 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', color: statusFilter === 'all' ? 'var(--primary)' : 'var(--text-muted)' }}>
-                    {t('batch.total')}
-                  </span>
-                  <span className="stat-value" style={{ lineHeight: 1, color: statusFilter === 'all' ? 'var(--primary)' : 'var(--foreground)' }}>
-                    {detail.originalCount}
-                  </span>
-                </div>
-                <Layers size={14} style={{ color: statusFilter === 'all' ? 'var(--primary)' : 'var(--text-muted)', opacity: 0.7 }} />
-              </button>
+          {/* Header Action: Print Button */}
+          <button
+            onClick={() => {
+              if (wifiInput === null) setWifiInput(defaultWifiName);
+              setShowPrintConfirmModal(true);
+            }}
+            disabled={printLoading}
+            style={{
+              background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '6px 12px',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: printLoading ? 'not-allowed' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)',
+              flexShrink: 0,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Printer size={14} />
+            <span>{printLoading ? '...' : t('batch.printBtn')}</span>
+          </button>
+        </div>
 
-              {/* UNUSED Card */}
-              <button
-                onClick={() => setStatusFilter(statusFilter === 'unused' ? 'all' : 'unused')}
+        {/* Summary Statistics Cards Grid */}
+        {detail && (
+          <div className="batch-stat-grid">
+            {/* TOTAL Card */}
+            <div
+              className="batch-stat-card"
+              onClick={() => setStatusFilter('all')}
+              style={{
+                ...cardStyle,
+                cursor: 'pointer',
+                border: statusFilter === 'all' ? '1.5px solid var(--primary)' : cardStyle.border,
+                background: statusFilter === 'all' ? 'rgba(var(--primary-rgb), 0.12)' : cardStyle.background,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div
+                className="batch-stat-card-icon"
                 style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'rgba(99, 102, 241, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 10px',
-                  borderRadius: '10px',
-                  border: statusFilter === 'unused' ? '1.5px solid #22c55e' : '1px solid var(--glass-border)',
-                  background: statusFilter === 'unused' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(34, 197, 94, 0.04)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
+                  justifyContent: 'center',
+                  color: '#6366f1',
+                  flexShrink: 0,
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', color: '#22c55e' }}>
-                    {t('batch.unused')}
-                  </span>
-                  <span className="stat-value" style={{ lineHeight: 1, color: '#22c55e' }}>
-                    {detail.unusedCount}
-                  </span>
-                </div>
-                <CheckCircle2 size={14} style={{ color: '#22c55e', opacity: 0.7 }} />
-              </button>
+                <Layers size={20} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <span className="batch-stat-card-label" style={{ fontSize: '11px', color: statusFilter === 'all' ? 'var(--primary)' : 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t('batch.totalVouchers')}
+                </span>
+                <strong className="batch-stat-card-val" style={{ color: statusFilter === 'all' ? 'var(--primary)' : 'var(--foreground)' }}>
+                  {detail.originalCount}
+                </strong>
+              </div>
+            </div>
 
-              {/* ACTIVE Card */}
-              <button
-                onClick={() => setStatusFilter(statusFilter === 'active' ? 'all' : 'active')}
+            {/* UNUSED Card */}
+            <div
+              className="batch-stat-card"
+              onClick={() => setStatusFilter(statusFilter === 'unused' ? 'all' : 'unused')}
+              style={{
+                ...cardStyle,
+                cursor: 'pointer',
+                border: statusFilter === 'unused' ? '1.5px solid #22c55e' : cardStyle.border,
+                background: statusFilter === 'unused' ? 'rgba(34, 197, 94, 0.12)' : cardStyle.background,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div
+                className="batch-stat-card-icon"
                 style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'rgba(34, 197, 94, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 10px',
-                  borderRadius: '10px',
-                  border: statusFilter === 'active' ? '1.5px solid #3b82f6' : '1px solid var(--glass-border)',
-                  background: statusFilter === 'active' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.04)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
+                  justifyContent: 'center',
+                  color: '#22c55e',
+                  flexShrink: 0,
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', color: '#3b82f6' }}>
-                    {t('batch.active')}
-                  </span>
-                  <span className="stat-value" style={{ lineHeight: 1, color: '#3b82f6' }}>
-                    {detail.activeCount}
-                  </span>
-                </div>
-                <Zap size={14} style={{ color: '#3b82f6', opacity: 0.7 }} />
-              </button>
+                <CheckCircle2 size={20} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <span className="batch-stat-card-label" style={{ fontSize: '11px', color: '#22c55e', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t('batch.unusedVouchers')}
+                </span>
+                <strong className="batch-stat-card-val" style={{ color: '#22c55e' }}>
+                  {detail.unusedCount}
+                </strong>
+              </div>
+            </div>
 
-              {/* EXPIRED Card */}
-              <button
-                onClick={() => setStatusFilter(statusFilter === 'expired' ? 'all' : 'expired')}
+            {/* ACTIVE Card */}
+            <div
+              className="batch-stat-card"
+              onClick={() => setStatusFilter(statusFilter === 'active' ? 'all' : 'active')}
+              style={{
+                ...cardStyle,
+                cursor: 'pointer',
+                border: statusFilter === 'active' ? '1.5px solid #3b82f6' : cardStyle.border,
+                background: statusFilter === 'active' ? 'rgba(59, 130, 246, 0.12)' : cardStyle.background,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div
+                className="batch-stat-card-icon"
                 style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'rgba(59, 130, 246, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 10px',
-                  borderRadius: '10px',
-                  border: statusFilter === 'expired' ? '1.5px solid #ef4444' : '1px solid var(--glass-border)',
-                  background: statusFilter === 'expired' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.04)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
+                  justifyContent: 'center',
+                  color: '#3b82f6',
+                  flexShrink: 0,
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', color: '#ef4444' }}>
-                    {t('batch.expired')}
-                  </span>
-                  <span className="stat-value" style={{ lineHeight: 1, color: '#ef4444' }}>
-                    {detail.expiredCount}
-                  </span>
-                </div>
-                <Clock size={14} style={{ color: '#ef4444', opacity: 0.7 }} />
-              </button>
+                <Zap size={20} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <span className="batch-stat-card-label" style={{ fontSize: '11px', color: '#3b82f6', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t('batch.activeVouchers')}
+                </span>
+                <strong className="batch-stat-card-val" style={{ color: '#3b82f6' }}>
+                  {detail.activeCount}
+                </strong>
+              </div>
+            </div>
+
+            {/* EXPIRED Card */}
+            <div
+              className="batch-stat-card"
+              onClick={() => setStatusFilter(statusFilter === 'expired' ? 'all' : 'expired')}
+              style={{
+                ...cardStyle,
+                cursor: 'pointer',
+                border: statusFilter === 'expired' ? '1.5px solid #ef4444' : cardStyle.border,
+                background: statusFilter === 'expired' ? 'rgba(239, 68, 68, 0.12)' : cardStyle.background,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div
+                className="batch-stat-card-icon"
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ef4444',
+                  flexShrink: 0,
+                }}
+              >
+                <Clock size={20} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <span className="batch-stat-card-label" style={{ fontSize: '11px', color: '#ef4444', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t('batch.expiredVouchers')}
+                </span>
+                <strong className="batch-stat-card-val" style={{ color: '#ef4444' }}>
+                  {detail.expiredCount}
+                </strong>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Progress Bar & Search Toolbar Card */}
+        <div
+          className="responsive-card"
+          style={{
+            ...cardStyle,
+            padding: '12px 14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+          }}
+        >
+          {detail && detail.originalCount > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                <span>{t('batch.distribution') || 'التوزيع'}</span>
+                <span style={{ fontSize: '10px' }}>
+                  {Math.round((detail.unusedCount / detail.originalCount) * 100)}% {t('batch.statusUnused') || 'Unused'} • {Math.round((detail.activeCount / detail.originalCount) * 100)}% {t('batch.statusActive') || 'Active'} • {Math.round((detail.expiredCount / detail.originalCount) * 100)}% {t('batch.statusExpired') || 'Expired'}
+                </span>
+              </div>
+              <div
+                style={{
+                  height: '6px',
+                  borderRadius: '4px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  width: '100%',
+                }}
+              >
+                <div style={{ width: `${(detail.unusedCount / detail.originalCount) * 100}%`, background: '#22c55e', height: '100%' }} title={`Unused: ${detail.unusedCount}`} />
+                <div style={{ width: `${(detail.activeCount / detail.originalCount) * 100}%`, background: '#3b82f6', height: '100%' }} title={`Active: ${detail.activeCount}`} />
+                <div style={{ width: `${(detail.expiredCount / detail.originalCount) * 100}%`, background: 'rgba(255, 255, 255, 0.25)', height: '100%' }} title={`Expired: ${detail.expiredCount}`} />
+              </div>
             </div>
           )}
 
-          {/* Micro Progress Bar & Search */}
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <div style={{ flex: 1, position: 'relative' }}>
               <Search
@@ -1394,7 +1499,7 @@ export default function BatchDetailPage() {
             )}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {visible.unused && visible.unused.length > 0 && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -1901,10 +2006,10 @@ export default function BatchDetailPage() {
   const vouchersToPrintList = printableVouchers.length > 0 ? printableVouchers : (batchDetail?.unusedVouchers || []);
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <>
       <style dangerouslySetInnerHTML={{ __html: printStyles }} />
 
-      <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div className="no-print">
         {/* Toast */}
         {toast && (
           <div
@@ -1992,6 +2097,6 @@ export default function BatchDetailPage() {
           );
         })}
       </div>
-    </div>
+    </>
   );
 }
