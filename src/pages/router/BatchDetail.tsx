@@ -321,8 +321,10 @@ export default function BatchDetailPage() {
       setPrintDate(formattedDate);
 
       // Page size A4 is 210 x 297 mm
-      // At 300 DPI, A4 canvas is 2480 x 3508 pixels
-      const scale = 2480 / 210;
+      // Optimized canvas resolution (~170 DPI) for crisp text & lightweight file size (~60KB/page instead of 1MB/page)
+      const canvasWidth = 1400;
+      const canvasHeight = Math.round(canvasWidth * (297 / 210)); // 1980
+      const scale = canvasWidth / 210;
 
       const cols = 7;
       const rows = 14;
@@ -334,10 +336,10 @@ export default function BatchDetailPage() {
       const startY = 16 * scale;
       const itemsPerPage = cols * rows;
 
-      const fontHeader = '33px "Cairo", system-ui, -apple-system, sans-serif';
-      const fontWifiName = 'bold 28px "Cairo", system-ui, -apple-system, sans-serif';
-      const fontVoucherCode = 'bold 44px "Cairo", system-ui, -apple-system, sans-serif';
-      const fontProfile = 'bold 28px "Cairo", system-ui, -apple-system, sans-serif';
+      const fontHeader = `${Math.round(2.8 * scale)}px "Cairo", system-ui, -apple-system, sans-serif`;
+      const fontWifiName = `bold ${Math.round(2.37 * scale)}px "Cairo", system-ui, -apple-system, sans-serif`;
+      const fontVoucherCode = `bold ${Math.round(3.73 * scale)}px "Cairo", system-ui, -apple-system, sans-serif`;
+      const fontProfile = `bold ${Math.round(2.37 * scale)}px "Cairo", system-ui, -apple-system, sans-serif`;
 
       const pages = chunkArray(vouchersToPrint, itemsPerPage);
 
@@ -351,8 +353,8 @@ export default function BatchDetailPage() {
         const pageVouchers = pages[pageIdx];
 
         const canvas = document.createElement('canvas');
-        canvas.width = 2480;
-        canvas.height = 3508;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('Could not get 2D context');
 
@@ -444,7 +446,7 @@ export default function BatchDetailPage() {
         if (pageIdx > 0) {
           doc.addPage();
         }
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const imgData = canvas.toDataURL('image/jpeg', 0.60);
         doc.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
       }
 
