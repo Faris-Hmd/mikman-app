@@ -22,6 +22,8 @@ import RecordsPage from './pages/router/Records';
 import RevenuePage from './pages/router/Revenue';
 import SettingsPage from './pages/router/Settings';
 
+import BannedScreen from './components/BannedScreen';
+
 function AppRoutes() {
   return (
     <Routes>
@@ -43,6 +45,7 @@ function AppRoutes() {
         <Route path="/:routerId/settings" element={<SettingsPage />} />
       </Route>
       
+      <Route path="/plans" element={<PlansPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       
       {/* Catch-all */}
@@ -88,8 +91,13 @@ function AppContent() {
     );
   }
 
-  // Block unapproved/expired/no-plan users — redirect to plans page
-  if (!accountInfo || accountInfo.subscriptionState !== 'active') {
+  // Block banned users — render dedicated Banned screen
+  if (accountInfo?.subscriptionState === 'banned' || accountInfo?.subscriptionState === 'unapproved') {
+    return <BannedScreen />;
+  }
+
+  // Block expired users — render PlansPage
+  if (!accountInfo || accountInfo.subscriptionState === 'expired' || accountInfo.subscriptionState !== 'active') {
     return <PlansPage />;
   }
 

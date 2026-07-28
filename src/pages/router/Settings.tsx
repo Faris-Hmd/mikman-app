@@ -8,6 +8,7 @@ import {
   provisionWifiSSIDAPI,
   provisionHotspotServerAPI,
   provisionHotspotFilesAPI,
+  fetchHotspotUploadJobStatusAPI,
   deleteRouterProfileAPI,
   generateCloudScriptAPI,
 } from '../../api';
@@ -252,12 +253,43 @@ export default function SettingsPage() {
 
     try {
       setIsProvisioningFiles(true);
-      await provisionHotspotFilesAPI(routerId, {
+      const res = await provisionHotspotFilesAPI(routerId, {
         wifiName: hotspotWifiName.trim(),
       });
 
-      showAlert(t('common.success'), t('settings.hotspotFilesSuccess'), 'success');
-      mutateStatus();
+      if (res.jobId) {
+        const jobId = res.jobId;
+        let completed = false;
+        let attempts = 0;
+        const maxAttempts = 120; // Up to 4 minutes polling
+
+        while (!completed && attempts < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          attempts++;
+          try {
+            const jobStatus = await fetchHotspotUploadJobStatusAPI(routerId, jobId);
+            if (jobStatus.status === 'completed') {
+              completed = true;
+              showAlert(t('common.success'), t('settings.hotspotFilesSuccess'), 'success');
+              mutateStatus();
+            } else if (jobStatus.status === 'failed') {
+              completed = true;
+              showAlert(t('common.error'), jobStatus.error || 'Failed to upload portal files.', 'error');
+            }
+          } catch (pollErr) {
+            console.warn('Error polling hotspot upload job status:', pollErr);
+          }
+        }
+
+        if (!completed) {
+          showAlert(t('common.error'), 'Upload status check timed out.', 'error');
+        }
+      } else if (res.success) {
+        showAlert(t('common.success'), t('settings.hotspotFilesSuccess'), 'success');
+        mutateStatus();
+      } else {
+        showAlert(t('common.error'), res.message || 'Failed to upload portal files.', 'error');
+      }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       showAlert(t('common.error'), errMsg, 'error');

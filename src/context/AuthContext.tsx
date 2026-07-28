@@ -5,7 +5,7 @@ import { setServerUrl, setSupabaseIdToken, registerUserAPI, fetchRouterProfilesW
 import type { UserData } from '../api';
 
 export interface AccountInfo {
-  subscriptionState: 'active' | 'expired' | 'unapproved';
+  subscriptionState: 'active' | 'expired' | 'banned' | 'unapproved';
   remainingTime: number;
   plan: string;
 }
@@ -17,6 +17,7 @@ interface AuthState {
   isAuthLoading: boolean;
   isSubLoading: boolean;
   signOut: () => Promise<void>;
+  checkStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -28,10 +29,12 @@ function deriveAccountInfo(userData: UserData | null): AccountInfo | null {
   const expiresAt = userData.expiresAt;
   const quota = userData.quota;
 
-  if (!approved) {
-    return { subscriptionState: 'unapproved', remainingTime: 0, plan: quota || '' };
+  // Explicitly banned by admin
+  if (approved === false) {
+    return { subscriptionState: 'banned', remainingTime: 0, plan: quota || '' };
   }
 
+  // Approved — check if plan access period has expired
   if (expiresAt) {
     const expiresAtDate = new Date(expiresAt);
     const now = new Date();
@@ -45,7 +48,7 @@ function deriveAccountInfo(userData: UserData | null): AccountInfo | null {
     return { subscriptionState: 'active', remainingTime: remainingTimeSec, plan: quota || '' };
   }
 
-  // No expiry — lifetime access
+  // No expiry — lifetime active
   return { subscriptionState: 'active', remainingTime: 999999999, plan: quota || '' };
 }
 
@@ -68,7 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         setSupabaseIdToken(session.access_token);
         setUser(session.user);
-        // Initialize server URL after auth is restored
         const storedUrl = localStorage.getItem('@server_url') || '';
         setServerUrl(storedUrl);
       }
@@ -95,34 +97,97 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch router profiles + userData. SWR deduplicates — Landing.tsx uses the same key.
-  const { data, isLoading: isSubLoading } = useSWR(
+  // Window event listeners for 403 Banned / Expired responses
+  useEffect(() => {
+    const handleBanned = () => {
+      setCachedUserData(prev => {
+        if (prev && prev.approved === false) return prev;
+        const bannedUserData: UserData = {
+          email: user?.email || '',
+          approved: false,
+          expiresAt: null,
+          maxRouters: 0,
+          quota: 'free',
+          hasPassword: true,
+          name: null,
+        };
+        try { localStorage.setItem('@cached_user_data', JSON.stringify(bannedUserData)); } catch {}
+        return bannedUserData;
+      });
+    };
+
+    const handleExpired = () => {
+      setCachedUserData(prev => {
+        if (prev && prev.quota === 'expired') return prev;
+        const expiredUserData: UserData = {
+          email: user?.email || '',
+          approved: true,
+          expiresAt: new Date(Date.now() - 1000).toISOString(),
+          maxRouters: 0,
+          quota: 'expired',
+          hasPassword: true,
+          name: null,
+        };
+        try { localStorage.setItem('@cached_user_data', JSON.stringify(expiredUserData)); } catch {}
+        return expiredUserData;
+      });
+    };
+
+    window.addEventListener('account:banned', handleBanned);
+    window.addEventListener('account:expired', handleExpired);
+
+    return () => {
+      window.removeEventListener('account:banned', handleBanned);
+      window.removeEventListener('account:expired', handleExpired);
+    };
+  }, [user]);
+
+  // SWR continuously polls every 15s or on window focus
+  const { data, isLoading: isSubLoading, mutate } = useSWR(
     user ? 'router-profiles' : null,
     async () => {
       const result = await fetchRouterProfilesWithUserAPI();
       return result;
     },
     {
-      refreshInterval: 300000,
+      refreshInterval: 15000,
       revalidateOnFocus: true,
-      dedupingInterval: 60000,
+      dedupingInterval: 5000,
       keepPreviousData: true,
     }
   );
 
   useEffect(() => {
     if (data?.userData) {
-      setCachedUserData(data.userData);
-      try {
-        localStorage.setItem('@cached_user_data', JSON.stringify(data.userData));
-      } catch (e) {
-        console.warn('Failed to cache user data:', e);
-      }
+      setCachedUserData(prev => {
+        if (prev && JSON.stringify(prev) === JSON.stringify(data.userData)) return prev;
+        try {
+          localStorage.setItem('@cached_user_data', JSON.stringify(data.userData));
+        } catch (e) {
+          console.warn('Failed to cache user data:', e);
+        }
+        return data.userData;
+      });
     }
   }, [data]);
 
   const activeUserData = data?.userData || cachedUserData;
   const accountInfo = deriveAccountInfo(activeUserData);
+
+  const checkStatus = useCallback(async () => {
+    try {
+      const res = await fetchRouterProfilesWithUserAPI();
+      if (res?.userData) {
+        setCachedUserData(res.userData);
+        try {
+          localStorage.setItem('@cached_user_data', JSON.stringify(res.userData));
+        } catch {}
+      }
+      await mutate();
+    } catch (e) {
+      console.warn('[Auth] Check status error:', e);
+    }
+  }, [mutate]);
 
   const signOut = useCallback(async () => {
     try { localStorage.removeItem('@cached_user_data'); } catch {}
@@ -138,6 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthLoading,
       isSubLoading: user ? (isSubLoading && !activeUserData) : false,
       signOut,
+      checkStatus,
     }}>
       {children}
     </AuthContext.Provider>

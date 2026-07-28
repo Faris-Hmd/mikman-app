@@ -83,9 +83,12 @@ export const skeletonStyle = (w: string): React.CSSProperties => ({
 });
 
 export const getQuotaName = (t: (key: string) => string, quota?: string, mr?: number): string => {
-  if (quota === 'free') return t('dashboard.planFree');
-  if (quota === 'quota1') return t('dashboard.planQuota1');
-  if (quota === 'quota2') return t('dashboard.planQuota2');
+  if (!quota) return t('dashboard.planFree');
+  const q = quota.toLowerCase().trim();
+  if (q === 'free') return t('dashboard.planFree');
+  if (q === 'basic' || q === 'quota1') return t('dashboard.planBasic');
+  if (q === 'pro' || q === 'quota2') return t('dashboard.planPro');
+  if (q === 'max') return t('dashboard.planMax');
   if (mr) return t('dashboard.planCustom').replace('{count}', String(mr));
-  return t('dashboard.planFree');
+  return `${q.charAt(0).toUpperCase() + q.slice(1)} Plan`;
 };

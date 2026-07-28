@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getRemainingDays, getTemperature, getRouterImage, skeletonStyle, getQuotaName } from '../lib/helpers';
-import { Server, Plus, Users, Activity, Cpu, Clock, RefreshCw, User as UserIcon, Thermometer, ChevronRight, Settings } from 'lucide-react';
+import { Server, Plus, Users, Activity, Cpu, Clock, RefreshCw, User as UserIcon, Thermometer, ChevronRight, Settings, Crown, Zap } from 'lucide-react';
 
 export default function LandingPage() {
   const { user: currentUser } = useAuth();
@@ -104,48 +104,201 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Compact Glassmorphic Account & Quota Bar */}
-      <div style={{ background: 'var(--card-bg)', backdropFilter: 'blur(8px)', border: '1px solid var(--glass-border)', borderRadius: '10px', padding: '10px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Link
-            to="/account"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '6px', backgroundColor: 'rgba(var(--primary-rgb), 0.1)', color: 'var(--primary)', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}
-            title={t('sidebar.accountDetails') || t('dashboard.myAccount') || 'Account Settings'}
-          >
-            <Settings size={15} />
-          </Link>
-          <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(var(--primary-rgb), 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', flexShrink: 0 }}>
-            {currentUser?.user_metadata?.avatar_url ? (
-              <img src={currentUser.user_metadata.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
-            ) : (
-              <UserIcon size={14} />
-            )}
-          </div>
-          <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--foreground)' }}>
-            {currentUser?.email || <span style={skeletonStyle('110px')} />}
-          </div>
-          {userData && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
-              <span style={{ backgroundColor: 'rgba(var(--primary-rgb), 0.1)', color: 'var(--primary)', fontWeight: '700', padding: '1px 6px', borderRadius: '4px' }}>
-                {planName}
-              </span>
-              <span style={{ color: userData?.expiresAt ? (days !== null && days > 3 ? 'var(--text-muted)' : 'var(--danger)') : '#22c55e', fontWeight: '600' }}>
-                {userData?.expiresAt ? (days !== null && days > 0 ? (t('dashboard.daysLeft') || '{days}d left').replace('{days}', String(days)) : (t('dashboard.expired') || 'Expired')) : (t('dashboard.lifetime') || 'Lifetime')}
-              </span>
+      {/* Redesigned Glassmorphic Account & Quota Block */}
+      <div 
+        className="account-detail-block"
+        style={{
+          background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.07) 0%, var(--card-bg) 100%)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: '14px',
+          padding: '14px 18px',
+          marginBottom: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.12)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}
+      >
+        {/* Top Row: User Identity & Account Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          {/* User Info & Avatar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(var(--primary-rgb), 0.12)',
+                border: '1.5px solid rgba(var(--primary-rgb), 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--primary)',
+                overflow: 'hidden'
+              }}>
+                {currentUser?.user_metadata?.avatar_url ? (
+                  <img src={currentUser.user_metadata.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+                ) : (
+                  <UserIcon size={18} />
+                )}
+              </div>
+              <span 
+                style={{
+                  position: 'absolute',
+                  bottom: '0',
+                  right: '0',
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: '#22c55e',
+                  border: '2px solid var(--card-bg)'
+                }}
+                title="Active Account"
+              />
             </div>
-          )}
+
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '800', color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '240px' }}>
+                  {currentUser?.email || <span style={skeletonStyle('110px')} />}
+                </span>
+                <Link
+                  to="/account"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '6px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    color: 'var(--text-muted)',
+                    transition: 'all 0.2s ease',
+                    flexShrink: 0
+                  }}
+                  title={t('sidebar.accountDetails') || 'Account Settings'}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.15)';
+                    e.currentTarget.style.color = 'var(--primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                  }}
+                >
+                  <Settings size={13} />
+                </Link>
+              </div>
+
+              {/* Plan Badge & Expiration */}
+              {userData && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    backgroundColor: 'rgba(var(--primary-rgb), 0.15)',
+                    color: 'var(--primary)',
+                    fontWeight: '700',
+                    fontSize: '11px',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(var(--primary-rgb), 0.25)'
+                  }}>
+                    <Crown size={11} />
+                    {planName}
+                  </span>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    color: userData?.expiresAt ? (days !== null && days > 3 ? 'var(--text-muted)' : 'var(--danger)') : '#22c55e',
+                    backgroundColor: userData?.expiresAt ? (days !== null && days > 3 ? 'rgba(255, 255, 255, 0.04)' : 'rgba(239, 68, 68, 0.1)') : 'rgba(34, 197, 94, 0.1)',
+                    padding: '2px 8px',
+                    borderRadius: '6px'
+                  }}>
+                    <Clock size={11} />
+                    {userData?.expiresAt ? (days !== null && days > 0 ? (t('dashboard.daysLeft') || '{days}d left').replace('{days}', String(days)) : (t('dashboard.expired') || 'Expired')) : (t('dashboard.lifetime') || 'Lifetime')}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Upgrade Link */}
+          <Link
+            to="/plans"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+              border: '1px solid rgba(var(--primary-rgb), 0.25)',
+              color: 'var(--primary)',
+              fontSize: '11.5px',
+              fontWeight: '700',
+              textDecoration: 'none',
+              transition: 'all 0.2s ease',
+              flexShrink: 0
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--primary)';
+              e.currentTarget.style.color = '#fff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.1)';
+              e.currentTarget.style.color = 'var(--primary)';
+            }}
+          >
+            <Zap size={13} />
+            <span>{t('accountPage.upgradeOrChangePlan') || 'Manage Plan'}</span>
+          </Link>
         </div>
 
-        {/* Quota Progress Pill */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)' }}>
-            <Server size={13} color="var(--primary)" />
-            <span style={{ fontWeight: '600' }}>
-              {totalRouters} / {maxRouters} {t('dashboard.routers') || 'Routers'} ({(t('dashboard.routersOnlineCount') || '{count} online').replace('{count}', String(onlineRouters))})
-            </span>
+        {/* Bottom Row: Router Quota Bar */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          paddingTop: '10px',
+          borderTop: '1px solid var(--glass-border)',
+          flexWrap: 'wrap'
+        }}>
+          {/* Capacity Text */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--foreground)', fontWeight: '700' }}>
+              <Server size={14} color="var(--primary)" />
+              <span>{totalRouters} / {maxRouters} {t('dashboard.routers') || 'Routers'}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#22c55e', fontWeight: '600', backgroundColor: 'rgba(34, 197, 94, 0.1)', padding: '2px 7px', borderRadius: '12px' }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e', animation: 'pulse-dot 2s infinite' }} />
+              <span>{(t('dashboard.routersOnlineCount') || '{count} online').replace('{count}', String(onlineRouters))}</span>
+            </div>
           </div>
-          <div style={{ width: '60px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--secondary)', overflow: 'hidden' }}>
-            <div style={{ width: `${usagePercent}%`, height: '100%', backgroundColor: 'var(--primary)', borderRadius: '2px' }} />
+
+          {/* Meter Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', maxWidth: '200px', minWidth: '120px' }}>
+            <div style={{ flex: 1, height: '6px', borderRadius: '3px', backgroundColor: 'var(--secondary)', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+              <div 
+                style={{ 
+                  width: `${usagePercent}%`, 
+                  height: '100%', 
+                  background: usagePercent > 90 ? 'linear-gradient(90deg, #f59e0b, #ef4444)' : 'linear-gradient(90deg, var(--primary), #6366f1)',
+                  borderRadius: '3px',
+                  transition: 'width 0.4s ease'
+                }} 
+              />
+            </div>
+            <span style={{ fontSize: '10.5px', fontWeight: '700', color: 'var(--text-muted)', minWidth: '28px', textAlign: 'end' }}>
+              {usagePercent}%
+            </span>
           </div>
         </div>
       </div>

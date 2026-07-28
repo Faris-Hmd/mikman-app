@@ -145,17 +145,34 @@ export const apiCall = async <T = unknown>(
   if (!res.ok) {
     const errorText = await res.text().catch(() => '');
     let errorMessage = `API error (${res.status}): ${res.statusText}`;
+    let errorCode = '';
     try {
       const parsed = JSON.parse(errorText);
       if (parsed.error || parsed.message) {
         errorMessage = parsed.error || parsed.message;
+      }
+      if (parsed.code) {
+        errorCode = parsed.code;
       }
     } catch {
       if (errorText) {
         errorMessage = errorText.substring(0, 200);
       }
     }
-    throw new Error(errorMessage);
+
+    if (res.status === 403) {
+      const lowerMsg = errorMessage.toLowerCase();
+      if (lowerMsg.includes('banned') || lowerMsg.includes('pending approval') || errorCode === 'ACCOUNT_BANNED') {
+        window.dispatchEvent(new CustomEvent('account:banned'));
+      } else if (lowerMsg.includes('expired') || errorCode === 'SUBSCRIPTION_EXPIRED') {
+        window.dispatchEvent(new CustomEvent('account:expired'));
+      }
+    }
+
+    const err = new Error(errorMessage) as any;
+    err.status = res.status;
+    err.code = errorCode;
+    throw err;
   }
 
   return res.json();
@@ -334,7 +351,40 @@ export const fetchRouterProfilesWithUserAPI = async (): Promise<RouterProfilesRe
       return { profiles: response.profiles ?? [], userData: response.userData ?? null };
     }
     return { profiles: [], userData: null };
-  } catch (e) {
+  } catch (e: any) {
+    const msg = (e?.message || '').toLowerCase();
+    const isBanned = e?.status === 403 && (msg.includes('banned') || msg.includes('pending approval') || e?.code === 'ACCOUNT_BANNED');
+    const isExpired = e?.status === 403 && (msg.includes('expired') || e?.code === 'SUBSCRIPTION_EXPIRED');
+
+    if (isBanned) {
+      return {
+        profiles: [],
+        userData: {
+          email: '',
+          approved: false,
+          expiresAt: null,
+          maxRouters: 0,
+          quota: 'free',
+          hasPassword: true,
+          name: null,
+        }
+      };
+    }
+    if (isExpired) {
+      return {
+        profiles: [],
+        userData: {
+          email: '',
+          approved: true,
+          expiresAt: new Date(Date.now() - 1000).toISOString(),
+          maxRouters: 0,
+          quota: 'expired',
+          hasPassword: true,
+          name: null,
+        }
+      };
+    }
+
     logError('Fetch router profiles error:', e);
     return { profiles: [], userData: null };
   }
@@ -634,6 +684,15 @@ export const updateRouterProfileAPI = async (
   });
 };
 
+export interface UploadJobStatus {
+  id: string;
+  routerId: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  message?: string;
+  error?: string;
+}
+
 export const provisionHotspotFilesAPI = async (
   id: string,
   data: {
@@ -641,11 +700,21 @@ export const provisionHotspotFilesAPI = async (
     supportName?: string;
     supportPhone?: string;
   }
-): Promise<{ success: boolean; message: string }> => {
+): Promise<{ success: boolean; message: string; jobId?: string; status?: string }> => {
   return apiCall(`/routers/${id}/provision/hotspot-files`, {
     method: 'POST',
     body: data,
-    timeoutMs: 180_000,
+    timeoutMs: 30_000,
+  });
+};
+
+export const fetchHotspotUploadJobStatusAPI = async (
+  id: string,
+  jobId: string
+): Promise<UploadJobStatus> => {
+  return apiCall(`/routers/${id}/provision/hotspot-files/status/${jobId}`, {
+    cache: 'no-store',
+    timeoutMs: 15_000,
   });
 };
 
@@ -742,6 +811,54 @@ export const fetchRevenueStatsAPI = async (
 
 export const registerUserAPI = async (): Promise<{ success: boolean; message: string }> => {
   return apiCall('/users/register', { method: 'POST' });
+};
+
+export interface SubscriptionHistoryEntry {
+  id?: string;
+  action: string;
+  created_at?: string;
+  timestamp?: string;
+  details?: {
+    plan?: string;
+    max_routers?: number;
+    days_added?: number;
+    expires_at?: string;
+  };
+}
+
+export const fetchUserSubscriptionHistoryAPI = async (): Promise<SubscriptionHistoryEntry[]> => {
+  try {
+    const res = await apiCall<{ success: boolean; history: SubscriptionHistoryEntry[] }>('/users/subscription-history', { cache: 'no-store' });
+    const logs = (res.history || []).map((item: any) => ({
+      ...item,
+      created_at: item.created_at || item.timestamp,
+      timestamp: item.created_at || item.timestamp
+    }));
+    return logs;
+  } catch (e) {
+    logError('Fetch subscription history error:', e);
+    return [];
+  }
+};
+
+export interface PlanCatalogItem {
+  id: string;
+  name: string;
+  nameAr?: string;
+  priceSdg?: number;
+  days: number;
+  maxRouters: number;
+  description?: string;
+}
+
+export const fetchPlansCatalogAPI = async (): Promise<PlanCatalogItem[]> => {
+  try {
+    const res = await apiCall<{ plans: PlanCatalogItem[] }>('/users/plans');
+    return res.plans || [];
+  } catch (e) {
+    logError('Fetch plans catalog error:', e);
+    return [];
+  }
 };
 
 export const fetchRouterHistoryAPI = async (
