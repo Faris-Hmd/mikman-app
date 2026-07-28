@@ -176,47 +176,48 @@ export default function UsersPage() {
         justifyContent: 'space-between',
         flexWrap: 'nowrap',
         gap: '8px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        padding: '8px 12px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '13px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '9px',
             background: 'linear-gradient(135deg, rgba(59,130,246,0.25) 0%, rgba(37,99,235,0.45) 100%)',
             color: '#3b82f6',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             border: '1px solid rgba(59,130,246,0.35)',
-            boxShadow: '0 4px 12px rgba(59,130,246,0.2)',
+            boxShadow: '0 2px 6px rgba(59,130,246,0.2)',
             flexShrink: 0
           }}>
-            <Users size={22} />
+            <Users size={16} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('users.title')}
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
               {routerId && !routerId.startsWith('cloud_') && (
                 <>
                   <span style={{
                     fontFamily: 'monospace',
-                    fontSize: '11px',
+                    fontSize: '10px',
                     fontWeight: 700,
                     color: 'var(--primary)',
                     background: 'rgba(var(--primary-rgb), 0.1)',
-                    padding: '2px 6px',
-                    borderRadius: '6px',
+                    padding: '1px 5px',
+                    borderRadius: '5px',
                     flexShrink: 0
                   }}>
                     {routerId}
                   </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>•</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>•</span>
                 </>
               )}
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {rawClientList.length} {t('users.activeClients')}
               </span>
             </div>
@@ -228,26 +229,26 @@ export default function UsersPage() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            borderRadius: '10px',
+            gap: '4px',
+            padding: '6px 10px',
+            borderRadius: '8px',
             border: '1px solid var(--glass-border)',
             background: 'var(--card-bg)',
             color: 'var(--foreground)',
-            fontSize: '12px',
+            fontSize: '11px',
             fontWeight: '600',
             cursor: 'pointer',
             flexShrink: 0,
             transition: 'all 0.15s ease',
           }}
         >
-          <RefreshCw size={14} className={isLoading ? 'spin' : ''} />
+          <RefreshCw size={13} className={isLoading ? 'spin' : ''} />
           <span>{t('common.refresh') || 'Refresh'}</span>
         </button>
       </div>
 
       {/* ─── 2. Overview Stat Cards / Interactive Group Tabs ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
         {/* Group 1: Signed In Users */}
         <div
           onClick={() => setActiveTab('signedIn')}
@@ -259,20 +260,20 @@ export default function UsersPage() {
             border: activeTab === 'signedIn'
               ? '1px solid rgba(59, 130, 246, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '14px',
-            padding: '14px 16px',
+            borderRadius: '10px',
+            padding: '8px 10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '8px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'signedIn' ? '0 4px 14px rgba(59, 130, 246, 0.15)' : 'none'
+            boxShadow: activeTab === 'signedIn' ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
             background: activeTab === 'signedIn' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(16, 185, 129, 0.15)',
             color: activeTab === 'signedIn' ? '#60a5fa' : '#10b981',
             display: 'flex',
@@ -281,13 +282,13 @@ export default function UsersPage() {
             border: '1px solid rgba(59, 130, 246, 0.25)',
             flexShrink: 0
           }}>
-            <UserCheck size={20} />
+            <UserCheck size={14} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
               {t('users.signedIn')}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginTop: '2px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', marginTop: '1px' }}>
               {isLoading ? '—' : signedInClients.length}
             </div>
           </div>
@@ -304,20 +305,20 @@ export default function UsersPage() {
             border: activeTab === 'waiting'
               ? '1px solid rgba(245, 158, 11, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '14px',
-            padding: '14px 16px',
+            borderRadius: '10px',
+            padding: '8px 10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '8px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'waiting' ? '0 4px 14px rgba(245, 158, 11, 0.15)' : 'none'
+            boxShadow: activeTab === 'waiting' ? '0 2px 8px rgba(245, 158, 11, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
             background: activeTab === 'waiting' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(245, 158, 11, 0.15)',
             color: '#f59e0b',
             display: 'flex',
@@ -326,13 +327,13 @@ export default function UsersPage() {
             border: '1px solid rgba(245, 158, 11, 0.25)',
             flexShrink: 0
           }}>
-            <Clock size={20} />
+            <Clock size={14} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
               {t('users.waiting')}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginTop: '2px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', marginTop: '1px' }}>
               {isLoading ? '—' : waitingClients.length}
             </div>
           </div>
@@ -343,73 +344,73 @@ export default function UsersPage() {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '4px',
+        gap: '3px',
         background: 'var(--card-bg, rgba(255, 255, 255, 0.04))',
-        padding: '4px',
-        borderRadius: '12px',
+        padding: '3px',
+        borderRadius: '8px',
         border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.08))',
         width: 'fit-content'
       }}>
         <button
           onClick={() => setActiveTab('signedIn')}
           style={{
-            padding: '6px 12px',
-            borderRadius: '8px',
+            padding: '4px 8px',
+            borderRadius: '6px',
             border: 'none',
             background: activeTab === 'signedIn' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
             color: activeTab === 'signedIn' ? '#60a5fa' : 'var(--text-muted)',
-            fontSize: '12px',
+            fontSize: '11px',
             fontWeight: 700,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '4px',
             transition: 'all 0.15s ease'
           }}
         >
-          <UserCheck size={14} />
+          <UserCheck size={12} />
           <span>{t('users.signedIn')} ({signedInClients.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('waiting')}
           style={{
-            padding: '6px 12px',
-            borderRadius: '8px',
+            padding: '4px 8px',
+            borderRadius: '6px',
             border: 'none',
             background: activeTab === 'waiting' ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
             color: activeTab === 'waiting' ? '#fbbf24' : 'var(--text-muted)',
-            fontSize: '12px',
+            fontSize: '11px',
             fontWeight: 700,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '4px',
             transition: 'all 0.15s ease'
           }}
         >
-          <Clock size={14} />
+          <Clock size={12} />
           <span>{t('users.waiting')} ({waitingClients.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('all')}
           style={{
-            padding: '6px 12px',
-            borderRadius: '8px',
+            padding: '4px 8px',
+            borderRadius: '6px',
             border: 'none',
             background: activeTab === 'all' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
             color: activeTab === 'all' ? 'var(--foreground)' : 'var(--text-muted)',
-            fontSize: '12px',
+            fontSize: '11px',
             fontWeight: 700,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '4px',
             transition: 'all 0.15s ease'
           }}
         >
-          <Users size={14} />
+          <Users size={12} />
           <span>{t('users.all')} ({rawClientList.length})</span>
         </button>
       </div>
@@ -420,12 +421,12 @@ export default function UsersPage() {
         width: '100%',
       }}>
         <Search
-          size={16}
+          size={14}
           style={{
             position: 'absolute',
             top: '50%',
             transform: 'translateY(-50%)',
-            [isRtl ? 'right' : 'left']: '14px',
+            [isRtl ? 'right' : 'left']: '10px',
             color: 'var(--text-muted)',
             pointerEvents: 'none'
           }}
@@ -437,13 +438,13 @@ export default function UsersPage() {
           placeholder={t('users.searchPlaceholder')}
           style={{
             width: '100%',
-            padding: `12px ${isRtl ? '38px' : '38px'} 12px ${isRtl ? '38px' : '38px'}`,
+            padding: `8px ${isRtl ? '30px' : '30px'} 8px ${isRtl ? '30px' : '30px'}`,
             background: 'var(--card-bg, rgba(255, 255, 255, 0.05))',
             backdropFilter: 'blur(12px)',
             border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '14px',
+            borderRadius: '8px',
             color: 'var(--foreground)',
-            fontSize: '13px',
+            fontSize: '12px',
             outline: 'none',
             boxSizing: 'border-box',
             transition: 'border-color 0.2s ease',
@@ -456,7 +457,7 @@ export default function UsersPage() {
               position: 'absolute',
               top: '50%',
               transform: 'translateY(-50%)',
-              [isRtl ? 'left' : 'right']: '12px',
+              [isRtl ? 'left' : 'right']: '8px',
               background: 'none',
               border: 'none',
               color: 'var(--text-muted)',
@@ -464,10 +465,10 @@ export default function UsersPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '4px',
+              padding: '2px',
             }}
           >
-            <X size={14} />
+            <X size={13} />
           </button>
         )}
       </div>
@@ -572,52 +573,45 @@ export default function UsersPage() {
                 key={client.id || idx}
                 onClick={() => setSelectedClient(client)}
                 style={{
-                  background: 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-                  backdropFilter: 'blur(12px)',
                   border: isSignedUser
                     ? '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))'
                     : '1px solid rgba(245, 158, 11, 0.25)',
-                  borderRadius: '16px',
-                  padding: '14px 16px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '12px',
+                  gap: '8px',
                   cursor: 'pointer',
                   transition: 'transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                 }}
-                className="hover-card"
+                className="list-item-card hover-card"
               >
                 {/* Left: Device / User Avatar & Identifiers */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
                   {/* Avatar Icon + Online Pulse Dot */}
                   <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <div style={{
-                      width: '42px',
-                      height: '42px',
-                      borderRadius: '12px',
-                      background: isSignedUser
-                        ? 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.3) 100%)'
-                        : 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(217,119,6,0.3) 100%)',
-                      color: isSignedUser ? 'var(--primary, #3b82f6)' : '#f59e0b',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: isSignedUser ? '1px solid rgba(59,130,246,0.25)' : '1px solid rgba(245,158,11,0.3)'
-                    }}>
-                      {isSignedUser ? <Smartphone size={20} /> : <UserX size={20} />}
+                    <div
+                      className="item-icon"
+                      style={{
+                        background: isSignedUser
+                          ? 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.3) 100%)'
+                          : 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(217,119,6,0.3) 100%)',
+                        color: isSignedUser ? 'var(--primary, #3b82f6)' : '#f59e0b',
+                        border: isSignedUser ? '1px solid rgba(59,130,246,0.25)' : '1px solid rgba(245,158,11,0.3)'
+                      }}
+                    >
+                      {isSignedUser ? <Smartphone size={16} /> : <UserX size={16} />}
                     </div>
                     <span style={{
                       position: 'absolute',
-                      bottom: '-2px',
-                      [isRtl ? 'left' : 'right']: '-2px',
-                      width: '10px',
-                      height: '10px',
+                      bottom: '-1px',
+                      [isRtl ? 'left' : 'right']: '-1px',
+                      width: '8px',
+                      height: '8px',
                       borderRadius: '50%',
                       background: isSignedUser ? '#10b981' : '#f59e0b',
-                      border: '2px solid var(--card-bg, #0f172a)',
-                      boxShadow: isSignedUser ? '0 0 6px rgba(16,185,129,0.8)' : '0 0 6px rgba(245,158,11,0.8)'
+                      border: '1.5px solid var(--card-bg, #0f172a)',
+                      boxShadow: isSignedUser ? '0 0 4px rgba(16,185,129,0.8)' : '0 0 4px rgba(245,158,11,0.8)'
                     }} />
                   </div>
 
@@ -627,11 +621,9 @@ export default function UsersPage() {
                       <>
                         <strong
                           title={deviceNameCandidate}
+                          className="item-title"
                           style={{
-                            fontSize: '13px',
-                            fontWeight: 700,
-                            color: 'var(--foreground)',
-                            maxWidth: '180px',
+                            maxWidth: '140px',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
@@ -641,44 +633,34 @@ export default function UsersPage() {
                           {deviceNameCandidate}
                         </strong>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
-                          <span style={{
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: 'var(--text-muted)',
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '1px', flexWrap: 'wrap' }}>
+                          <span className="item-subtext" style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '3px'
+                            gap: '2px'
                           }}>
-                            <Shield size={11} style={{ opacity: 0.7 }} />
+                            <Shield size={10} style={{ opacity: 0.7 }} />
                             {rawUser}
                           </span>
 
                           {client.profile && (
-                            <span style={{
-                              fontSize: '10px',
-                              fontWeight: 700,
-                              padding: '2px 7px',
-                              borderRadius: '6px',
+                            <span className="item-badge" style={{
                               background: 'rgba(99, 102, 241, 0.12)',
                               color: '#818cf8',
                               border: '1px solid rgba(99, 102, 241, 0.25)',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '3px'
+                              gap: '2px'
                             }}>
-                              <Layers size={10} />
+                              <Layers size={9} />
                               {client.profile}
                             </span>
                           )}
                         </div>
                       </>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <strong style={{
-                          fontSize: '15px',
-                          fontWeight: 700,
-                          color: 'var(--foreground)',
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <strong className="item-title" style={{
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap'
@@ -687,35 +669,27 @@ export default function UsersPage() {
                         </strong>
 
                         {!isSignedUser ? (
-                          <span style={{
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            padding: '2px 7px',
-                            borderRadius: '6px',
+                          <span className="item-badge" style={{
                             background: 'rgba(245, 158, 11, 0.12)',
                             color: '#fbbf24',
                             border: '1px solid rgba(245, 158, 11, 0.25)',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '3px'
+                            gap: '2px'
                           }}>
-                            <Clock size={10} />
+                            <Clock size={9} />
                             {t('users.waiting')}
                           </span>
                         ) : client.profile ? (
-                          <span style={{
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            padding: '2px 7px',
-                            borderRadius: '6px',
+                          <span className="item-badge" style={{
                             background: 'rgba(99, 102, 241, 0.12)',
                             color: '#818cf8',
                             border: '1px solid rgba(99, 102, 241, 0.25)',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '3px'
+                            gap: '2px'
                           }}>
-                            <Layers size={10} />
+                            <Layers size={9} />
                             {client.profile}
                           </span>
                         ) : null}
@@ -728,18 +702,18 @@ export default function UsersPage() {
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',
+                  gap: '8px',
                   flexShrink: 0
                 }}>
                   {/* Traffic Down / Up (Hidden on sm screens) */}
                   {(rx > 0 || tx > 0) && (
-                    <div className="hide-sm" style={{ textAlign: 'right', fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <div className="hide-sm" style={{ textAlign: 'right', fontSize: '10px', color: 'var(--text-muted)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#10b981' }}>
-                        <ArrowDownRight size={12} />
+                        <ArrowDownRight size={11} />
                         <span>{formatBytes(rx)}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#6366f1' }}>
-                        <ArrowUpRight size={12} />
+                        <ArrowUpRight size={11} />
                         <span>{formatBytes(tx)}</span>
                       </div>
                     </div>
@@ -750,16 +724,16 @@ export default function UsersPage() {
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '11px',
+                      gap: '3px',
+                      fontSize: '10px',
                       color: 'var(--text-muted)',
                       background: 'rgba(255,255,255,0.04)',
-                      padding: '4px 8px',
-                      borderRadius: '8px',
+                      padding: '2px 6px',
+                      borderRadius: '6px',
                       border: '1px solid var(--glass-border)',
                       whiteSpace: 'nowrap'
                     }}>
-                      <Clock size={12} />
+                      <Clock size={10} />
                       <span>{remainingTime}</span>
                     </div>
                   )}
@@ -769,17 +743,17 @@ export default function UsersPage() {
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '11px',
+                      gap: '3px',
+                      fontSize: '10px',
                       fontWeight: 700,
                       color: sigStyle.text,
                       background: sigStyle.bg,
-                      padding: '4px 8px',
-                      borderRadius: '8px',
+                      padding: '2px 6px',
+                      borderRadius: '6px',
                       border: `1px solid ${sigStyle.border}`,
                       whiteSpace: 'nowrap'
                     }}>
-                      <Wifi size={12} />
+                      <Wifi size={10} />
                       <span>{client.signal}%</span>
                     </div>
                   )}
@@ -790,9 +764,9 @@ export default function UsersPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '4px'
+                    padding: '2px'
                   }}>
-                    <Info size={16} />
+                    <Info size={14} />
                   </div>
                 </div>
               </div>

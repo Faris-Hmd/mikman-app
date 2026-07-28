@@ -313,46 +313,48 @@ export default function ProfilesPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+        flexWrap: 'nowrap',
+        gap: '8px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '14px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '9px',
             background: 'linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.4) 100%)',
             color: '#3b82f6',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(59,130,246,0.3)'
+            border: '1px solid rgba(59,130,246,0.3)',
+            flexShrink: 0
           }}>
-            <Layers size={24} />
+            <Layers size={16} />
           </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.5px' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('profiles.title')}
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
               {routerId && !routerId.startsWith('cloud_') && (
                 <>
                   <span style={{
                     fontFamily: 'monospace',
-                    fontSize: '12px',
+                    fontSize: '10px',
                     fontWeight: 700,
                     color: 'var(--primary)',
                     background: 'rgba(var(--primary-rgb), 0.1)',
-                    padding: '2px 8px',
-                    borderRadius: '6px'
+                    padding: '1px 5px',
+                    borderRadius: '5px',
+                    flexShrink: 0
                   }}>
                     {routerId}
                   </span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>•</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>•</span>
                 </>
               )}
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {totalProfiles} {t('profiles.totalProfiles') || 'user profiles'}
               </span>
             </div>
@@ -365,20 +367,20 @@ export default function ProfilesPage() {
             background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
             color: '#ffffff',
             border: 'none',
-            borderRadius: '10px',
-            padding: '8px 14px',
-            fontSize: '12px',
+            borderRadius: '8px',
+            padding: '6px 10px',
+            fontSize: '11px',
             fontWeight: 700,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
+            gap: '4px',
+            boxShadow: '0 2px 6px rgba(37, 99, 235, 0.3)',
             flexShrink: 0,
             whiteSpace: 'nowrap',
           }}
         >
-          <Plus size={16} />
+          <Plus size={13} />
           <span>{t('profiles.addProfileBtn')}</span>
         </button>
       </div>
@@ -432,7 +434,7 @@ export default function ProfilesPage() {
             <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
               {t('profiles.totalProfiles')}
             </span>
-            <strong style={{ fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
+            <strong className="stat-value" style={{ color: 'var(--foreground)' }}>
               {totalProfiles}
             </strong>
           </div>
@@ -458,7 +460,7 @@ export default function ProfilesPage() {
             <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
               {t('profiles.unlimited')}
             </span>
-            <strong style={{ fontSize: '15px', fontWeight: 800, color: '#22c55e' }}>
+            <strong className="stat-value" style={{ color: '#22c55e' }}>
               {unlimitedCount}
             </strong>
           </div>
@@ -484,7 +486,7 @@ export default function ProfilesPage() {
             <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
               {t('profiles.trafficLimit')}
             </span>
-            <strong style={{ fontSize: '15px', fontWeight: 800, color: '#a855f7' }}>
+            <strong className="stat-value" style={{ color: '#a855f7' }}>
               {limitedCount}
             </strong>
           </div>

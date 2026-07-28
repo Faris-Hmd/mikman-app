@@ -165,46 +165,49 @@ export default function VouchersPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+        flexWrap: 'nowrap',
+        gap: '8px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        padding: '8px 12px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '14px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '9px',
             background: 'linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.4) 100%)',
             color: '#3b82f6',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(59,130,246,0.3)'
+            border: '1px solid rgba(59,130,246,0.3)',
+            flexShrink: 0
           }}>
-            <Ticket size={24} />
+            <Ticket size={16} />
           </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.5px' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('vouchers.generateBatchTitle')}
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
               {routerId && !routerId.startsWith('cloud_') && (
                 <>
                   <span style={{
                     fontFamily: 'monospace',
-                    fontSize: '12px',
+                    fontSize: '10px',
                     fontWeight: 700,
                     color: 'var(--primary)',
                     background: 'rgba(var(--primary-rgb), 0.1)',
-                    padding: '2px 8px',
-                    borderRadius: '6px'
+                    padding: '1px 5px',
+                    borderRadius: '5px',
+                    flexShrink: 0
                   }}>
                     {routerId}
                   </span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>•</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>•</span>
                 </>
               )}
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {t('vouchers.generateBatchSubtitle')}
               </span>
             </div>
@@ -216,19 +219,20 @@ export default function VouchersPage() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            borderRadius: '10px',
+            gap: '4px',
+            padding: '6px 10px',
+            borderRadius: '8px',
             border: '1px solid var(--glass-border)',
             background: 'var(--card-bg)',
             color: 'var(--primary, #3b82f6)',
-            fontSize: '12px',
-            fontWeight: '600',
-            textDecoration: 'none'
+            fontSize: '11px',
+            fontWeight: '700',
+            textDecoration: 'none',
+            flexShrink: 0
           }}
         >
-          <Layers size={14} />
-          <span>{t('vouchers.batchPrint') || 'View Batches'}</span>
+          <Layers size={13} />
+          <span style={{ whiteSpace: 'nowrap' }}>{t('vouchers.batchPrint') || 'View Batches'}</span>
         </Link>
       </div>
 

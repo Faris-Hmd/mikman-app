@@ -103,7 +103,7 @@ export default function RouterStatusHeader() {
         width: '100%',
         background: 'var(--card-bg)',
         borderBottom: '1px solid var(--glass-border)',
-        padding: '6px 16px',
+        padding: '4px 10px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',

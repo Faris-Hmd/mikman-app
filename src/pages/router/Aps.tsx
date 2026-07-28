@@ -37,13 +37,14 @@ export default function ApsPage() {
         justifyContent: 'space-between',
         flexWrap: 'nowrap',
         gap: '8px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        padding: '8px 12px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '9px',
             background: 'linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.4) 100%)',
             color: '#10b981',
             display: 'flex',
@@ -52,10 +53,10 @@ export default function ApsPage() {
             border: '1px solid rgba(16,185,129,0.3)',
             flexShrink: 0
           }}>
-            <Radio size={22} />
+            <Radio size={16} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('aps.title')}
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
@@ -109,41 +110,36 @@ export default function ApsPage() {
       ) : apList.length === 0 ? (
         <p style={{ color: 'var(--text-muted)' }}>No access points found.</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {apList.map((ap, idx) => (
             <div
               key={ap.id || idx}
+              className="list-item-card"
               style={{
-                background: 'var(--card-bg)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: '16px',
-                padding: '16px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
               }}
             >
-              <div>
-                <strong style={{ fontSize: '16px' }}>{ap.name || ap.ssid || 'Unnamed AP'}</strong>
-                <div style={{ marginTop: '4px', fontSize: '13px', color: 'var(--text-muted)' }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <strong className="item-title" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ap.name || ap.ssid || 'Unnamed AP'}
+                </strong>
+                <div className="item-subtext" style={{ marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {ap.mac && <span>MAC: {ap.mac}</span>}
                   {ap.ip && <span> • IP: {ap.ip}</span>}
                   {ap.ssid && <span> • SSID: {ap.ssid}</span>}
+                  {ap.channel != null && <span> • Ch: {ap.channel}</span>}
                 </div>
-                {ap.channel != null && (
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Channel: {ap.channel}
-                  </div>
-                )}
               </div>
-              <div style={{ textAlign: 'right', fontSize: '13px' }}>
-                {ap.uptime && (
-                  <div style={{ color: 'var(--text-muted)' }}>Up: {ap.uptime}</div>
-                )}
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 {ap.signal != null && (
-                  <div style={{ fontWeight: 600 }}>
-                    Signal: {ap.signal}%
+                  <div className="item-value" style={{ fontWeight: 700 }}>
+                    {ap.signal}%
                   </div>
+                )}
+                {ap.uptime && (
+                  <div className="item-subtext">Up: {ap.uptime}</div>
                 )}
               </div>
             </div>

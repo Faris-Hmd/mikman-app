@@ -100,8 +100,9 @@ a, .router-card { -webkit-tap-highlight-color: transparent; }
 input, textarea { font-family: inherit; }
 
 /* ─── Responsive font scaling ─── */
-@media (max-width: 768px) { html { font-size: 93%; } }
-@media (max-width: 480px) { html { font-size: 87%; } }
+@media (max-width: 768px) { html { font-size: 89.5%; } }
+@media (max-width: 640px) { html { font-size: 85%; } }
+@media (max-width: 480px) { html { font-size: 80%; } }
 
 /* ─── Spinner Animation ─── */
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

@@ -1053,10 +1053,10 @@ export default function BatchDetailPage() {
         {/* Compact Glass Toolbar Block */}
         <div style={{
           ...cardStyle,
-          padding: '14px 16px',
+          padding: '8px 12px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
+          gap: '8px',
           background: 'var(--card-bg, rgba(20, 20, 20, 0.75))',
           backdropFilter: 'blur(16px)',
           borderRadius: '16px',
@@ -1072,7 +1072,7 @@ export default function BatchDetailPage() {
                   ...btnSecondary,
                   width: '32px',
                   height: '32px',
-                  borderRadius: '10px',
+                  borderRadius: '9px',
                   padding: 0,
                   display: 'flex',
                   alignItems: 'center',
@@ -1081,15 +1081,16 @@ export default function BatchDetailPage() {
                 }}
                 title={t('batch.backToBatches')}
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft size={16} />
               </button>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: '2px' }}>
                 <h2 style={{
                   margin: 0,
-                  fontSize: '15px',
+                  fontSize: '14px',
                   fontWeight: 800,
                   color: 'var(--foreground)',
+                  letterSpacing: '-0.2px',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -1101,9 +1102,9 @@ export default function BatchDetailPage() {
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  padding: '2px 7px',
-                  borderRadius: '12px',
+                  gap: '3px',
+                  padding: '1px 5px',
+                  borderRadius: '5px',
                   fontSize: '10px',
                   fontWeight: 700,
                   background: 'rgba(var(--primary-rgb), 0.12)',
@@ -1118,9 +1119,9 @@ export default function BatchDetailPage() {
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  padding: '2px 7px',
-                  borderRadius: '12px',
+                  gap: '3px',
+                  padding: '1px 5px',
+                  borderRadius: '5px',
                   fontSize: '10px',
                   fontWeight: 700,
                   background: 'rgba(255, 255, 255, 0.06)',
@@ -1136,9 +1137,9 @@ export default function BatchDetailPage() {
                   <span className="hide-sm" style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 7px',
-                    borderRadius: '12px',
+                    gap: '3px',
+                    padding: '1px 5px',
+                    borderRadius: '5px',
                     fontSize: '10px',
                     fontWeight: 600,
                     background: 'rgba(255, 255, 255, 0.05)',
@@ -1161,19 +1162,19 @@ export default function BatchDetailPage() {
               disabled={printLoading}
               style={{
                 ...btnPrimary,
-                padding: '6px 12px',
-                borderRadius: '10px',
-                fontSize: '12px',
+                padding: '6px 10px',
+                borderRadius: '8px',
+                fontSize: '11px',
                 fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '4px',
                 cursor: printLoading ? 'not-allowed' : 'pointer',
                 flexShrink: 0,
                 whiteSpace: 'nowrap',
               }}
             >
-              <Printer size={14} />
+              <Printer size={13} />
               <span>{printLoading ? '...' : t('batch.printBtn')}</span>
             </button>
           </div>
@@ -1200,7 +1201,7 @@ export default function BatchDetailPage() {
                   <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', color: statusFilter === 'all' ? 'var(--primary)' : 'var(--text-muted)' }}>
                     {t('batch.total')}
                   </span>
-                  <span style={{ fontSize: '16px', fontWeight: 800, lineHeight: 1, color: statusFilter === 'all' ? 'var(--primary)' : 'var(--foreground)' }}>
+                  <span className="stat-value" style={{ lineHeight: 1, color: statusFilter === 'all' ? 'var(--primary)' : 'var(--foreground)' }}>
                     {detail.originalCount}
                   </span>
                 </div>
@@ -1226,7 +1227,7 @@ export default function BatchDetailPage() {
                   <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', color: '#22c55e' }}>
                     {t('batch.unused')}
                   </span>
-                  <span style={{ fontSize: '16px', fontWeight: 800, lineHeight: 1, color: '#22c55e' }}>
+                  <span className="stat-value" style={{ lineHeight: 1, color: '#22c55e' }}>
                     {detail.unusedCount}
                   </span>
                 </div>
@@ -1252,7 +1253,7 @@ export default function BatchDetailPage() {
                   <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', color: '#3b82f6' }}>
                     {t('batch.active')}
                   </span>
-                  <span style={{ fontSize: '16px', fontWeight: 800, lineHeight: 1, color: '#3b82f6' }}>
+                  <span className="stat-value" style={{ lineHeight: 1, color: '#3b82f6' }}>
                     {detail.activeCount}
                   </span>
                 </div>
@@ -1278,7 +1279,7 @@ export default function BatchDetailPage() {
                   <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', color: '#ef4444' }}>
                     {t('batch.expired')}
                   </span>
-                  <span style={{ fontSize: '16px', fontWeight: 800, lineHeight: 1, color: '#ef4444' }}>
+                  <span className="stat-value" style={{ lineHeight: 1, color: '#ef4444' }}>
                     {detail.expiredCount}
                   </span>
                 </div>

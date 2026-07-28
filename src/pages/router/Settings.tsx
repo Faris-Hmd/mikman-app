@@ -441,14 +441,13 @@ export default function SettingsPage() {
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'nowrap',
-        gap: '8px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+        padding: '8px 12px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '9px',
             background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(79,70,229,0.4) 100%)',
             color: '#6366f1',
             display: 'flex',
@@ -457,31 +456,31 @@ export default function SettingsPage() {
             border: '1px solid rgba(99,102,241,0.3)',
             flexShrink: 0
           }}>
-            <SettingsIcon size={22} />
+            <SettingsIcon size={16} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('settings.title')}
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
               {routerId && !routerId.startsWith('cloud_') && (
                 <>
                   <span style={{
                     fontFamily: 'monospace',
-                    fontSize: '11px',
+                    fontSize: '10px',
                     fontWeight: 700,
                     color: 'var(--primary)',
                     background: 'rgba(var(--primary-rgb), 0.1)',
-                    padding: '2px 6px',
-                    borderRadius: '6px',
+                    padding: '1px 5px',
+                    borderRadius: '5px',
                     flexShrink: 0
                   }}>
                     {routerId}
                   </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>•</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>•</span>
                 </>
               )}
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {t('settings.subtitle')}
               </span>
             </div>

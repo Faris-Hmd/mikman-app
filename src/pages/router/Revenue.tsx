@@ -34,6 +34,29 @@ function formatYAxisLabel(val: number): string {
   return val.toFixed(1);
 }
 
+function formatCurrency(val: number): string {
+  if (isNaN(val) || val === 0) return '$0';
+  const absVal = Math.abs(val);
+  const sign = val < 0 ? '-' : '';
+
+  if (absVal >= 1_000_000) {
+    const num = absVal / 1_000_000;
+    return `${sign}$${num % 1 === 0 ? num.toFixed(0) : num.toFixed(1)}M`;
+  }
+  if (absVal >= 1_000) {
+    const num = absVal / 1_000;
+    const formatted = num >= 10 ? num.toFixed(0) : (num % 1 === 0 ? num.toFixed(0) : num.toFixed(1));
+    return `${sign}$${formatted}k`;
+  }
+  if (absVal >= 100) {
+    return `${sign}$${Math.round(absVal)}`;
+  }
+  if (absVal % 1 === 0) {
+    return `${sign}$${absVal.toFixed(0)}`;
+  }
+  return `${sign}$${absVal.toFixed(2)}`;
+}
+
 export default function RevenuePage() {
   const { routerId } = useParams<{ routerId: string }>();
   const { t, language } = useLanguage();
@@ -42,6 +65,7 @@ export default function RevenuePage() {
   // Selected month filter state: 'last30' | 'all' | 'YYYY-MM'
   const [selectedMonthValue, setSelectedMonthValue] = useState<string>('last30');
   const [activeTooltip, setActiveTooltip] = useState<{ date: string; revenue: number; count: number; index: number } | null>(null);
+  const [hoveredProfileIdx, setHoveredProfileIdx] = useState<number | null>(null);
 
   // Fetch overall all-time data to extract earliest and latest record dates (pure client-side)
   const { data: allTimeRevenue } = useSWR(
@@ -239,7 +263,7 @@ export default function RevenuePage() {
   const totalVouchers = Number(revenue?.totalVouchers || 0);
   const avgVoucherPrice = totalVouchers > 0 ? (totalRev / totalVouchers).toFixed(2) : '0.00';
   const activeDaysCount = chartDaily.filter(d => d.revenue > 0).length;
-  const avgDailyRev = chartDaily.length > 0 ? (totalRev / chartDaily.length).toFixed(2) : '0.00';
+  const avgDailyRev = chartDaily.length > 0 ? (totalRev / chartDaily.length) : 0;
 
   const periodData = revenue
     ? viewMode === 'daily'
@@ -261,13 +285,14 @@ export default function RevenuePage() {
         justifyContent: 'space-between',
         flexWrap: 'nowrap',
         gap: '8px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        padding: '8px 12px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '9px',
             background: 'linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.4) 100%)',
             color: '#3b82f6',
             display: 'flex',
@@ -276,31 +301,31 @@ export default function RevenuePage() {
             border: '1px solid rgba(59,130,246,0.3)',
             flexShrink: 0
           }}>
-            <TrendingUp size={22} />
+            <TrendingUp size={16} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('revenue.title')}
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
               {routerId && !routerId.startsWith('cloud_') && (
                 <>
                   <span style={{
                     fontFamily: 'monospace',
-                    fontSize: '11px',
+                    fontSize: '10px',
                     fontWeight: 700,
                     color: 'var(--primary)',
                     background: 'rgba(var(--primary-rgb), 0.1)',
-                    padding: '2px 6px',
-                    borderRadius: '6px',
+                    padding: '1px 5px',
+                    borderRadius: '5px',
                     flexShrink: 0
                   }}>
                     {routerId}
                   </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>•</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>•</span>
                 </>
               )}
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {activeDaysCount} {language === 'ar' ? 'أيام نشطة' : 'active days'}
               </span>
             </div>
@@ -311,14 +336,14 @@ export default function RevenuePage() {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '4px',
           background: 'var(--secondary)',
           border: '1px solid var(--glass-border)',
-          padding: '6px 10px',
-          borderRadius: '12px',
+          padding: '4px 8px',
+          borderRadius: '8px',
           flexShrink: 0
         }}>
-          <Calendar size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          <Calendar size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} />
           <select
             value={selectedMonthValue}
             onChange={(e) => setSelectedMonthValue(e.target.value)}
@@ -327,7 +352,7 @@ export default function RevenuePage() {
               border: 'none',
               color: 'var(--foreground)',
               fontWeight: 700,
-              fontSize: '12px',
+              fontSize: '11px',
               outline: 'none',
               cursor: 'pointer'
             }}
@@ -342,16 +367,16 @@ export default function RevenuePage() {
       </div>
 
       {/* ─── Auto-Generated Month List Pills ─── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Calendar size={14} style={{ color: 'var(--accent)' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <Calendar size={12} style={{ color: 'var(--accent)' }} />
           {language === 'ar' ? 'اختر الفترة الزمنية:' : 'Select Timeframe:'}
         </div>
         <div style={{
           display: 'flex',
-          gap: '10px',
+          gap: '6px',
           overflowX: 'auto',
-          paddingBottom: '8px',
+          paddingBottom: '4px',
           scrollbarWidth: 'thin',
           WebkitOverflowScrolling: 'touch'
         }}>
@@ -363,17 +388,16 @@ export default function RevenuePage() {
                 onClick={() => setSelectedMonthValue(opt.value)}
                 style={{
                   whiteSpace: 'nowrap',
-                  padding: '9px 18px',
-                  borderRadius: '24px',
+                  padding: '4px 10px',
+                  borderRadius: '12px',
                   border: isActive ? '1px solid var(--accent)' : '1px solid var(--glass-border)',
                   background: isActive ? 'var(--accent)' : 'var(--card-bg)',
                   color: isActive ? '#fff' : 'var(--foreground)',
-                  fontWeight: isActive ? 800 : 600,
-                  fontSize: '13px',
+                  fontWeight: isActive ? 700 : 500,
+                  fontSize: '11px',
                   cursor: 'pointer',
                   transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: isActive ? '0 4px 14px rgba(59, 130, 246, 0.4)' : 'none',
-                  transform: isActive ? 'translateY(-1px)' : 'none'
+                  boxShadow: isActive ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none',
                 }}
               >
                 {opt.label}
@@ -394,22 +418,23 @@ export default function RevenuePage() {
         </div>
       ) : (
         <div style={{ opacity: isValidating ? 0.75 : 1, transition: 'opacity 0.2s ease', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* ─── Compact KPI Cards Grid (2 Cards) ─── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+          {/* ─── Compact KPI Cards Grid (2 Cards side-by-side in 1 row) ─── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
             {/* KPI 1: Total Revenue */}
             <div style={{
               background: 'var(--card-bg)',
               border: '1px solid var(--glass-border)',
-              borderRadius: '14px',
-              padding: '12px 14px',
+              borderRadius: '12px',
+              padding: '10px 10px',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px'
+              gap: '8px',
+              minWidth: 0
             }}>
               <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
                 background: 'rgba(59, 130, 246, 0.12)',
                 color: '#3b82f6',
                 display: 'flex',
@@ -417,18 +442,18 @@ export default function RevenuePage() {
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <DollarSign size={18} />
+                <DollarSign size={16} />
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {language === 'ar' ? 'إجمالي الإيرادات' : 'Total Revenue'}
                 </div>
-                <div style={{ fontSize: '17px', fontWeight: 800, marginTop: '1px', color: 'var(--foreground)' }}>
-                  ${totalRev.toFixed(2)}
+                <div style={{ fontSize: '15px', fontWeight: 800, marginTop: '1px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {formatCurrency(totalRev)}
                 </div>
-                <div style={{ fontSize: '9.5px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                  <ArrowUpRight size={10} style={{ color: '#10b981' }} />
-                  <span>${avgDailyRev}/{language === 'ar' ? 'يوم' : 'day'}</span>
+                <div style={{ fontSize: '9px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '2px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  <ArrowUpRight size={10} style={{ color: '#10b981', flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatCurrency(avgDailyRev)}/{language === 'ar' ? 'يوم' : 'day'}</span>
                 </div>
               </div>
             </div>
@@ -437,16 +462,17 @@ export default function RevenuePage() {
             <div style={{
               background: 'var(--card-bg)',
               border: '1px solid var(--glass-border)',
-              borderRadius: '14px',
-              padding: '12px 14px',
+              borderRadius: '12px',
+              padding: '10px 10px',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px'
+              gap: '8px',
+              minWidth: 0
             }}>
               <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
                 background: 'rgba(16, 185, 129, 0.12)',
                 color: '#10b981',
                 display: 'flex',
@@ -454,16 +480,16 @@ export default function RevenuePage() {
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <Ticket size={18} />
+                <Ticket size={16} />
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {language === 'ar' ? 'الكروت المباعة' : 'Total Vouchers'}
                 </div>
-                <div style={{ fontSize: '17px', fontWeight: 800, marginTop: '1px', color: 'var(--foreground)' }}>
+                <div style={{ fontSize: '15px', fontWeight: 800, marginTop: '1px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {totalVouchers}
                 </div>
-                <div style={{ fontSize: '9.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                <div style={{ fontSize: '9px', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {chartDaily.length > 0 ? (totalVouchers / chartDaily.length).toFixed(1) : 0} {language === 'ar' ? 'كرت/يوم' : 'vouchers/day'}
                 </div>
               </div>
@@ -475,7 +501,8 @@ export default function RevenuePage() {
             display: 'flex',
             flexDirection: 'column',
             gap: '14px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.08)'
+            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+            overflow: 'hidden'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -499,31 +526,8 @@ export default function RevenuePage() {
 
             {chartDaily.length > 0 ? (
               <div style={{ position: 'relative', width: '100%' }}>
-                {/* Active Tooltip overlay */}
-                {activeTooltip && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '-36px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'rgba(15, 23, 42, 0.95)',
-                    border: '1px solid var(--accent)',
-                    color: '#fff',
-                    padding: '6px 12px',
-                    borderRadius: '10px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    zIndex: 10,
-                    pointerEvents: 'none',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
-                  }}>
-                    {activeTooltip.date}: ${activeTooltip.revenue.toFixed(2)} ({activeTooltip.count} {language === 'ar' ? 'كرت' : 'vouchers'})
-                  </div>
-                )}
-
                 {/* Main Layout Row: Y-Axis + Chart */}
-                <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                <div style={{ display: 'flex', gap: '6px', width: '100%', minWidth: 0 }}>
                   {/* Y-Axis Tick Labels Column */}
                   <div style={{
                     display: 'flex',
@@ -531,11 +535,14 @@ export default function RevenuePage() {
                     justifyContent: 'space-between',
                     height: '180px',
                     paddingTop: '16px',
-                    fontSize: '10px',
+                    fontSize: '9px',
                     fontWeight: 700,
                     color: 'var(--text-muted)',
                     textAlign: language === 'ar' ? 'left' : 'right',
-                    minWidth: '34px',
+                    width: '28px',
+                    minWidth: '28px',
+                    flexShrink: 0,
+                    overflow: 'hidden',
                     userSelect: 'none',
                     boxSizing: 'border-box'
                   }}>
@@ -548,6 +555,61 @@ export default function RevenuePage() {
 
                   {/* Chart Area */}
                   <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+                    {/* Active Tooltip overlay inside chart area to avoid card overflow clipping */}
+                    {activeTooltip && (() => {
+                      const dayName = (() => {
+                        if (!activeTooltip.date) return '';
+                        const d = new Date(activeTooltip.date + 'T00:00:00');
+                        if (isNaN(d.getTime())) return '';
+                        const daysAr = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                        const daysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                        return language === 'ar' ? daysAr[d.getDay()] : daysEn[d.getDay()];
+                      })();
+
+                      const leftPercent = Math.min(Math.max((activeTooltip.index / Math.max(chartDaily.length - 1, 1)) * 100, 22), 78);
+
+                      return (
+                        <div style={{
+                          position: 'absolute',
+                          top: '-12px',
+                          left: `${leftPercent}%`,
+                          transform: 'translateX(-50%)',
+                          background: 'rgba(15, 23, 42, 0.95)',
+                          backdropFilter: 'blur(8px)',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          color: '#fff',
+                          padding: '6px 12px',
+                          borderRadius: '10px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                          zIndex: 10,
+                          pointerEvents: 'none',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '2px',
+                          textAlign: 'center'
+                        }}>
+                          {/* Row 1: Day Name & Date */}
+                          <div style={{ color: 'var(--text-muted)', fontSize: '10px', fontWeight: 600, letterSpacing: '0.02em' }}>
+                            {dayName} {activeTooltip.date}
+                          </div>
+
+                          {/* Row 2: Revenue & Voucher Count */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ color: '#fff', fontWeight: 900, fontSize: '13px' }}>
+                              {formatCurrency(activeTooltip.revenue)}
+                            </span>
+                            <span style={{ color: '#60a5fa', fontWeight: 700, fontSize: '11px' }}>
+                              ({activeTooltip.count} {language === 'ar' ? 'كرت' : 'vouchers'})
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* Background Horizontal Gridlines */}
                     <div style={{
                       position: 'absolute',
@@ -576,17 +638,21 @@ export default function RevenuePage() {
                     <div style={{
                       display: 'flex',
                       alignItems: 'flex-end',
-                      gap: '3px',
+                      gap: chartDaily.length > 25 ? '1.5px' : '3px',
                       height: '180px',
                       width: '100%',
                       paddingTop: '16px',
                       borderBottom: '1px solid var(--glass-border)',
                       boxSizing: 'border-box',
                       position: 'relative',
-                      zIndex: 1
+                      zIndex: 1,
+                      overflow: 'hidden'
                     }}>
                       {chartDaily.map((item, idx) => {
-                        const heightPercent = Math.max((item.revenue / niceMax) * 100, item.revenue > 0 ? 6 : 2);
+                        const heightPercent = Math.min(
+                          Math.max((item.revenue / niceMax) * 100, item.revenue > 0 ? 6 : 2),
+                          100
+                        );
                         const isHovered = activeTooltip?.index === idx;
 
                         return (
@@ -627,13 +693,13 @@ export default function RevenuePage() {
                     </div>
 
                     {/* X-Axis Labels */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)', width: '100%', minWidth: 0 }}>
                       {chartDaily.map((item, idx) => {
                         const totalBars = chartDaily.length;
                         const showLabel = idx === 0 || idx === totalBars - 1 || idx % Math.ceil(totalBars / 6) === 0;
                         const dayNum = item.date ? parseInt(item.date.split('-')[2], 10) : idx + 1;
                         return (
-                          <span key={idx} style={{ flex: 1, textAlign: 'center', opacity: showLabel ? 1 : 0, fontWeight: 600 }}>
+                          <span key={idx} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textAlign: 'center', opacity: showLabel ? 1 : 0, fontWeight: 600 }}>
                             {dayNum}
                           </span>
                         );
@@ -649,87 +715,208 @@ export default function RevenuePage() {
             )}
           </div>
 
-          {/* ─── Profile Revenue Breakdown Card ─── */}
-          {revenue.profiles && revenue.profiles.length > 0 && (
-            <div className="responsive-card" style={{
-              boxShadow: '0 8px 32px rgba(0,0,0,0.08)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <PieChart size={20} style={{ color: 'var(--accent)' }} />
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--foreground)' }}>
-                    {language === 'ar' ? 'الإيرادات حسب البروفايل' : 'Revenue Breakdown by Profile'}
-                  </h3>
-                </div>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                  {revenue.profiles.length} {language === 'ar' ? 'بروفايلات' : 'profiles'}
-                </span>
-              </div>
+          {/* ─── Profile Revenue Breakdown Card with Interactive Pie/Donut Chart ─── */}
+          {revenue.profiles && revenue.profiles.length > 0 && (() => {
+            const CIRCUMFERENCE = 2 * Math.PI * 38; // ~238.761
+            let accumulatedPercent = 0;
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {revenue.profiles.map((p, idx) => {
-                  const color = profileColors[idx % profileColors.length];
-                  return (
-                    <div
-                      key={idx}
-                      style={{
-                        background: 'var(--secondary)',
-                        border: '1px solid var(--glass-border)',
-                        borderRadius: '12px',
-                        padding: '10px 12px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        transition: 'transform 0.2s ease, border-color 0.2s ease'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            color: color,
-                            background: `${color}18`,
-                            padding: '3px 8px',
-                            borderRadius: '8px',
-                            border: `1px solid ${color}30`
-                          }}>
-                            #{idx + 1}
+            const totalProfileRev = revenue.profiles.reduce((acc, p) => acc + Number(p.revenue || 0), 0);
+            const activeProfile = hoveredProfileIdx !== null ? revenue.profiles[hoveredProfileIdx] : null;
+
+            return (
+              <div className="responsive-card" style={{
+                boxShadow: '0 8px 32px rgba(0,0,0,0.08)'
+              }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <PieChart size={20} style={{ color: 'var(--accent)' }} />
+                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--foreground)' }}>
+                      {language === 'ar' ? 'الإيرادات حسب البروفايل' : 'Revenue Breakdown by Profile'}
+                    </h3>
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    {revenue.profiles.length} {language === 'ar' ? 'بروفايلات' : 'profiles'}
+                  </span>
+                </div>
+
+                {/* Donut / Pie Chart Visualization */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '16px 12px',
+                  marginBottom: '18px',
+                  background: 'var(--secondary)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '16px',
+                  position: 'relative'
+                }}>
+                  <div style={{ position: 'relative', width: '160px', height: '160px' }}>
+                    <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+                      {/* Base ring */}
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="38"
+                        fill="transparent"
+                        stroke="rgba(255,255,255,0.06)"
+                        strokeWidth="12"
+                      />
+                      {/* Profile Segments */}
+                      {revenue.profiles.map((p, idx) => {
+                        const color = profileColors[idx % profileColors.length];
+                        const pct = Math.max(p.percentage || 0, 0);
+                        const sliceLen = (pct / 100) * CIRCUMFERENCE;
+                        const gap = revenue.profiles.length > 1 && pct > 2 ? 1.5 : 0;
+                        const dashArray = `${Math.max(sliceLen - gap, 0)} ${CIRCUMFERENCE - Math.max(sliceLen - gap, 0)}`;
+                        const dashOffset = -accumulatedPercent * CIRCUMFERENCE;
+                        accumulatedPercent += pct / 100;
+                        const isSelected = hoveredProfileIdx === idx;
+
+                        return (
+                          <circle
+                            key={idx}
+                            cx="50"
+                            cy="50"
+                            r="38"
+                            fill="transparent"
+                            stroke={color}
+                            strokeWidth={isSelected ? "15" : "12"}
+                            strokeDasharray={dashArray}
+                            strokeDashoffset={dashOffset}
+                            style={{
+                              transform: 'rotate(-90deg)',
+                              transformOrigin: '50% 50%',
+                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                              cursor: 'pointer',
+                              filter: isSelected ? `drop-shadow(0 0 8px ${color})` : 'none',
+                              opacity: hoveredProfileIdx === null || isSelected ? 1 : 0.45
+                            }}
+                            onMouseEnter={() => setHoveredProfileIdx(idx)}
+                            onMouseLeave={() => setHoveredProfileIdx(null)}
+                            onTouchStart={() => setHoveredProfileIdx(idx)}
+                          />
+                        );
+                      })}
+                    </svg>
+
+                    {/* Donut Center Info */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      pointerEvents: 'none',
+                      textAlign: 'center',
+                      padding: '8px'
+                    }}>
+                      {activeProfile ? (
+                        <>
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', maxWidth: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {activeProfile.profile}
                           </span>
-                          <div>
-                            <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--foreground)' }}>{p.profile}</div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                              {p.count} {language === 'ar' ? 'كروت مباعة' : 'vouchers sold'}
+                          <span style={{ fontSize: '15px', fontWeight: 900, color: profileColors[hoveredProfileIdx! % profileColors.length], lineHeight: '1.2' }}>
+                            {formatCurrency(Number(activeProfile.revenue))}
+                          </span>
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--foreground)' }}>
+                            {activeProfile.percentage.toFixed(1)}%
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)' }}>
+                            {language === 'ar' ? 'إجمالي البروفايل' : 'Total Profiles'}
+                          </span>
+                          <span style={{ fontSize: '16px', fontWeight: 900, color: 'var(--foreground)', lineHeight: '1.2' }}>
+                            {formatCurrency(totalProfileRev)}
+                          </span>
+                          <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--accent)' }}>
+                            {revenue.profiles.reduce((acc, p) => acc + (p.count || 0), 0)} {language === 'ar' ? 'كرت' : 'vouchers'}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profile List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {revenue.profiles.map((p, idx) => {
+                    const color = profileColors[idx % profileColors.length];
+                    const isSelected = hoveredProfileIdx === idx;
+                    return (
+                      <div
+                        key={idx}
+                        onMouseEnter={() => setHoveredProfileIdx(idx)}
+                        onMouseLeave={() => setHoveredProfileIdx(null)}
+                        onTouchStart={() => setHoveredProfileIdx(idx)}
+                        style={{
+                          background: isSelected ? `${color}14` : 'var(--secondary)',
+                          border: `1px solid ${isSelected ? color : 'var(--glass-border)'}`,
+                          borderRadius: '12px',
+                          padding: '10px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          transition: 'all 0.2s ease',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              color: color,
+                              background: `${color}18`,
+                              padding: '3px 8px',
+                              borderRadius: '8px',
+                              border: `1px solid ${color}30`
+                            }}>
+                              #{idx + 1}
+                            </span>
+                            <div>
+                              <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--foreground)' }}>{p.profile}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                {p.count} {language === 'ar' ? 'كروت مباعة' : 'vouchers sold'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontWeight: 900, fontSize: '16px', color: 'var(--foreground)' }}>
+                              {formatCurrency(Number(p.revenue))}
+                            </div>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: color, marginTop: '2px' }}>
+                              {p.percentage.toFixed(1)}% {language === 'ar' ? 'من الإجمالي' : 'of total'}
                             </div>
                           </div>
                         </div>
 
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: 900, fontSize: '16px', color: 'var(--foreground)' }}>
-                            ${Number(p.revenue).toFixed(2)}
-                          </div>
-                          <div style={{ fontSize: '11px', fontWeight: 700, color: color, marginTop: '2px' }}>
-                            {p.percentage.toFixed(1)}% {language === 'ar' ? 'من الإجمالي' : 'of total'}
-                          </div>
+                        {/* Styled Progress Bar */}
+                        <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{
+                            width: `${Math.min(Math.max(p.percentage, 2), 100)}%`,
+                            height: '100%',
+                            background: `linear-gradient(90deg, ${color} 0%, ${color}dd 100%)`,
+                            borderRadius: '4px',
+                            transition: 'width 0.4s ease-out'
+                          }} />
                         </div>
                       </div>
-
-                      {/* Styled Progress Bar */}
-                      <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{
-                          width: `${Math.min(Math.max(p.percentage, 2), 100)}%`,
-                          height: '100%',
-                          background: `linear-gradient(90deg, ${color} 0%, ${color}dd 100%)`,
-                          borderRadius: '4px',
-                          transition: 'width 0.4s ease-out'
-                        }} />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ─── Period Breakdown Records Section (Daily / Weekly / Monthly) ─── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -742,7 +929,7 @@ export default function RevenuePage() {
               </div>
 
               {/* Segmented Mode Selector Buttons */}
-              <div style={{ display: 'flex', background: 'var(--secondary)', border: '1px solid var(--glass-border)', borderRadius: '14px', padding: '4px', gap: '4px' }}>
+              <div style={{ display: 'flex', background: 'var(--secondary)', border: '1px solid var(--glass-border)', borderRadius: '10px', padding: '3px', gap: '3px' }}>
                 {(['daily', 'weekly', 'monthly'] as const).map((mode) => {
                   const isActive = viewMode === mode;
                   return (
@@ -750,16 +937,16 @@ export default function RevenuePage() {
                       key={mode}
                       onClick={() => setViewMode(mode)}
                       style={{
-                        padding: '8px 16px',
+                        padding: '4px 10px',
                         border: 'none',
-                        borderRadius: '10px',
+                        borderRadius: '7px',
                         background: isActive ? 'var(--accent)' : 'transparent',
                         color: isActive ? '#fff' : 'var(--text-muted)',
-                        fontWeight: isActive ? 800 : 600,
-                        fontSize: '12px',
+                        fontWeight: isActive ? 700 : 500,
+                        fontSize: '11px',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        boxShadow: isActive ? '0 2px 8px rgba(59,130,246,0.3)' : 'none'
+                        boxShadow: isActive ? '0 2px 6px rgba(59,130,246,0.25)' : 'none'
                       }}
                     >
                       {mode === 'daily' ? (language === 'ar' ? 'يومي' : 'Daily') : mode === 'weekly' ? (language === 'ar' ? 'أسبوعي' : 'Weekly') : (language === 'ar' ? 'شهري' : 'Monthly')}
@@ -771,47 +958,37 @@ export default function RevenuePage() {
 
             {/* Vertical List of Record Cards (1 item per row) */}
             {periodData && periodData.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {periodData.map((entry: any, idx: number) => (
                   <div
                     key={idx}
-                    className="responsive-card"
+                    className="bill-card"
                     style={{
-                      padding: '10px 12px',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
-                      transition: 'transform 0.2s ease, border-color 0.2s ease'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '12px',
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <div className="item-icon" style={{
                         background: 'rgba(59, 130, 246, 0.1)',
                         color: 'var(--primary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
                       }}>
-                        <Clock size={18} />
+                        <Clock size={15} />
                       </div>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--foreground)' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="bill-title">
                           {entry.label || entry.date}
                         </div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 500 }}>
+                        <div className="bill-subtext" style={{ marginTop: '1px' }}>
                           {entry.count} {language === 'ar' ? 'كروت' : 'vouchers'}
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 900, fontSize: '18px', color: 'var(--foreground)' }}>
-                        ${Number(entry.revenue).toFixed(2)}
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div className="bill-value">
+                        {formatCurrency(Number(entry.revenue))}
                       </div>
                     </div>
                   </div>

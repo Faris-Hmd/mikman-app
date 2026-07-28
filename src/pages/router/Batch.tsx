@@ -169,13 +169,14 @@ export default function BatchPage() {
         justifyContent: 'space-between',
         flexWrap: 'nowrap',
         gap: '8px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        padding: '8px 12px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '9px',
             background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(79,70,229,0.4) 100%)',
             color: '#6366f1',
             display: 'flex',
@@ -184,31 +185,31 @@ export default function BatchPage() {
             border: '1px solid rgba(99,102,241,0.3)',
             flexShrink: 0
           }}>
-            <Printer size={22} />
+            <Printer size={16} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.title')}
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
               {routerId && !routerId.startsWith('cloud_') && (
                 <>
                   <span style={{
                     fontFamily: 'monospace',
-                    fontSize: '11px',
+                    fontSize: '10px',
                     fontWeight: 700,
                     color: 'var(--primary)',
                     background: 'rgba(var(--primary-rgb), 0.1)',
-                    padding: '2px 6px',
-                    borderRadius: '6px',
+                    padding: '1px 5px',
+                    borderRadius: '5px',
                     flexShrink: 0
                   }}>
                     {routerId}
                   </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>•</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>•</span>
                 </>
               )}
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {stats.totalBatches} {t('batch.totalBatches') || 'batches'}
               </span>
             </div>
@@ -221,21 +222,20 @@ export default function BatchPage() {
             background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
             color: '#ffffff',
             border: 'none',
-            borderRadius: '10px',
-            padding: '7px 12px',
-            fontSize: '12px',
+            borderRadius: '8px',
+            padding: '6px 10px',
+            fontSize: '11px',
             fontWeight: 700,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
-            flexShrink: 0,
-            whiteSpace: 'nowrap',
+            gap: '4px',
+            boxShadow: '0 2px 6px rgba(59,130,246,0.3)',
+            flexShrink: 0
           }}
         >
-          <Plus size={15} />
-          <span>{t('batch.generateBtn')}</span>
+          <Plus size={13} />
+          <span style={{ whiteSpace: 'nowrap' }}>{t('batch.createBatch') || 'إنشاء كروت'}</span>
         </button>
       </div>
 
@@ -263,7 +263,7 @@ export default function BatchPage() {
             <span className="batch-stat-card-label" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.totalBatches')}
             </span>
-            <strong className="batch-stat-card-val" style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)' }}>
+            <strong className="batch-stat-card-val" style={{ color: 'var(--foreground)' }}>
               {stats.totalBatches}
             </strong>
           </div>
@@ -291,7 +291,7 @@ export default function BatchPage() {
             <span className="batch-stat-card-label" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.totalVouchers')}
             </span>
-            <strong className="batch-stat-card-val" style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)' }}>
+            <strong className="batch-stat-card-val" style={{ color: 'var(--foreground)' }}>
               {stats.totalVouchers}
             </strong>
           </div>
@@ -319,7 +319,7 @@ export default function BatchPage() {
             <span className="batch-stat-card-label" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.unusedVouchers')}
             </span>
-            <strong className="batch-stat-card-val" style={{ fontSize: '18px', fontWeight: 800, color: '#22c55e' }}>
+            <strong className="batch-stat-card-val" style={{ color: '#22c55e' }}>
               {stats.totalUnused}
             </strong>
           </div>
@@ -347,7 +347,7 @@ export default function BatchPage() {
             <span className="batch-stat-card-label" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.activeVouchers')}
             </span>
-            <strong className="batch-stat-card-val" style={{ fontSize: '18px', fontWeight: 800, color: '#3b82f6' }}>
+            <strong className="batch-stat-card-val" style={{ color: '#3b82f6' }}>
               {stats.totalActive}
             </strong>
           </div>
