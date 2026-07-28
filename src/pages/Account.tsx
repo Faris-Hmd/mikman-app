@@ -135,6 +135,7 @@ export default function AccountPage() {
       
       {/* Compact Page Header */}
       <div
+        className="responsive-card"
         style={{
           display: 'flex',
           flexDirection: 'row',
@@ -142,10 +143,6 @@ export default function AccountPage() {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '12px',
-          padding: '14px 18px',
-          borderRadius: '12px',
-          border: '1px solid var(--glass-border)',
-          backgroundColor: 'var(--card-bg)',
           marginBottom: '16px',
           backdropFilter: 'blur(8px)',
         }}
@@ -268,11 +265,8 @@ export default function AccountPage() {
       >
         {/* Card 1: Current Plan */}
         <div
+          className="responsive-card"
           style={{
-            padding: '16px',
-            borderRadius: '12px',
-            border: '1px solid var(--glass-border)',
-            backgroundColor: 'var(--card-bg)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
@@ -324,11 +318,8 @@ export default function AccountPage() {
 
         {/* Card 2: Remaining Time */}
         <div
+          className="responsive-card"
           style={{
-            padding: '16px',
-            borderRadius: '12px',
-            border: '1px solid var(--glass-border)',
-            backgroundColor: 'var(--card-bg)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
@@ -365,11 +356,8 @@ export default function AccountPage() {
 
       {/* Password Management Form Card */}
       <div
+        className="responsive-card"
         style={{
-          padding: '16px',
-          borderRadius: '12px',
-          border: '1px solid var(--glass-border)',
-          backgroundColor: 'var(--card-bg)',
           marginBottom: '16px',
         }}
       >
@@ -586,14 +574,7 @@ export default function AccountPage() {
       </div>
 
       {/* Subscription History Logs Section */}
-      <div
-        style={{
-          padding: '16px',
-          borderRadius: '12px',
-          border: '1px solid var(--glass-border)',
-          backgroundColor: 'var(--card-bg)',
-        }}
-      >
+      <div className="responsive-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '12px', marginBottom: '12px' }}>
           <h2 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--foreground)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
             <History size={16} style={{ color: 'var(--primary)' }} /> {t('accountPage.subscriptionHistory')}

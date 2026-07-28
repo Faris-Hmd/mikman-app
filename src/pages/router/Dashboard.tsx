@@ -150,7 +150,7 @@ export default function RouterDashboardPage() {
   const renderBarChart = () => {
     if (!chartDaily.length) return null;
     return (
-      <div style={{ background: 'var(--card-bg)', border: '1px solid var(--glass-border)', borderRadius: '14px', padding: '16px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div className="responsive-card" style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <BarChart2 size={16} style={{ color: 'var(--primary)' }} />
@@ -260,7 +260,7 @@ export default function RouterDashboardPage() {
   return (
     <div className="dashboard-page">
       {/* Status banner + clock */}
-      <div style={{ ...S.card, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+      <div className="responsive-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'nowrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           {routerImg ? (
             <div style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>

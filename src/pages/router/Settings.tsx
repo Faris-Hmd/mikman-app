@@ -362,8 +362,9 @@ export default function SettingsPage() {
   const cardStyle: React.CSSProperties = {
     background: 'var(--card-bg)',
     border: '1px solid var(--glass-border)',
-    borderRadius: '14px',
-    padding: '16px',
+    borderRadius: '12px',
+    padding: '12px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
     display: 'flex',
     flexDirection: 'column',
     gap: '14px',
@@ -441,7 +442,7 @@ export default function SettingsPage() {
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'nowrap',
-        padding: '8px 12px'
+        gap: '8px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{

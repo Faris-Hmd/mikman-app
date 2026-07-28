@@ -47,8 +47,7 @@ export default function RecordsPage() {
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'nowrap',
-        gap: '8px',
-        padding: '8px 12px'
+        gap: '8px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{

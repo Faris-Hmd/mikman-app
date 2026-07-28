@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { Ticket, Server, Layers, Users, Laptop, Settings, ChevronLeft, ChevronRight, LogOut, LayoutDashboard, TrendingUp, User, Home, Printer, Sun, Moon, Globe } from 'lucide-react';
+import { Zap, Ticket, Server, Layers, Users, Laptop, Settings, ChevronLeft, ChevronRight, LogOut, LayoutDashboard, TrendingUp, User, Home, Printer, Sun, Moon, Globe } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import LogoutConfirmModal from './LogoutConfirmModal';
@@ -112,8 +112,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <Link to="/" onClick={() => { if (isMobile && onClose) onClose(); }} title={t('header.routerSelection')}
             style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', boxSizing: 'border-box', height: isMobile ? '52px' : '56px', marginTop: '0', marginLeft: isMobile ? '-16px' : '-10px', marginRight: isMobile ? '-16px' : '-10px', paddingLeft: isMobile ? '16px' : '12px', paddingRight: isMobile ? '16px' : '12px', borderBottom: '1px solid var(--glass-border)', marginBottom: '4px', width: isMobile ? 'calc(100% + 32px)' : 'calc(100% + 20px)', cursor: 'pointer', transition: 'background-color 0.2s', textDecoration: 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 10px rgba(var(--primary-rgb), 0.3)' }}>
-                <Ticket size={18} color="#fff" style={{ transform: 'rotate(-45deg)' }} />
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 10px rgba(var(--primary-rgb), 0.3)' }}>
+                <Zap size={20} color="#fff" />
               </div>
               {!collapsed && <h1 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--foreground)', margin: 0, whiteSpace: 'nowrap', letterSpacing: '-0.02em' }}>{t('sidebar.menuTitle') || 'MIKMAN Menu'}</h1>}
             </div>
@@ -232,7 +232,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               {!collapsed && <div style={{ padding: '2px 10px 2px', fontSize: '10.5px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.routerMenu')}</div>}
               {routerItems.map((item, idx) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || (item.href !== `/${routerId}` && pathname.startsWith(`${item.href}/`));
                 return (
                   <Link key={idx} to={item.href} title={collapsed ? item.label : undefined} onClick={() => onClose?.()}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? '0' : '10px', padding: '6px 10px', borderRadius: '8px', color: isActive ? '#fff' : 'var(--text-muted)', backgroundColor: isActive ? 'var(--primary)' : 'transparent', textDecoration: 'none', transition: 'all 0.2s ease', fontWeight: isActive ? '700' : '500', fontSize: '13px', width: '100%', boxSizing: 'border-box', cursor: 'pointer' }}>

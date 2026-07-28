@@ -284,9 +284,7 @@ export default function RevenuePage() {
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'nowrap',
-        gap: '8px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-        padding: '8px 12px'
+        gap: '8px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{
@@ -479,7 +477,6 @@ export default function RevenuePage() {
             display: 'flex',
             flexDirection: 'column',
             gap: '14px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
             overflow: 'hidden'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -702,9 +699,7 @@ export default function RevenuePage() {
             const activeProfile = hoveredProfileIdx !== null ? revenue.profiles[hoveredProfileIdx] : null;
 
             return (
-              <div className="responsive-card" style={{
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)'
-              }}>
+              <div className="responsive-card">
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

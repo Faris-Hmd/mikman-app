@@ -106,12 +106,8 @@ export default function LandingPage() {
 
       {/* Sleek Compact Account Status Bar */}
       <div 
-        className="account-status-bar"
+        className="account-status-bar responsive-card"
         style={{
-          background: 'var(--card-bg)',
-          border: '1px solid var(--glass-border)',
-          borderRadius: '12px',
-          padding: '8px 14px',
           marginBottom: '16px',
           display: 'flex',
           alignItems: 'center',

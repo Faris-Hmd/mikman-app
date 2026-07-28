@@ -1070,9 +1070,7 @@ export default function BatchDetailPage() {
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'nowrap',
-          gap: '8px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-          padding: '8px 12px'
+          gap: '8px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
             <button
@@ -1221,9 +1219,9 @@ export default function BatchDetailPage() {
               <div
                 className="batch-stat-card-icon"
                 style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '7px',
                   background: 'rgba(99, 102, 241, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
@@ -1232,10 +1230,10 @@ export default function BatchDetailPage() {
                   flexShrink: 0,
                 }}
               >
-                <Layers size={20} />
+                <Layers size={14} />
               </div>
-              <div style={{ minWidth: 0 }}>
-                <span className="batch-stat-card-label" style={{ fontSize: '11px', color: statusFilter === 'all' ? 'var(--primary)' : 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span className="batch-stat-card-label" style={{ fontSize: '10px', color: statusFilter === 'all' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t('batch.totalVouchers')}
                 </span>
                 <strong className="batch-stat-card-val" style={{ color: statusFilter === 'all' ? 'var(--primary)' : 'var(--foreground)' }}>
@@ -1259,9 +1257,9 @@ export default function BatchDetailPage() {
               <div
                 className="batch-stat-card-icon"
                 style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '7px',
                   background: 'rgba(34, 197, 94, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
@@ -1270,10 +1268,10 @@ export default function BatchDetailPage() {
                   flexShrink: 0,
                 }}
               >
-                <CheckCircle2 size={20} />
+                <CheckCircle2 size={14} />
               </div>
-              <div style={{ minWidth: 0 }}>
-                <span className="batch-stat-card-label" style={{ fontSize: '11px', color: '#22c55e', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span className="batch-stat-card-label" style={{ fontSize: '10px', color: '#22c55e', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t('batch.unusedVouchers')}
                 </span>
                 <strong className="batch-stat-card-val" style={{ color: '#22c55e' }}>
@@ -1297,9 +1295,9 @@ export default function BatchDetailPage() {
               <div
                 className="batch-stat-card-icon"
                 style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '7px',
                   background: 'rgba(59, 130, 246, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
@@ -1308,10 +1306,10 @@ export default function BatchDetailPage() {
                   flexShrink: 0,
                 }}
               >
-                <Zap size={20} />
+                <Zap size={14} />
               </div>
-              <div style={{ minWidth: 0 }}>
-                <span className="batch-stat-card-label" style={{ fontSize: '11px', color: '#3b82f6', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span className="batch-stat-card-label" style={{ fontSize: '10px', color: '#3b82f6', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t('batch.activeVouchers')}
                 </span>
                 <strong className="batch-stat-card-val" style={{ color: '#3b82f6' }}>
@@ -1335,9 +1333,9 @@ export default function BatchDetailPage() {
               <div
                 className="batch-stat-card-icon"
                 style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '7px',
                   background: 'rgba(239, 68, 68, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
@@ -1346,10 +1344,10 @@ export default function BatchDetailPage() {
                   flexShrink: 0,
                 }}
               >
-                <Clock size={20} />
+                <Clock size={14} />
               </div>
-              <div style={{ minWidth: 0 }}>
-                <span className="batch-stat-card-label" style={{ fontSize: '11px', color: '#ef4444', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span className="batch-stat-card-label" style={{ fontSize: '10px', color: '#ef4444', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t('batch.expiredVouchers')}
                 </span>
                 <strong className="batch-stat-card-val" style={{ color: '#ef4444' }}>
@@ -1365,7 +1363,6 @@ export default function BatchDetailPage() {
           className="responsive-card"
           style={{
             ...cardStyle,
-            padding: '12px 14px',
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',

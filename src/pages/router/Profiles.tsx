@@ -307,8 +307,7 @@ export default function ProfilesPage() {
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'nowrap',
-        gap: '8px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+        gap: '8px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{

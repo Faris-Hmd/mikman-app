@@ -98,15 +98,7 @@ export default function BatchPage() {
 
   // ── Styles ──
 
-  const cardGlassStyle: React.CSSProperties = {
-    background: 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-    backdropFilter: 'blur(10px)',
-    border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-    borderRadius: '10px',
-    padding: '10px 12px',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-    transition: 'all 0.15s ease',
-  };
+
 
   const btnPrimaryStyle: React.CSSProperties = {
     padding: '7px 13px',
@@ -161,9 +153,7 @@ export default function BatchPage() {
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'nowrap',
-        gap: '8px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-        padding: '8px 12px'
+        gap: '8px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{
@@ -213,13 +203,13 @@ export default function BatchPage() {
       {/* Summary Statistics Cards */}
       <div className="batch-stat-grid">
         {/* Card 1: Total Batches */}
-        <div className="batch-stat-card" style={cardGlassStyle}>
+        <div className="responsive-card batch-stat-card">
           <div
             className="batch-stat-card-icon"
             style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
               background: 'rgba(99, 102, 241, 0.12)',
               display: 'flex',
               alignItems: 'center',
@@ -228,10 +218,10 @@ export default function BatchPage() {
               flexShrink: 0,
             }}
           >
-            <Layers size={20} />
+            <Layers size={14} />
           </div>
-          <div style={{ minWidth: 0 }}>
-            <span className="batch-stat-card-label" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <span className="batch-stat-card-label" style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.totalBatches')}
             </span>
             <strong className="batch-stat-card-val" style={{ color: 'var(--foreground)' }}>
@@ -241,13 +231,13 @@ export default function BatchPage() {
         </div>
 
         {/* Card 2: Total Vouchers */}
-        <div className="batch-stat-card" style={cardGlassStyle}>
+        <div className="responsive-card batch-stat-card">
           <div
             className="batch-stat-card-icon"
             style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
               background: 'rgba(14, 165, 233, 0.12)',
               display: 'flex',
               alignItems: 'center',
@@ -256,10 +246,10 @@ export default function BatchPage() {
               flexShrink: 0,
             }}
           >
-            <Ticket size={20} />
+            <Ticket size={14} />
           </div>
-          <div style={{ minWidth: 0 }}>
-            <span className="batch-stat-card-label" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <span className="batch-stat-card-label" style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.totalVouchers')}
             </span>
             <strong className="batch-stat-card-val" style={{ color: 'var(--foreground)' }}>
@@ -269,13 +259,13 @@ export default function BatchPage() {
         </div>
 
         {/* Card 3: Unused Vouchers */}
-        <div className="batch-stat-card" style={cardGlassStyle}>
+        <div className="responsive-card batch-stat-card">
           <div
             className="batch-stat-card-icon"
             style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
               background: 'rgba(34, 197, 94, 0.12)',
               display: 'flex',
               alignItems: 'center',
@@ -284,10 +274,10 @@ export default function BatchPage() {
               flexShrink: 0,
             }}
           >
-            <CheckCircle2 size={20} />
+            <CheckCircle2 size={14} />
           </div>
-          <div style={{ minWidth: 0 }}>
-            <span className="batch-stat-card-label" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <span className="batch-stat-card-label" style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.unusedVouchers')}
             </span>
             <strong className="batch-stat-card-val" style={{ color: '#22c55e' }}>
@@ -297,13 +287,13 @@ export default function BatchPage() {
         </div>
 
         {/* Card 4: Active Vouchers */}
-        <div className="batch-stat-card" style={cardGlassStyle}>
+        <div className="responsive-card batch-stat-card">
           <div
             className="batch-stat-card-icon"
             style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
               background: 'rgba(59, 130, 246, 0.12)',
               display: 'flex',
               alignItems: 'center',
@@ -312,10 +302,10 @@ export default function BatchPage() {
               flexShrink: 0,
             }}
           >
-            <Zap size={20} />
+            <Zap size={14} />
           </div>
-          <div style={{ minWidth: 0 }}>
-            <span className="batch-stat-card-label" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <span className="batch-stat-card-label" style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('batch.activeVouchers')}
             </span>
             <strong className="batch-stat-card-val" style={{ color: '#3b82f6' }}>
@@ -423,16 +413,15 @@ export default function BatchPage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fill, minmax(300px, 1fr))' : '1fr',
-            gap: '14px',
+            gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fill, minmax(250px, 1fr))' : '1fr',
+            gap: '10px',
           }}
         >
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
+              className="responsive-card"
               style={{
-                ...cardGlassStyle,
-                padding: '16px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',
@@ -458,8 +447,8 @@ export default function BatchPage() {
         </div>
       ) : filteredBatches.length === 0 ? (
         <div
+          className="responsive-card"
           style={{
-            ...cardGlassStyle,
             textAlign: 'center',
             padding: '48px 24px',
             display: 'flex',
@@ -500,8 +489,8 @@ export default function BatchPage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '14px',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+            gap: '10px',
           }}
         >
           {filteredBatches.map((batch, idx) => {
@@ -512,13 +501,13 @@ export default function BatchPage() {
             return (
               <div
                 key={idx}
+                className="responsive-card"
                 onClick={() => openBatchDetail(batch)}
                 style={{
-                  ...cardGlassStyle,
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '12px',
+                  gap: '10px',
                   position: 'relative',
                 }}
                 onMouseEnter={(e) => {
@@ -655,9 +644,9 @@ export default function BatchPage() {
           {filteredBatches.map((batch, idx) => (
             <div
               key={idx}
+              className="responsive-card"
               onClick={() => openBatchDetail(batch)}
               style={{
-                ...cardGlassStyle,
                 padding: '12px 16px',
                 display: 'flex',
                 alignItems: 'center',
