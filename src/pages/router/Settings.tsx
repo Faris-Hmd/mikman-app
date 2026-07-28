@@ -679,12 +679,13 @@ export default function SettingsPage() {
               padding: '8px 10px',
               borderRadius: '10px',
               background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid var(--glass-border)'
+              border: '1px solid var(--glass-border)',
+              gridColumn: 'span 2'
             }}>
               <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Wifi size={14} />
               </div>
-              <div style={{ minWidth: 0 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{t('header.ssid')}</div>
                 <div style={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {status.wifiName || wifiSsid || 'N/A'}
@@ -741,15 +742,11 @@ export default function SettingsPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {/* Device Name & Hardware Model paired in a 2-column grid */}
+            {/* Device Name & Hardware Model */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '12px',
-              padding: '12px',
-              borderRadius: '12px',
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid var(--glass-border)'
+              gap: '12px'
             }}>
               <div>
                 <label htmlFor="info-name" style={labelStyle}>
@@ -807,11 +804,7 @@ export default function SettingsPage() {
             <div style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '10px',
-              padding: '12px',
-              borderRadius: '12px',
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid var(--glass-border)'
+              gap: '10px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <label style={{ ...labelStyle, marginBottom: 0 }}>
