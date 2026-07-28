@@ -418,14 +418,14 @@ export default function SettingsPage() {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '8px',
-    padding: '10px 18px',
-    borderRadius: '10px',
+    gap: '6px',
+    padding: '7px 14px',
+    borderRadius: '8px',
     border: 'none',
     background: isLoadingState ? 'var(--text-muted)' : 'var(--primary)',
     color: '#fff',
-    fontSize: '13px',
-    fontWeight: '700',
+    fontSize: '12px',
+    fontWeight: '600',
     cursor: isLoadingState ? 'not-allowed' : 'pointer',
     opacity: isLoadingState ? 0.7 : 1,
     transition: 'all 0.2s ease',
@@ -873,7 +873,7 @@ export default function SettingsPage() {
                 boxShadow: isSavingInfo ? 'none' : '0 4px 12px rgba(59, 130, 246, 0.25)',
               }}
             >
-              <Save size={14} />
+              <Save size={13} />
               <span>{isSavingInfo ? t('settings.saving') : t('settings.saveRouterInfoBtn')}</span>
             </button>
           </div>
@@ -914,7 +914,7 @@ export default function SettingsPage() {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button type="submit" disabled={isProvisioningWifi} style={primaryBtnStyle(isProvisioningWifi)}>
-              <RefreshCw size={14} className={isProvisioningWifi ? 'spin' : ''} />
+              <RefreshCw size={13} className={isProvisioningWifi ? 'spin' : ''} />
               <span>{isProvisioningWifi ? t('settings.provisioning') : t('settings.resetWifiBtn')}</span>
             </button>
           </div>
@@ -950,7 +950,7 @@ export default function SettingsPage() {
                 background: isProvisioningServer ? 'var(--text-muted)' : '#8b5cf6',
               }}
             >
-              <Server size={14} />
+              <Server size={13} />
               <span>{isProvisioningServer ? t('settings.provisioning') : t('settings.provisionHotspotServerBtn')}</span>
             </button>
           </div>
@@ -995,7 +995,7 @@ export default function SettingsPage() {
                 background: isProvisioningFiles ? 'var(--text-muted)' : '#f59e0b',
               }}
             >
-              <UploadCloud size={14} />
+              <UploadCloud size={13} />
               <span>{isProvisioningFiles ? t('settings.sending') : t('settings.sendHotspotFilesBtn')}</span>
             </button>
           </div>
@@ -1031,7 +1031,7 @@ export default function SettingsPage() {
                 background: isGeneratingScript ? 'var(--text-muted)' : '#3b82f6',
               }}
             >
-              <RefreshCw size={14} className={isGeneratingScript ? 'spin' : ''} />
+              <RefreshCw size={13} className={isGeneratingScript ? 'spin' : ''} />
               <span>{isGeneratingScript ? t('settings.generatingScript') : t('settings.generateScriptBtn')}</span>
             </button>
           </div>
@@ -1049,7 +1049,7 @@ export default function SettingsPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    padding: '6px 14px',
+                    padding: '6px 12px',
                     borderRadius: '8px',
                     border: 'none',
                     background: copiedScript ? '#10b981' : 'var(--primary)',
@@ -1060,7 +1060,7 @@ export default function SettingsPage() {
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  {copiedScript ? <Check size={14} /> : <Copy size={14} />}
+                  {copiedScript ? <Check size={13} /> : <Copy size={13} />}
                   <span>{copiedScript ? t('settings.copied') : t('settings.copyScript')}</span>
                 </button>
               </div>
@@ -1113,20 +1113,20 @@ export default function SettingsPage() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '9px 16px',
-                borderRadius: '10px',
+                gap: '6px',
+                padding: '7px 14px',
+                borderRadius: '8px',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
                 color: '#ef4444',
-                fontSize: '13px',
-                fontWeight: '700',
+                fontSize: '12px',
+                fontWeight: '600',
                 cursor: isDeleting ? 'not-allowed' : 'pointer',
                 opacity: isDeleting ? 0.6 : 1,
                 transition: 'all 0.2s ease',
               }}
             >
-              <Trash2 size={14} />
+              <Trash2 size={13} />
               <span>{isDeleting ? t('settings.deleting') : t('settings.deleteRouterBtn')}</span>
             </button>
           </div>
