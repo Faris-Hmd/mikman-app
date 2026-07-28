@@ -247,18 +247,16 @@ input, textarea { font-family: inherit; }
 .header-action-btn:hover { background-color: var(--secondary); }
 
 @media (min-width: 769px) {
-  .app-header { height: 60px; }
+  .app-header { height: 56px; }
   .header-container { padding: 0 16px; }
 }
 @media (max-width: 768px) {
-  .app-header { height: 50px; }
+  .app-header { height: 52px; }
   .header-container { padding: 0 12px; }
-  .header-action-btn { width: 30px; height: 30px; border-radius: 8px; }
 }
 
 @media (max-width: 480px) {
   .header-container { padding: 0 10px; }
-  .header-action-btn { width: 28px; height: 28px; border-radius: 7px; }
 }
 
 /* ─── Desktop / Mobile visibility ─── */

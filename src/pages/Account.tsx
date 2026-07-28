@@ -431,6 +431,31 @@ export default function AccountPage() {
           </span>
         </div>
 
+        {!hasPasswordState && (
+          <div
+            style={{
+              backgroundColor: 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              fontSize: '12px',
+              color: 'var(--foreground)',
+              lineHeight: '1.45',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+            }}
+          >
+            <AlertTriangle size={16} color="#f59e0b" style={{ flexShrink: 0 }} />
+            <span>
+              {t('accountPage.noPasswordBanner') ||
+                (isRtl
+                  ? 'أنت مسجل الدخول حالياً عبر Google أو الروابط المؤقتة. يرجى تعيين كلمة مرور أدناه لتتمكن من الدخول بالبريد الإلكتروني وكلمة المرور مباشرة.'
+                  : 'You are currently using Google / Passwordless login. Set a password below to enable logging in with your email and password directly.')}
+            </span>
+          </div>
+        )}
+
         <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
             {/* New Password Input */}

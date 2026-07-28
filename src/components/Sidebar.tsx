@@ -130,8 +130,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </button>
           )}
 
-          {/* Account Info & Toggles Section at TOP */}
-          {user && (
+          {/* Account Info & Toggles Section at TOP (Mobile only, on desktop it's in the Header) */}
+          {isMobile && user && (
             collapsed ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center', width: '100%', padding: '6px 0', borderBottom: '1px solid var(--glass-border)', marginBottom: '4px' }}>
                 {/* Avatar / Account Link */}
@@ -195,17 +195,16 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 {/* Toggles Row: Theme & Language */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', paddingTop: '6px', borderTop: '1px solid var(--glass-border)' }}>
                   {/* Theme Toggle Button */}
-                  <button onClick={toggleTheme}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', padding: '4px 8px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--glass-border)', color: 'var(--foreground)', fontSize: '11px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease' }}>
-                    {theme === 'dark' ? <Sun size={13} color="var(--primary)" /> : <Moon size={13} color="var(--primary)" />}
-                    <span>{theme === 'dark' ? t('sidebar.lightMode') : t('sidebar.darkMode')}</span>
+                  <button onClick={toggleTheme} title={theme === 'dark' ? t('sidebar.lightMode') : t('sidebar.darkMode')}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 8px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--glass-border)', color: 'var(--foreground)', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+                    {theme === 'dark' ? <Sun size={15} color="var(--primary)" /> : <Moon size={15} color="var(--primary)" />}
                   </button>
 
                   {/* Language Toggle Button */}
-                  <button onClick={toggleLanguage}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', padding: '4px 8px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--glass-border)', color: 'var(--primary)', fontSize: '11px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s ease' }}>
-                    <Globe size={13} />
-                    <span>{language === 'en' ? 'العربية' : 'English'}</span>
+                  <button onClick={toggleLanguage} title={t('header.languageSelector')}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', padding: '6px 8px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--glass-border)', color: 'var(--primary)', fontSize: '11px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+                    <Globe size={14} />
+                    <span>{language === 'en' ? 'AR' : 'EN'}</span>
                   </button>
                 </div>
               </div>

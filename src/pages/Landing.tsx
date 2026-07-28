@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getRemainingDays, getTemperature, getRouterImage, skeletonStyle, getQuotaName } from '../lib/helpers';
-import { Server, Plus, Users, Activity, Cpu, Clock, RefreshCw, User as UserIcon, Thermometer, ChevronRight, Settings, Crown } from 'lucide-react';
+import { Server, Plus, Users, Activity, Cpu, Clock, RefreshCw, User as UserIcon, Thermometer, ChevronRight, Settings, Crown, KeyRound } from 'lucide-react';
 
 export default function LandingPage() {
   const { user: currentUser } = useAuth();
@@ -213,6 +213,72 @@ export default function LandingPage() {
           </Link>
         </div>
       </div>
+
+      {/* Password Prompt Banner if user doesn't have a password set */}
+      {userData && userData.hasPassword === false && (
+        <div
+          style={{
+            background: 'rgba(245, 158, 11, 0.08)',
+            border: '1px solid rgba(245, 158, 11, 0.25)',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 280px' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(245, 158, 11, 0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#f59e0b',
+                flexShrink: 0,
+              }}
+            >
+              <KeyRound size={18} />
+            </div>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '13px', fontWeight: '800', color: 'var(--foreground)' }}>
+                {t('accountPage.noPasswordPromptTitle') || 'Add Password for Email Login'}
+              </h4>
+              <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                {t('accountPage.noPasswordPromptDesc') || 'You haven\'t set a password for email login yet. Set a password to log in directly using your email and password.'}
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/account"
+            style={{
+              padding: '7px 14px',
+              borderRadius: '8px',
+              backgroundColor: '#f59e0b',
+              color: '#000',
+              fontWeight: '800',
+              fontSize: '12px',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <KeyRound size={14} />
+            <span>{t('accountPage.setPasswordBtn') || 'Set Password'}</span>
+          </Link>
+        </div>
+      )}
 
       {/* Routers Grid Header */}
       {savedRouters.length > 0 && (
