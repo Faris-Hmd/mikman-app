@@ -56,13 +56,13 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
         <div className="flex items-center gap-2 min-h-[36px]">
           {user && (
             <button onClick={onMenuToggle}
-              className={`mobile-nav bg-none border-none cursor-pointer p-2 w-10 h-10 flex items-center justify-center text-[var(--foreground)] rounded-xl transition-colors box-border z-10 ${isMobileMenuOpen ? 'bg-[var(--secondary)]' : 'bg-transparent'}`}>
-              <Menu size={22} />
+              className={`mobile-nav bg-none border-none cursor-pointer w-9 h-9 flex items-center justify-center text-[var(--foreground)] rounded-[10px] transition-colors box-border z-10 ${isMobileMenuOpen ? 'bg-[var(--secondary)]' : 'bg-transparent'}`}>
+              <Menu size={20} />
             </button>
           )}
-          <Link to="/" className="mobile-nav flex items-center gap-2.5 rounded-lg px-2 py-1 no-underline transition-colors hover:bg-[var(--secondary)]" title={t('header.routerSelection')}>
-            <div className="w-9 h-9 rounded-lg bg-[var(--primary)] flex items-center justify-center shadow-[0_0_10px_rgba(var(--primary-rgb),0.3)]">
-              <Ticket size={20} color="#fff" className="-rotate-45" />
+          <Link to="/" className="mobile-nav flex items-center gap-2.5 rounded-lg px-1.5 py-1 no-underline transition-colors hover:bg-[var(--secondary)]" title={t('header.routerSelection')}>
+            <div className="w-9 h-9 rounded-[10px] bg-[var(--primary)] flex items-center justify-center shadow-[0_0_10px_rgba(var(--primary-rgb),0.3)] flex-shrink-0">
+              <Ticket size={18} color="#fff" className="-rotate-45" />
             </div>
             <div className="flex flex-col">
               <h1 className="text-[15px] font-extrabold text-[var(--foreground)] m-0 tracking-tight leading-tight">MIKMAN</h1>
@@ -83,11 +83,11 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
           </button>
           {user && (
             <Link to="/account"
-              className="flex items-center justify-center w-[38px] h-[38px] rounded-xl overflow-hidden border-[1.5px] border-[var(--primary)] transition-colors bg-transparent p-0 cursor-pointer no-underline hover:border-[var(--primary-hover)]">
+              className="header-action-btn overflow-hidden p-0 border-[1.5px] border-[var(--primary)] hover:border-[var(--primary-hover)]" title={user.email || 'Account'}>
               {user.user_metadata?.avatar_url ? (
                 <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
-                <span className="text-[var(--text-base)] font-extrabold text-[var(--primary)]">
+                <span className="text-[13px] font-extrabold text-[var(--primary)]">
                   {user.user_metadata?.full_name ? user.user_metadata.full_name.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
                 </span>
               )}
