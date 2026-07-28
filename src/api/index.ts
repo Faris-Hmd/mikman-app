@@ -247,6 +247,8 @@ export interface RevenueStatsPayload {
     count: number;
     percentage: number;
   }>;
+  firstRecordDate?: string;
+  lastRecordDate?: string;
 }
 
 // ── Voucher batch types (updated to match new API response shapes) ──────────
