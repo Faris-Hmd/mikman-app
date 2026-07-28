@@ -3,6 +3,8 @@ import useSWR from 'swr';
 import { fetchRecordsAPI } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 
+import { FileText, RefreshCw } from 'lucide-react';
+
 interface Record {
   id?: string;
   user?: string;
@@ -29,7 +31,7 @@ export default function RecordsPage() {
   const { routerId } = useParams<{ routerId: string }>();
   const { t } = useLanguage();
 
-  const { data: records, isLoading } = useSWR(
+  const { data: records, isLoading, mutate } = useSWR(
     routerId ? `router-records-${routerId}` : null,
     () => fetchRecordsAPI(routerId!),
     { revalidateOnFocus: true }
@@ -38,16 +40,77 @@ export default function RecordsPage() {
   const recordList: Record[] = Array.isArray(records) ? records : [];
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '8px' }}>
-        <div style={{ minWidth: 0 }}>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {t('records.title')}
-          </h2>
-          <p className="hide-sm" style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '12px' }}>
-            Router: {routerId}
-          </p>
+    <div className="responsive-container">
+      {/* ─── Page Header ─── */}
+      <div className="responsive-card" style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '14px',
+            background: 'linear-gradient(135deg, rgba(168,85,247,0.2) 0%, rgba(147,51,234,0.4) 100%)',
+            color: '#a855f7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(168,85,247,0.3)'
+          }}>
+            <FileText size={24} />
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.5px' }}>
+              {t('records.title')}
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+              {routerId && !routerId.startsWith('cloud_') && (
+                <>
+                  <span style={{
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--primary)',
+                    background: 'rgba(var(--primary-rgb), 0.1)',
+                    padding: '2px 8px',
+                    borderRadius: '6px'
+                  }}>
+                    {routerId}
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>•</span>
+                </>
+              )}
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                {recordList.length} {t('records.totalRecords') || 'connection logs'}
+              </span>
+            </div>
+          </div>
         </div>
+
+        <button
+          onClick={() => mutate()}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            border: '1px solid var(--glass-border)',
+            background: 'var(--card-bg)',
+            color: 'var(--foreground)',
+            fontSize: '12px',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+        >
+          <RefreshCw size={14} className={isLoading ? 'spin' : ''} />
+          <span>{t('common.refresh') || 'Refresh'}</span>
+        </button>
       </div>
       {isLoading ? (
         <p>Loading records…</p>

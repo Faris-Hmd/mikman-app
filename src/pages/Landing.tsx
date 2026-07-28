@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getRemainingDays, getTemperature, getRouterImage, skeletonStyle, getQuotaName } from '../lib/helpers';
-import { Server, Plus, Users, Activity, Cpu, Clock, RefreshCw, User as UserIcon, Thermometer, ChevronRight, Settings, Crown, Zap } from 'lucide-react';
+import { Server, Plus, Users, Activity, Cpu, Clock, RefreshCw, User as UserIcon, Thermometer, ChevronRight, Settings, Crown } from 'lucide-react';
 
 export default function LandingPage() {
   const { user: currentUser } = useAuth();
@@ -228,40 +228,9 @@ export default function LandingPage() {
               )}
             </div>
           </div>
-
-          {/* Quick Upgrade Link */}
-          <Link
-            to="/plans"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
-              border: '1px solid rgba(var(--primary-rgb), 0.25)',
-              color: 'var(--primary)',
-              fontSize: '11.5px',
-              fontWeight: '700',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-              flexShrink: 0
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--primary)';
-              e.currentTarget.style.color = '#fff';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.1)';
-              e.currentTarget.style.color = 'var(--primary)';
-            }}
-          >
-            <Zap size={13} />
-            <span>{t('accountPage.upgradeOrChangePlan') || 'Manage Plan'}</span>
-          </Link>
         </div>
 
-        {/* Bottom Row: Router Quota Bar */}
+        {/* Bottom Row: Router Quota Info */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -281,24 +250,6 @@ export default function LandingPage() {
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e', animation: 'pulse-dot 2s infinite' }} />
               <span>{(t('dashboard.routersOnlineCount') || '{count} online').replace('{count}', String(onlineRouters))}</span>
             </div>
-          </div>
-
-          {/* Meter Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', maxWidth: '200px', minWidth: '120px' }}>
-            <div style={{ flex: 1, height: '6px', borderRadius: '3px', backgroundColor: 'var(--secondary)', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
-              <div 
-                style={{ 
-                  width: `${usagePercent}%`, 
-                  height: '100%', 
-                  background: usagePercent > 90 ? 'linear-gradient(90deg, #f59e0b, #ef4444)' : 'linear-gradient(90deg, var(--primary), #6366f1)',
-                  borderRadius: '3px',
-                  transition: 'width 0.4s ease'
-                }} 
-              />
-            </div>
-            <span style={{ fontSize: '10.5px', fontWeight: '700', color: 'var(--text-muted)', minWidth: '28px', textAlign: 'end' }}>
-              {usagePercent}%
-            </span>
           </div>
         </div>
       </div>
@@ -410,7 +361,7 @@ export default function LandingPage() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="System Uptime">
                     <Clock size={12} color="var(--primary)" />
-                    <span style={{ fontWeight: '700', fontSize: '10.5px' }}>{isOnline && status ? (status.uptime_display || (status.uptime ? formatUptimeAPI(status.uptime) : '—')) : '—'}</span>
+                    <span style={{ fontWeight: '700', fontSize: '10.5px' }}>{isOnline && status ? formatUptimeAPI(status.uptime || status.uptime_display) : '—'}</span>
                   </div>
                 </div>
               </Link>

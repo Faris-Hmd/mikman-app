@@ -11,6 +11,7 @@ import {
   fetchHotspotUploadJobStatusAPI,
   deleteRouterProfileAPI,
   generateCloudScriptAPI,
+  formatUptimeAPI,
 } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 import { useModal } from '../../context/ModalContext';
@@ -34,6 +35,7 @@ import {
   Terminal,
   Copy,
   Check,
+  Settings as SettingsIcon,
 } from 'lucide-react';
 
 const HARDWARE_MODELS: { value: string; label: string }[] = [
@@ -432,16 +434,58 @@ export default function SettingsPage() {
   const isOnline = status?.online || status?.status === 'online';
 
   return (
-    <div style={{ padding: '16px', maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* ── Page Header (Single row compact layout) ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '12px' }}>
-        <div style={{ minWidth: 0 }}>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {t('settings.title')}
-          </h2>
-          <p className="hide-sm" style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {t('settings.subtitle')}
-          </p>
+    <div className="responsive-container" style={{ maxWidth: '960px' }}>
+      {/* ─── Page Header ─── */}
+      <div className="responsive-card" style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'nowrap',
+        gap: '8px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(79,70,229,0.4) 100%)',
+            color: '#6366f1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(99,102,241,0.3)',
+            flexShrink: 0
+          }}>
+            <SettingsIcon size={22} />
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {t('settings.title')}
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+              {routerId && !routerId.startsWith('cloud_') && (
+                <>
+                  <span style={{
+                    fontFamily: 'monospace',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: 'var(--primary)',
+                    background: 'rgba(var(--primary-rgb), 0.1)',
+                    padding: '2px 6px',
+                    borderRadius: '6px',
+                    flexShrink: 0
+                  }}>
+                    {routerId}
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>•</span>
+                </>
+              )}
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {t('settings.subtitle')}
+              </span>
+            </div>
+          </div>
         </div>
 
         <button
@@ -451,7 +495,7 @@ export default function SettingsPage() {
             alignItems: 'center',
             gap: '6px',
             padding: '7px 12px',
-            borderRadius: '8px',
+            borderRadius: '10px',
             border: '1px solid var(--glass-border)',
             background: 'var(--card-bg)',
             color: 'var(--foreground)',
@@ -461,81 +505,144 @@ export default function SettingsPage() {
             flexShrink: 0,
           }}
         >
-          <RefreshCw size={13} className={isStatusLoading ? 'spin' : ''} />
-          <span className="hide-sm">{t('dashboard.refreshGateways')}</span>
+          <RefreshCw size={14} className={isStatusLoading ? 'spin' : ''} />
+          <span>{t('dashboard.refreshGateways') || 'Refresh'}</span>
         </button>
       </div>
 
       {/* ── System Telemetry & Connection Status Banner ── */}
-      <div style={{ ...cardStyle, background: 'var(--card-bg)' }}>
+      {/* ── System Telemetry & Connection Status Banner ── */}
+      <div style={{
+        ...cardStyle,
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'var(--card-bg)'
+      }}>
+        {/* Header Row */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={iconCircleStyle(isOnline ? '#16a34a20' : '#dc262620', isOnline ? '#16a34a' : '#dc2626')}>
-              <Router size={16} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '12px',
+              background: isOnline ? 'rgba(22, 163, 74, 0.15)' : 'rgba(220, 38, 38, 0.15)',
+              color: isOnline ? '#16a34a' : '#dc2626',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: `1px solid ${isOnline ? 'rgba(22, 163, 74, 0.3)' : 'rgba(220, 38, 38, 0.3)'}`,
+              flexShrink: 0
+            }}>
+              <Router size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--foreground)' }}>
+              <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.3px' }}>
                 {infoForm.name || routerId}
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                ID: {routerId}
-              </div>
+              {routerId && !routerId.startsWith('cloud_') && (
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 600, marginTop: '1px' }}>
+                  ID: {routerId}
+                </div>
+              )}
             </div>
           </div>
 
           <span
             style={{
-              padding: '4px 12px',
+              padding: '5px 12px',
               borderRadius: '20px',
-              fontSize: '12px',
-              fontWeight: 700,
-              background: isOnline ? '#16a34a20' : '#dc262620',
-              color: isOnline ? '#16a34a' : '#dc2626',
+              fontSize: '11px',
+              fontWeight: 800,
+              letterSpacing: '0.3px',
+              textTransform: 'uppercase',
+              background: isOnline ? 'rgba(22, 163, 74, 0.15)' : 'rgba(220, 38, 38, 0.15)',
+              color: isOnline ? '#22c55e' : '#ef4444',
+              border: `1px solid ${isOnline ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
             }}
           >
-            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: isOnline ? '#16a34a' : '#dc2626' }} />
+            <span style={{
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              background: isOnline ? '#22c55e' : '#ef4444',
+              boxShadow: isOnline ? '0 0 8px #22c55e' : '0 0 8px #ef4444'
+            }} />
             {isOnline ? t('common.online') : t('common.offline')}
           </span>
         </div>
 
+        {/* Telemetry Micro-Cards Grid */}
         {status && (
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-              gap: '10px',
+              gap: '8px',
               paddingTop: '10px',
               borderTop: '1px solid var(--glass-border)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-              <Clock size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: '10px', fontWeight: 700 }}>{t('header.uptime')}</div>
-                <div style={{ color: 'var(--foreground)', fontWeight: 600 }}>
-                  {status.uptime_display || status.uptime || 'N/A'}
+            {/* Uptime */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 10px',
+              borderRadius: '10px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--glass-border)'
+            }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Clock size={14} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{t('header.uptime')}</div>
+                <div style={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {formatUptimeAPI(status.uptime || status.uptime_display) || 'N/A'}
                 </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-              <Cpu size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: '10px', fontWeight: 700 }}>{t('header.cpu')}</div>
-                <div style={{ color: 'var(--foreground)', fontWeight: 600 }}>
+            {/* CPU Load */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 10px',
+              borderRadius: '10px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--glass-border)'
+            }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Cpu size={14} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{t('header.cpu')}</div>
+                <div style={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 700 }}>
                   {status.cpuLoad_display || (status.cpuLoad != null ? `${status.cpuLoad}%` : 'N/A')}
                 </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-              <HardDrive size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: '10px', fontWeight: 700 }}>{t('header.ram')}</div>
-                <div style={{ color: 'var(--foreground)', fontWeight: 600 }}>
+            {/* RAM */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 10px',
+              borderRadius: '10px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--glass-border)'
+            }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(168, 85, 247, 0.12)', color: '#a855f7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <HardDrive size={14} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{t('header.ram')}</div>
+                <div style={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 700 }}>
                   {status.totalMemory != null && status.freeMemory != null
                     ? `${Math.round((Number(status.totalMemory) - Number(status.freeMemory)) / (1024 * 1024))}MB`
                     : 'N/A'}
@@ -543,32 +650,66 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-              <Activity size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: '10px', fontWeight: 700 }}>{t('header.temp')}</div>
-                <div style={{ color: 'var(--foreground)', fontWeight: 600 }}>
+            {/* Temp */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 10px',
+              borderRadius: '10px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--glass-border)'
+            }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Activity size={14} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{t('header.temp')}</div>
+                <div style={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 700 }}>
                   {status.temperature_display || (status.temperature != null ? `${status.temperature}°C` : 'N/A')}
                 </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-              <Clock size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: '10px', fontWeight: 700 }}>{t('dashboard.routerTime')}</div>
-                <div style={{ color: 'var(--foreground)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
-                  {status.routerTime || 'N/A'}
+            {/* SSID */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 10px',
+              borderRadius: '10px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--glass-border)'
+            }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Wifi size={14} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{t('header.ssid')}</div>
+                <div style={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {status.wifiName || wifiSsid || 'N/A'}
                 </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-              <Wifi size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: '10px', fontWeight: 700 }}>{t('header.ssid')}</div>
-                <div style={{ color: 'var(--foreground)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px' }}>
-                  {status.wifiName || wifiSsid || 'N/A'}
+            {/* Router Time - Full Row */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 10px',
+              borderRadius: '10px',
+              background: 'rgba(99, 102, 241, 0.06)',
+              border: '1px solid rgba(99, 102, 241, 0.15)',
+              gridColumn: '1 / -1'
+            }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Clock size={14} />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: '9px', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{t('dashboard.routerTime')}</div>
+                <div style={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {status.routerTime || 'N/A'}
                 </div>
               </div>
             </div>
@@ -580,13 +721,17 @@ export default function SettingsPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
         {/* ── 1. Router Info & Admin Credentials Card ── */}
-        <form onSubmit={handleSaveRouterInfo} style={cardStyle}>
+        <form onSubmit={handleSaveRouterInfo} style={{
+          ...cardStyle,
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
           <div style={sectionHeaderStyle}>
             <div style={iconCircleStyle('rgba(59, 130, 246, 0.15)', '#3b82f6')}>
               <Router size={16} />
             </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--foreground)' }}>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--foreground)' }}>
                 {t('settings.routerInfoTitle')}
               </h3>
               <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -595,42 +740,54 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
-            <div>
-              <label htmlFor="info-name" style={labelStyle}>
-                <Router size={11} /> {t('dashboard.deviceLabelProfileName')}
-              </label>
-              <input
-                id="info-name"
-                type="text"
-                value={infoForm.name}
-                onChange={(e) => setInfoForm((prev) => ({ ...prev, name: e.target.value }))}
-                style={inputStyle}
-                required
-              />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Device Name & Hardware Model paired in a 2-column grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '12px',
+              padding: '12px',
+              borderRadius: '12px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--glass-border)'
+            }}>
+              <div>
+                <label htmlFor="info-name" style={labelStyle}>
+                  <Router size={11} style={{ color: '#3b82f6' }} /> {t('dashboard.deviceLabelProfileName')}
+                </label>
+                <input
+                  id="info-name"
+                  type="text"
+                  value={infoForm.name}
+                  onChange={(e) => setInfoForm((prev) => ({ ...prev, name: e.target.value }))}
+                  style={inputStyle}
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="info-model" style={labelStyle}>
+                  <Cpu size={11} style={{ color: '#3b82f6' }} /> {t('dashboard.hardwareModel')}
+                </label>
+                <select
+                  id="info-model"
+                  value={infoForm.model}
+                  onChange={(e) => setInfoForm((prev) => ({ ...prev, model: e.target.value }))}
+                  style={{ ...inputStyle, cursor: 'pointer' }}
+                >
+                  {HARDWARE_MODELS.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="info-model" style={labelStyle}>
-                <Cpu size={11} /> {t('dashboard.hardwareModel')}
-              </label>
-              <select
-                id="info-model"
-                value={infoForm.model}
-                onChange={(e) => setInfoForm((prev) => ({ ...prev, model: e.target.value }))}
-                style={{ ...inputStyle, cursor: 'pointer' }}
-              >
-                {HARDWARE_MODELS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
+            {/* Timezone Configuration */}
             <div>
               <label htmlFor="info-timezone" style={labelStyle}>
-                <MapPin size={11} /> {t('dashboard.timezone')}
+                <MapPin size={11} style={{ color: '#3b82f6' }} /> {t('dashboard.timezone')}
               </label>
               <select
                 id="info-timezone"
@@ -646,60 +803,87 @@ export default function SettingsPage() {
               </select>
             </div>
 
-            <div>
-              <label style={labelStyle}>
-                <Users size={11} /> {t('dashboard.authorizedOwners')}
-              </label>
+            {/* Authorized Owners Management */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              padding: '12px',
+              borderRadius: '12px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--glass-border)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>
+                  <Users size={11} style={{ color: '#3b82f6' }} /> {t('dashboard.authorizedOwners')}
+                </label>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  {safeOwners.length} {safeOwners.length === 1 ? 'Owner' : 'Owners'}
+                </span>
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {safeOwners.map((ownerEmail, index) => (
                   <div key={index} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <input
-                      type="email"
-                      value={ownerEmail}
-                      onChange={(e) => handleOwnerChange(index, e.target.value)}
-                      placeholder={t('dashboard.placeholderOwners') || 'e.g. owner@example.com'}
-                      style={inputStyle}
-                      required={index === 0}
-                    />
+                    <div style={{
+                      position: 'relative',
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}>
+                      <User size={13} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                      <input
+                        type="email"
+                        value={ownerEmail}
+                        onChange={(e) => handleOwnerChange(index, e.target.value)}
+                        placeholder={t('dashboard.placeholderOwners') || 'e.g. owner@example.com'}
+                        style={{ ...inputStyle, paddingLeft: '30px' }}
+                        required={index === 0}
+                      />
+                    </div>
                     {safeOwners.length > 1 && (
                       <button
                         type="button"
                         onClick={() => handleRemoveOwner(index)}
                         style={{
-                          background: 'transparent',
-                          border: 'none',
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid rgba(239, 68, 68, 0.2)',
                           color: '#ef4444',
                           cursor: 'pointer',
-                          padding: '6px',
+                          padding: '8px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          borderRadius: '6px',
+                          borderRadius: '8px',
+                          transition: 'all 0.2s ease',
+                          flexShrink: 0
                         }}
                         title={t('common.delete') || 'Remove'}
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={14} />
                       </button>
                     )}
                   </div>
                 ))}
+
                 <button
                   type="button"
                   onClick={handleAddOwner}
                   style={{
                     alignSelf: 'flex-start',
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--glass-border)',
-                    color: 'var(--primary)',
+                    gap: '6px',
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                    color: '#3b82f6',
                     fontSize: '11px',
                     fontWeight: '700',
                     cursor: 'pointer',
                     marginTop: '2px',
-                    padding: '5px 10px',
+                    padding: '6px 12px',
                     borderRadius: '8px',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   <Plus size={13} />
@@ -709,8 +893,16 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-            <button type="submit" disabled={isSavingInfo} style={primaryBtnStyle(isSavingInfo)}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
+            <button
+              type="submit"
+              disabled={isSavingInfo}
+              style={{
+                ...primaryBtnStyle(isSavingInfo),
+                background: isSavingInfo ? 'var(--text-muted)' : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                boxShadow: isSavingInfo ? 'none' : '0 4px 12px rgba(59, 130, 246, 0.25)',
+              }}
+            >
               <Save size={14} />
               <span>{isSavingInfo ? t('settings.saving') : t('settings.saveRouterInfoBtn')}</span>
             </button>

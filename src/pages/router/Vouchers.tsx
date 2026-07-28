@@ -154,29 +154,82 @@ export default function VouchersPage() {
 
   return (
     <div
+      className="responsive-container"
       style={{
-        padding: '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
         maxWidth: '1000px',
-        margin: '0 auto',
-        width: '100%',
-        boxSizing: 'border-box',
         direction: isRtl ? 'rtl' : 'ltr',
       }}
     >
-      {/* Header Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '8px' }}>
-        <div style={{ minWidth: 0 }}>
-          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            <Ticket size={18} style={{ color: 'var(--primary, #3b82f6)', flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t('vouchers.generateBatchTitle')}</span>
-          </h2>
-          <p className="hide-sm" style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '12px' }}>
-            {t('vouchers.generateBatchSubtitle')}
-          </p>
+      {/* ─── Page Header ─── */}
+      <div className="responsive-card" style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '14px',
+            background: 'linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.4) 100%)',
+            color: '#3b82f6',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(59,130,246,0.3)'
+          }}>
+            <Ticket size={24} />
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.5px' }}>
+              {t('vouchers.generateBatchTitle')}
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+              {routerId && !routerId.startsWith('cloud_') && (
+                <>
+                  <span style={{
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--primary)',
+                    background: 'rgba(var(--primary-rgb), 0.1)',
+                    padding: '2px 8px',
+                    borderRadius: '6px'
+                  }}>
+                    {routerId}
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>•</span>
+                </>
+              )}
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                {t('vouchers.generateBatchSubtitle')}
+              </span>
+            </div>
+          </div>
         </div>
+
+        <Link
+          to={`/${routerId}/batch`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            border: '1px solid var(--glass-border)',
+            background: 'var(--card-bg)',
+            color: 'var(--primary, #3b82f6)',
+            fontSize: '12px',
+            fontWeight: '600',
+            textDecoration: 'none'
+          }}
+        >
+          <Layers size={14} />
+          <span>{t('vouchers.batchPrint') || 'View Batches'}</span>
+        </Link>
       </div>
 
       {/* Main Grid: Form Controls (Left/Main) & Ticket Live Preview (Right) */}

@@ -145,9 +145,11 @@ export const apiCall = async <T = unknown>(
   if (!res.ok) {
     const errorText = await res.text().catch(() => '');
     let errorMessage = `API error (${res.status}): ${res.statusText}`;
-    let errorCode = '';
+    let parsedData: any = null;
+    let errorCode: string | undefined = undefined;
     try {
       const parsed = JSON.parse(errorText);
+      parsedData = parsed;
       if (parsed.error || parsed.message) {
         errorMessage = parsed.error || parsed.message;
       }
@@ -172,6 +174,8 @@ export const apiCall = async <T = unknown>(
     const err = new Error(errorMessage) as any;
     err.status = res.status;
     err.code = errorCode;
+    if (parsedData?.userCount !== undefined) err.userCount = parsedData.userCount;
+    if (parsedData?.profileName !== undefined) err.profileName = parsedData.profileName;
     throw err;
   }
 
@@ -609,31 +613,31 @@ export const removeActiveSessionAPI = async (routerId: string, id: string): Prom
   });
 };
 
-export const formatUptimeAPI = (uptime: string): string => {
-  if (!uptime || uptime === '0s' || uptime === '00:00:00' || uptime === 'Offline')
-    return uptime === 'Offline' ? 'Offline' : '0m';
+export const formatUptimeAPI = (uptime?: string): string => {
+  if (!uptime || uptime === '0s' || uptime === '00:00:00' || uptime === 'Offline' || uptime === '—' || uptime === 'N/A')
+    return uptime === 'Offline' ? 'Offline' : '—';
 
   let totalMins = 0;
 
   const weekMatch = uptime.match(/(\d+)w/);
-  if (weekMatch) totalMins += parseInt(weekMatch[1]) * 7 * 24 * 60;
+  if (weekMatch) totalMins += parseInt(weekMatch[1], 10) * 7 * 24 * 60;
 
   const dayMatch = uptime.match(/(\d+)d/);
-  if (dayMatch) totalMins += parseInt(dayMatch[1]) * 24 * 60;
+  if (dayMatch) totalMins += parseInt(dayMatch[1], 10) * 24 * 60;
 
   const timePart = uptime.match(/(\d{1,2}:){1,2}\d{1,2}/);
   if (timePart) {
-    const parts = timePart[0].split(':').map((p) => parseInt(p));
+    const parts = timePart[0].split(':').map((p) => parseInt(p, 10));
     if (parts.length === 3) {
       totalMins += parts[0] * 60 + parts[1];
     } else if (parts.length === 2) {
       totalMins += parts[0];
     }
   } else {
-    const minMatch = uptime.match(/(\d+)m/);
-    if (minMatch) totalMins += parseInt(minMatch[1]);
     const hourMatch = uptime.match(/(\d+)h/);
-    if (hourMatch) totalMins += parseInt(hourMatch[1]) * 60;
+    if (hourMatch) totalMins += parseInt(hourMatch[1], 10) * 60;
+    const minMatch = uptime.match(/(\d+)m/);
+    if (minMatch) totalMins += parseInt(minMatch[1], 10);
   }
 
   if (totalMins === 0) return '0m';
@@ -642,12 +646,13 @@ export const formatUptimeAPI = (uptime: string): string => {
   const h = Math.floor((totalMins % (24 * 60)) / 60);
   const m = totalMins % 60;
 
-  let res = '';
-  if (d > 0) res += `${d}d `;
-  if (h > 0) res += `${h}h `;
-  if (m > 0 || res === '') res += `${m}m`;
-
-  return res.trim();
+  if (d > 0) {
+    return `${d}d ${h}h`;
+  }
+  if (h > 0) {
+    return `${h}h ${m}m`;
+  }
+  return `${m}m`;
 };
 
 export const setupWireguardTunnelAPI = async (routerId: string, routerData: Record<string, unknown>): Promise<unknown> => {

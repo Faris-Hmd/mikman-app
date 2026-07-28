@@ -12,7 +12,7 @@
   --text-muted: #8e9196;
   --input-bg: #242424;
   --header-bg: rgba(20, 20, 20, 0.96);
-  --font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+  --font-family: 'Nunito', 'Cairo', system-ui, -apple-system, sans-serif;
   --font-family-mono: 'Courier New', Courier, monospace;
   --danger: #ef4444;
 
@@ -20,6 +20,20 @@
   --scrollbar-thumb-hover: rgba(59, 116, 214, 0.6);
 
   transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+:root[lang="en"],
+:root[dir="ltr"],
+html[lang="en"],
+html[dir="ltr"] {
+  --font-family: 'Nunito', 'Cairo', system-ui, -apple-system, sans-serif;
+}
+
+:root[lang="ar"],
+:root[dir="rtl"],
+html[lang="ar"],
+html[dir="rtl"] {
+  --font-family: 'Cairo', 'Nunito', system-ui, -apple-system, sans-serif;
 }
 
 :root[data-theme='light'] {
@@ -120,6 +134,14 @@ input, textarea { font-family: inherit; }
   align-items: center;
   z-index: 1000;
   animation: modalFadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  background-color: var(--card-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(16px);
 }
 
 /* ─── Glass Card ─── */
@@ -489,5 +511,47 @@ input, textarea { font-family: inherit; }
 @media (max-width: 640px) {
   .hide-sm {
     display: none !important;
+  }
+}
+
+/* ─── Mobile Padding Optimization ─── */
+.responsive-container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.responsive-card {
+  background: var(--card-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .responsive-container {
+    padding: 10px 10px !important;
+    gap: 12px !important;
+  }
+  .responsive-card {
+    padding: 12px 12px !important;
+    border-radius: 14px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .responsive-container {
+    padding: 8px 8px !important;
+    gap: 10px !important;
+  }
+  .responsive-card {
+    padding: 10px 10px !important;
+    border-radius: 12px !important;
   }
 }

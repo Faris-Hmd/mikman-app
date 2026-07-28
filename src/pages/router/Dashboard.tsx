@@ -3,11 +3,11 @@ import { useParams, Link } from 'react-router-dom';
 import useSWR from 'swr';
 import { fetchRouterProfilesAPI, fetchSingleRouterStatusAPI, fetchRevenueStatsAPI, formatUptimeAPI } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
-import { getTemperature, getRouterImage } from '../../lib/helpers';
+import { getTemperature, getRouterImage, cleanDisplayName } from '../../lib/helpers';
 import LoadingScreen from '../../components/LoadingScreen';
 import {
   Wifi, Activity, Cpu, Clock, Users, Thermometer, Ticket,
-  Layers, FileText, Printer, Radio, Settings, AlertCircle
+  Layers, FileText, Printer, Radio, Settings, AlertCircle, BarChart2, TrendingUp
 } from 'lucide-react';
 
 /* ─── Shared styles ─── */
@@ -33,7 +33,8 @@ const S = {
 
 export default function RouterDashboardPage() {
   const { routerId } = useParams<{ routerId: string }>();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const [activeTooltip, setActiveTooltip] = useState<{ date: string; revenue: number; count: number; index: number } | null>(null);
 
   const { data: status, isLoading: isStatusLoading } = useSWR(
     routerId ? `router-status-${routerId}` : null,
@@ -52,17 +53,57 @@ export default function RouterDashboardPage() {
     { revalidateOnFocus: true }
   );
 
+  // Fetch current month's revenue stats (1st of month through last day of month)
   const { data: revenue } = useSWR(
     routerId ? `router-dash-rev-${routerId}` : null,
     () => {
-      const end = new Date(); const start = new Date();
-      start.setDate(start.getDate() - 30);
-      return fetchRevenueStatsAPI(routerId!, start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month, 0);
+      return fetchRevenueStatsAPI(
+        routerId!,
+        start.toISOString().split('T')[0],
+        end.toISOString().split('T')[0]
+      );
     },
     { revalidateOnFocus: true, dedupingInterval: 60000 }
   );
 
-  const routerName = profileData?.name || routerId || 'MikroTik';
+  // Generate full month daily array (1 to 28/29/30/31 days) matching Revenue page style
+  const chartDaily = useMemo(() => {
+    if (!revenue) return [];
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    const dailyMap = new Map((revenue.daily || []).map((d: any) => [d.date, d]));
+    const result: Array<{ date: string; revenue: number; count: number }> = [];
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const mm = String(month).padStart(2, '0');
+      const dd = String(day).padStart(2, '0');
+      const dayStr = `${year}-${mm}-${dd}`;
+      const match = dailyMap.get(dayStr);
+      result.push({
+        date: dayStr,
+        revenue: match ? match.revenue : 0,
+        count: match ? match.count : 0
+      });
+    }
+
+    return result;
+  }, [revenue]);
+
+  const maxRevenue = useMemo(() => {
+    if (chartDaily.length === 0) return 1;
+    return Math.max(...chartDaily.map(d => d.revenue), 1);
+  }, [chartDaily]);
+
+  const rawName = profileData?.name || (profileData as any)?.wifiName || status?.wifiName;
+  const routerName = cleanDisplayName(rawName, routerId && !routerId.startsWith('cloud_') ? routerId : 'MikroTik');
   const routerImg = useMemo(() => profileData ? getRouterImage(profileData as any) : null, [profileData]);
   const memUsed = useMemo(() => {
     if (!status || status.totalMemory == null || status.freeMemory == null) return null;
@@ -73,7 +114,7 @@ export default function RouterDashboardPage() {
 
   const cpuDisp = status?.cpuLoad_display || (status?.cpuLoad != null ? `${status.cpuLoad}%` : null);
   const tmpDisp = status?.temperature_display || (status?.temperature != null ? `${getTemperature(status)}°C` : null);
-  const upDisp = status?.uptime_display || (status?.uptime ? formatUptimeAPI(status.uptime) : null);
+  const upDisp = status ? formatUptimeAPI(status.uptime || status.uptime_display) : null;
 
   const [now, setNow] = useState(Date.now());
   const [lastChecked, setLastChecked] = useState<number | null>(null);
@@ -107,46 +148,114 @@ export default function RouterDashboardPage() {
   const StatLabel = ({ children }: { children: React.ReactNode }) => <div style={S.section}>{children}</div>;
 
   const renderBarChart = () => {
-    if (!revenue?.daily?.length) return null;
-    const last14 = revenue.daily.slice(-14);
-    const maxRev = Math.max(...last14.map((d: any) => d.revenue), 1);
+    if (!chartDaily.length) return null;
     return (
-      <div style={{ ...S.card, padding: 16, marginBottom: 8 }}>
-        <div style={{ ...S.flexBetween, marginBottom: 10 }}><span style={S.label}>{t('dashboard.last30Days') || 'Last 14 Days'}</span><span style={{ fontSize: 10, color: 'var(--text-muted)' }}>$</span></div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 100, paddingBottom: 18, position: 'relative' }}>
-          {last14.map((day: any, idx: number) => {
-            const h = Math.max(4, (day.revenue / maxRev) * 100);
-            return (
-              <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                <span style={{ fontSize: 8, color: 'var(--text-muted)', marginBottom: 3, fontWeight: 600 }}>{day.revenue > 0 ? `$${Number(day.revenue).toFixed(0)}` : ''}</span>
-                <div style={{ width: '100%', height: `${h}%`, background: `linear-gradient(180deg, var(--primary) 0%, rgba(var(--primary-rgb), 0.4) 100%)`, borderRadius: '4px 4px 0 0', minHeight: 2 }} />
-                <span style={{ fontSize: 8, color: 'var(--text-muted)', marginTop: 4, position: 'absolute', bottom: 0, fontWeight: 600 }}>{day.date?.split('-').slice(1).join('/') || ''}</span>
-              </div>
-            );
-          })}
+      <div style={{ background: 'var(--card-bg)', border: '1px solid var(--glass-border)', borderRadius: '14px', padding: '16px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <BarChart2 size={16} style={{ color: 'var(--primary)' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
+              {t('dashboard.revenueSummary') || 'Monthly Revenue Chart'}
+            </span>
+          </div>
+          <span style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+            {chartDaily.length} {language === 'ar' ? 'أيام' : 'days'}
+          </span>
         </div>
-      </div>
-    );
-  };
 
-  const renderProfileBars = () => {
-    if (!revenue?.profiles?.length) return null;
-    return (
-      <div style={{ ...S.card, padding: 16 }}>
-        <div style={{ ...S.label, marginBottom: 10 }}>{t('sidebar.profiles') || 'By Profile'}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {revenue.profiles.map((p: any, idx: number) => (
-            <div key={idx}>
-              <div style={{ ...S.flexBetween, marginBottom: 3 }}><span style={{ fontSize: 11, fontWeight: 600, color: 'var(--foreground)' }}>{p.profile}</span><span style={{ fontSize: 11, fontWeight: 700, color: 'var(--foreground)' }}>${Number(p.revenue).toFixed(2)}</span></div>
-              <div style={{ height: 6, background: 'var(--secondary)', borderRadius: 3, overflow: 'hidden' }}><div style={{ height: '100%', width: `${p.percentage}%`, background: p.percentage >= 90 ? '#ef4444' : p.percentage >= 75 ? '#f59e0b' : 'var(--primary)', borderRadius: 3, transition: 'width 0.4s' }} /></div>
-              <div style={{ ...S.flexBetween, marginTop: 2 }}><span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{p.count} vouchers</span><span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{p.percentage.toFixed(1)}%</span></div>
+        <div style={{ position: 'relative', width: '100%' }}>
+          {/* Active Tooltip overlay */}
+          {activeTooltip && (
+            <div style={{
+              position: 'absolute',
+              top: '-28px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(15, 23, 42, 0.95)',
+              border: '1px solid var(--primary)',
+              color: '#fff',
+              padding: '3px 8px',
+              borderRadius: '6px',
+              fontSize: '10px',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              zIndex: 10,
+              pointerEvents: 'none',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            }}>
+              {activeTooltip.date}: ${activeTooltip.revenue.toFixed(2)} ({activeTooltip.count} {language === 'ar' ? 'كرت' : 'vouchers'})
             </div>
-          ))}
+          )}
+
+          {/* Flexbox bar container matching Revenue page */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: '2px',
+            height: '110px',
+            width: '100%',
+            paddingTop: '16px',
+            borderBottom: '1px solid var(--glass-border)',
+            boxSizing: 'border-box'
+          }}>
+            {chartDaily.map((item, idx) => {
+              const heightPercent = Math.max((item.revenue / maxRevenue) * 100, item.revenue > 0 ? 6 : 2);
+              const isHovered = activeTooltip?.index === idx;
+
+              return (
+                <div
+                  key={idx}
+                  onMouseEnter={() => setActiveTooltip({ date: item.date, revenue: item.revenue, count: item.count, index: idx })}
+                  onMouseLeave={() => setActiveTooltip(null)}
+                  onTouchStart={() => setActiveTooltip({ date: item.date, revenue: item.revenue, count: item.count, index: idx })}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    position: 'relative'
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '100%',
+                      height: `${heightPercent}%`,
+                      background: item.revenue > 0
+                        ? isHovered
+                          ? 'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)'
+                          : 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)'
+                        : 'var(--glass-border)',
+                      borderRadius: '3px 3px 0 0',
+                      transition: 'all 0.2s ease',
+                      boxShadow: isHovered ? '0 0 8px rgba(59,130,246,0.6)' : 'none'
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* X-axis day numbers */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '9px', color: 'var(--text-muted)' }}>
+            {chartDaily.map((item, idx) => {
+              const totalBars = chartDaily.length;
+              const showLabel = idx === 0 || idx === totalBars - 1 || idx % Math.ceil(totalBars / 6) === 0;
+              const dayNum = item.date ? parseInt(item.date.split('-')[2], 10) : idx + 1;
+              return (
+                <span key={idx} style={{ flex: 1, textAlign: 'center', opacity: showLabel ? 1 : 0 }}>
+                  {dayNum}
+                </span>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
   };
-
 
   return (
     <div className="dashboard-page">
@@ -217,14 +326,11 @@ export default function RouterDashboardPage() {
       <div>
         <StatLabel><Ticket size={12} style={{ color: 'var(--primary)' }} /><span style={S.sectionBadge}>{t('dashboard.quickActions') || 'Quick Actions'}</span></StatLabel>
         <div className="quick-actions-grid">
-          {([ { Icon: Ticket, tk: 'vouchers', slug: 'vouchers' }, { Icon: Layers, tk: 'profiles', slug: 'profiles' }, { Icon: Printer, tk: 'batchPrint', slug: 'batch' }, { Icon: Users, tk: 'users', slug: 'users' }, { Icon: Radio, tk: 'devices', slug: 'aps' }, { Icon: FileText, tk: 'revenue', slug: 'revenue' }, { Icon: Settings, tk: 'settings', slug: 'settings' } ] as const).map(({ Icon, tk, slug }) => (
+          {([ { Icon: Ticket, tk: 'vouchers', slug: 'vouchers' }, { Icon: Layers, tk: 'profiles', slug: 'profiles' }, { Icon: Printer, tk: 'batchPrint', slug: 'batch' }, { Icon: TrendingUp, tk: 'revenue', slug: 'revenue' }, { Icon: Settings, tk: 'settings', slug: 'settings' } ] as const).map(({ Icon, tk, slug }) => (
             <Link key={slug} to={`/${routerId}/${slug}`} style={{ ...S.card, ...S.quickLink }}><Icon size={16} style={{ color: 'var(--primary)' }} /><span style={{ fontSize: 10, fontWeight: 700 }}>{t(`sidebar.${tk}`) || tk}</span></Link>
           ))}
         </div>
       </div>
-
-
-
 
       {/* Revenue summary */}
       {revenue && (
@@ -235,7 +341,6 @@ export default function RouterDashboardPage() {
             <div style={{ ...S.card, padding: '14px 16px' }}><div style={S.label}>{t('common.total') || 'Vouchers'}</div><div style={{ ...S.valueLg, marginTop: 2 }}>{revenue.totalVouchers}</div></div>
           </div>
           {renderBarChart()}
-          {renderProfileBars()}
         </div>
       )}
     </div>

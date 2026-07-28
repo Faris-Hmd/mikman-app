@@ -1,23 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512">
-      <stop offset="0%" stop-color="#3b82f6"/>
-      <stop offset="100%" stop-color="#2563eb"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
-  <g transform="rotate(-45, 256, 256)">
-    <!-- Ticket body -->
-    <rect x="136" y="140" width="240" height="232" rx="24" fill="white" opacity="0.95"/>
-    <!-- Lines -->
-    <line x1="176" y1="206" x2="336" y2="206" stroke="#3b82f6" stroke-width="16" stroke-linecap="round"/>
-    <line x1="176" y1="266" x2="304" y2="266" stroke="#3b82f6" stroke-width="16" stroke-linecap="round"/>
-    <line x1="176" y1="326" x2="272" y2="326" stroke="#3b82f6" stroke-width="16" stroke-linecap="round"/>
-    <!-- Perforation circles -->
-    <circle cx="136" cy="256" r="32" fill="none" stroke="white" stroke-width="20"/>
-    <circle cx="136" cy="200" r="32" fill="none" stroke="white" stroke-width="20"/>
-    <circle cx="136" cy="312" r="32" fill="none" stroke="white" stroke-width="20"/>
+  <rect width="512" height="512" rx="128" fill="#3b82f6"/>
+  <g transform="translate(64, 64) scale(16) rotate(-45 12 12)">
+    <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M13 5v2" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <path d="M13 11v2" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <path d="M13 17v2" stroke="white" stroke-width="2" stroke-linecap="round"/>
   </g>
-  <!-- Text below -->
-  <text x="256" y="440" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="60" font-weight="800" fill="white" letter-spacing="4">MIKMAN</text>
 </svg>

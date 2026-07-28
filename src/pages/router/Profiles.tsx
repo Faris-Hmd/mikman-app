@@ -75,6 +75,7 @@ export default function ProfilesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [warningModalData, setWarningModalData] = useState<{ profileName: string; userCount: number; message?: string } | null>(null);
 
   const { data: profiles, isLoading, mutate } = useSWR(
     routerId ? `router-profiles-${routerId}` : null,
@@ -183,7 +184,15 @@ export default function ProfilesPage() {
       await deleteProfileAPI(routerId!, p['.id']);
       mutate();
     } catch (err: any) {
-      alert(err?.message || 'Error deleting profile');
+      if (err?.code === 'PROFILE_IN_USE' || err?.userCount || err?.message?.includes('assigned to') || err?.message?.includes('PROFILE_IN_USE')) {
+        setWarningModalData({
+          profileName: err.profileName || p.name,
+          userCount: err.userCount || 1,
+          message: err.message
+        });
+      } else {
+        alert(err?.message || 'Error deleting profile');
+      }
     } finally {
       setDeletingId(null);
     }
@@ -299,16 +308,55 @@ export default function ProfilesPage() {
         direction: isRtl ? 'rtl' : 'ltr',
       }}
     >
-      {/* Standardized Page Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '8px' }}>
-        <div style={{ minWidth: 0 }}>
-          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            <Layers size={18} style={{ color: 'var(--primary, #3b82f6)', flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t('profiles.title')}</span>
-          </h2>
-          <p className="hide-sm" style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '12px' }}>
-            {t('profiles.subtitle')}
-          </p>
+      {/* ─── Page Header ─── */}
+      <div className="responsive-card" style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '14px',
+            background: 'linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.4) 100%)',
+            color: '#3b82f6',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(59,130,246,0.3)'
+          }}>
+            <Layers size={24} />
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.5px' }}>
+              {t('profiles.title')}
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+              {routerId && !routerId.startsWith('cloud_') && (
+                <>
+                  <span style={{
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--primary)',
+                    background: 'rgba(var(--primary-rgb), 0.1)',
+                    padding: '2px 8px',
+                    borderRadius: '6px'
+                  }}>
+                    {routerId}
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>•</span>
+                </>
+              )}
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                {totalProfiles} {t('profiles.totalProfiles') || 'user profiles'}
+              </span>
+            </div>
+          </div>
         </div>
 
         <button
@@ -317,20 +365,20 @@ export default function ProfilesPage() {
             background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
             color: '#ffffff',
             border: 'none',
-            borderRadius: '8px',
-            padding: '6px 12px',
+            borderRadius: '10px',
+            padding: '8px 14px',
             fontSize: '12px',
-            fontWeight: 600,
+            fontWeight: 700,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '5px',
-            boxShadow: '0 2px 10px rgba(37, 99, 235, 0.3)',
+            gap: '6px',
+            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
             flexShrink: 0,
             whiteSpace: 'nowrap',
           }}
         >
-          <Plus size={14} />
+          <Plus size={16} />
           <span>{t('profiles.addProfileBtn')}</span>
         </button>
       </div>
@@ -884,6 +932,53 @@ export default function ProfilesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Profile In Use Warning Modal */}
+      {warningModalData && (
+        <div style={modalOverlayStyle}>
+          <div style={{ ...modalContainerStyle, maxWidth: '420px', border: '1px solid rgba(239, 68, 68, 0.4)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}>
+                <AlertCircle size={20} />
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#ef4444' }}>
+                  {t('profiles.profileInUseTitle')}
+                </h3>
+              </div>
+              <button
+                onClick={() => setWarningModalData(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', padding: '12px 14px', color: 'var(--foreground)', fontSize: '13px', lineHeight: 1.5, marginBottom: '16px' }}>
+              {t('profiles.profileInUseDesc')
+                .replace('{name}', warningModalData.profileName)
+                .replace('{count}', String(warningModalData.userCount))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setWarningModalData(null)}
+                style={{
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '7px 18px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                {t('common.ok')}
+              </button>
+            </div>
           </div>
         </div>
       )}

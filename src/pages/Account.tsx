@@ -5,7 +5,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { supabase } from '../lib/supabase';
 import { fetchUserSubscriptionHistoryAPI, SubscriptionHistoryEntry } from '../api';
-import { User, ShieldCheck, Clock, CreditCard, History, MessageCircle, Calendar, AlertTriangle, KeyRound, Eye, EyeOff, Lock, CheckCircle2 } from 'lucide-react';
+import { User, ShieldCheck, Clock, CreditCard, History, MessageCircle, Calendar, AlertTriangle, KeyRound, Eye, EyeOff, Lock, CheckCircle2, LogOut } from 'lucide-react';
+import LogoutConfirmModal from '../components/LogoutConfirmModal';
 
 const WHATSAPP_NUMBER = '249966626693';
 
@@ -42,6 +43,7 @@ export default function AccountPage() {
   const { showAlert } = useModal();
   const [history, setHistory] = useState<SubscriptionHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Password reset / set state
   const [newPassword, setNewPassword] = useState('');
@@ -229,6 +231,29 @@ export default function AccountPage() {
               <ShieldCheck size={13} /> {t('accountPage.activeAccount')}
             </span>
           )}
+
+          {/* Sign Out Button */}
+          <button
+            onClick={() => setShowLogoutModal(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              color: '#ef4444',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            title={t('sidebar.signOut')}
+          >
+            <LogOut size={14} />
+            <span>{t('sidebar.signOut')}</span>
+          </button>
         </div>
       </div>
 
@@ -617,6 +642,7 @@ export default function AccountPage() {
         )}
       </div>
 
+      {showLogoutModal && <LogoutConfirmModal onClose={() => setShowLogoutModal(false)} />}
     </div>
   );
 }

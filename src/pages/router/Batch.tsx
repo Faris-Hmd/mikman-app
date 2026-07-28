@@ -19,6 +19,7 @@ import {
   List,
   Filter,
   PackageOpen,
+  Printer
 } from 'lucide-react';
 
 export default function BatchPage() {
@@ -161,19 +162,79 @@ export default function BatchPage() {
         direction: isRtl ? 'rtl' : 'ltr',
       }}
     >
-      {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '8px' }}>
-        <div style={{ minWidth: 0 }}>
-          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            <PackageOpen size={18} style={{ color: 'var(--primary, #3b82f6)', flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t('batch.title')}</span>
-          </h2>
-          <p className="hide-sm" style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '12px' }}>
-            {t('batch.subtitle')}
-          </p>
+      {/* ─── Page Header ─── */}
+      <div className="responsive-card" style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'nowrap',
+        gap: '8px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(79,70,229,0.4) 100%)',
+            color: '#6366f1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(99,102,241,0.3)',
+            flexShrink: 0
+          }}>
+            <Printer size={22} />
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {t('batch.title')}
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+              {routerId && !routerId.startsWith('cloud_') && (
+                <>
+                  <span style={{
+                    fontFamily: 'monospace',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: 'var(--primary)',
+                    background: 'rgba(var(--primary-rgb), 0.1)',
+                    padding: '2px 6px',
+                    borderRadius: '6px',
+                    flexShrink: 0
+                  }}>
+                    {routerId}
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>•</span>
+                </>
+              )}
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {stats.totalBatches} {t('batch.totalBatches') || 'batches'}
+              </span>
+            </div>
+          </div>
         </div>
-        <button onClick={goToCreate} style={{ ...btnPrimaryStyle, flexShrink: 0, whiteSpace: 'nowrap', padding: '6px 12px', fontSize: '12px' }}>
-          <Plus size={14} />
+
+        <button
+          onClick={goToCreate}
+          style={{
+            background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '10px',
+            padding: '7px 12px',
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
+            flexShrink: 0,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <Plus size={15} />
           <span>{t('batch.generateBtn')}</span>
         </button>
       </div>

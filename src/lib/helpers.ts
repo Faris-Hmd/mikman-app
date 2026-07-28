@@ -92,3 +92,11 @@ export const getQuotaName = (t: (key: string) => string, quota?: string, mr?: nu
   if (mr) return t('dashboard.planCustom').replace('{count}', String(mr));
   return `${q.charAt(0).toUpperCase() + q.slice(1)} Plan`;
 };
+
+export const cleanDisplayName = (name?: string | null, fallback = 'MikroTik'): string => {
+  if (!name) return fallback;
+  if (name.startsWith('cloud_') || name.startsWith('router_') || /^cloud_\d+$/.test(name)) {
+    return fallback;
+  }
+  return name;
+};
