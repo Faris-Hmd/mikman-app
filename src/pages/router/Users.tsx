@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchNetworkClientsAPI } from '../../api';
+import { fetchNetworkClientsAPI, removeActiveSessionAPI } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 
 import {
@@ -23,7 +23,9 @@ import {
   Smartphone,
   Info,
   Shield,
-  Activity
+  Activity,
+  LogOut,
+  MessageSquare
 } from 'lucide-react';
 
 interface NetworkClient {
@@ -104,6 +106,8 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClient, setSelectedClient] = useState<NetworkClient | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
   const { data: clients, isLoading, mutate } = useSWR(
     routerId ? `router-clients-${routerId}` : null,
@@ -160,6 +164,24 @@ export default function UsersPage() {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleDisconnect = async () => {
+    if (!routerId || !selectedClient) return;
+    const targetId = selectedClient.id || selectedClient.user || (selectedClient as any).voucherCode;
+    if (!targetId) return;
+
+    setIsDisconnecting(true);
+    try {
+      await removeActiveSessionAPI(routerId, targetId);
+      setSelectedClient(null);
+      setShowDisconnectConfirm(false);
+      mutate();
+    } catch (err) {
+      console.error('Failed to disconnect session:', err);
+    } finally {
+      setIsDisconnecting(false);
+    }
   };
 
   return (
@@ -829,6 +851,109 @@ export default function UsersPage() {
             {/* Modal Details Grid */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
+              {/* Hotspot User / Voucher Code */}
+              {(selectedClient.user || (selectedClient as any).voucherCode) && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                    <Shield size={15} style={{ color: '#3b82f6' }} />
+                    <span>{t('users.user')}</span>
+                  </div>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace' }}>
+                    {selectedClient.user || (selectedClient as any).voucherCode}
+                  </span>
+                </div>
+              )}
+
+              {/* IP Address Card */}
+              {selectedClient.ip && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                    <Globe size={15} style={{ color: '#10b981' }} />
+                    <span>{t('users.ipAddress')}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace' }}>
+                      {selectedClient.ip}
+                    </span>
+                    <button
+                      onClick={() => handleCopy(selectedClient.ip!, 'ip')}
+                      style={{
+                        background: copiedField === 'ip' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
+                        color: copiedField === 'ip' ? '#10b981' : 'var(--text-muted)',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      {copiedField === 'ip' ? <Check size={12} /> : <Copy size={12} />}
+                      <span>{copiedField === 'ip' ? t('users.copied') : t('users.copyIp')}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* MAC Address Card */}
+              {selectedClient.mac && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                    <Activity size={15} style={{ color: '#6366f1' }} />
+                    <span>{t('users.macAddress')}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace' }}>
+                      {selectedClient.mac}
+                    </span>
+                    <button
+                      onClick={() => handleCopy(selectedClient.mac!, 'mac')}
+                      style={{
+                        background: copiedField === 'mac' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
+                        color: copiedField === 'mac' ? '#10b981' : 'var(--text-muted)',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      {copiedField === 'mac' ? <Check size={12} /> : <Copy size={12} />}
+                      <span>{copiedField === 'mac' ? t('users.copied') : t('users.copyMac')}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Device Name Card */}
               {(() => {
                 const modalUser = (selectedClient.user || (selectedClient as any).voucherCode || '').trim();
@@ -920,6 +1045,27 @@ export default function UsersPage() {
                 </div>
               )}
 
+              {/* Comment Card */}
+              {selectedClient.comment && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                    <MessageSquare size={15} style={{ color: '#f59e0b' }} />
+                    <span>{t('users.comment')}</span>
+                  </div>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--foreground)' }}>
+                    {selectedClient.comment}
+                  </span>
+                </div>
+              )}
+
               {/* Traffic Cards */}
               {((selectedClient.rxBytes || selectedClient.bytesIn) || (selectedClient.txBytes || selectedClient.bytesOut)) && (
                 <div style={{
@@ -964,6 +1110,90 @@ export default function UsersPage() {
                   </div>
                 </div>
               )}
+
+              {/* Disconnect Action Button */}
+              <div style={{ marginTop: '8px', paddingTop: '14px', borderTop: '1px solid var(--glass-border)' }}>
+                {showDisconnectConfirm ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#ef4444', textAlign: 'center', fontWeight: 600 }}>
+                      {t('users.confirmDisconnect')}
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => setShowDisconnectConfirm(false)}
+                        disabled={isDisconnecting}
+                        style={{
+                          flex: 1,
+                          padding: '8px',
+                          borderRadius: '10px',
+                          border: '1px solid var(--glass-border)',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          color: 'var(--foreground)',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {t('aps.cancel')}
+                      </button>
+                      <button
+                        onClick={handleDisconnect}
+                        disabled={isDisconnecting}
+                        style={{
+                          flex: 1,
+                          padding: '8px',
+                          borderRadius: '10px',
+                          border: '1px solid rgba(239, 68, 68, 0.4)',
+                          background: 'linear-gradient(135deg, rgba(239,68,68,0.8) 0%, rgba(220,38,38,0.9) 100%)',
+                          color: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        {isDisconnecting ? (
+                          <>
+                            <RefreshCw size={13} className="spin" />
+                            <span>{t('users.disconnecting')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <LogOut size={13} />
+                            <span>{t('users.disconnectUser')}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowDisconnectConfirm(true)}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      color: '#ef4444',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <LogOut size={15} />
+                    <span>{t('users.disconnectUser')}</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

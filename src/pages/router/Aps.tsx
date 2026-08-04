@@ -1,36 +1,407 @@
+import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchNetworkClientsAPI } from '../../api';
+import { fetchIpBindingsAPI, fetchNetworkClientsAPI, addIpBindingAPI, removeIpBindingAPI } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 
-import { Radio, RefreshCw } from 'lucide-react';
+import {
+  Radio,
+  RefreshCw,
+  Search,
+  Plus,
+  X,
+  Globe,
+  Activity,
+  Copy,
+  Check,
+  Trash2,
+  Shield,
+  MessageSquare,
+  Server,
+  Layers,
+  Smartphone,
+  Laptop,
+  Printer,
+  Tv,
+  HardDrive,
+  Wifi,
+  CheckCircle2,
+  AlertCircle,
+  Zap,
+  ArrowUpRight
+} from 'lucide-react';
 
-interface AccessPoint {
+export type DeviceCategory = 'mobile' | 'laptop' | 'ap' | 'printer' | 'tv' | 'other';
+
+interface DeviceItem {
   id?: string;
-  name?: string;
-  mac?: string;
+  mac: string;
   ip?: string;
-  ssid?: string;
-  channel?: number;
-  signal?: number;
+  type: 'bypassed' | 'regular' | 'blocked' | 'unbound';
+  category: DeviceCategory;
+  comment?: string;
+  disabled?: boolean;
+  name?: string;
   uptime?: string;
+  isOnline: boolean;
+  isBound: boolean;
+  rawComment?: string;
+}
+
+const CATEGORY_MAP: Record<DeviceCategory, { labelKey: string; defaultLabel: string; icon: any; color: string }> = {
+  mobile: { labelKey: 'aps.mobile', defaultLabel: 'Mobile / Phone', icon: Smartphone, color: '#3b82f6' },
+  laptop: { labelKey: 'aps.laptop', defaultLabel: 'Laptop / PC', icon: Laptop, color: '#8b5cf6' },
+  ap: { labelKey: 'aps.ap', defaultLabel: 'Access Point / Router', icon: Radio, color: '#10b981' },
+  printer: { labelKey: 'aps.printer', defaultLabel: 'Printer', icon: Printer, color: '#f59e0b' },
+  tv: { labelKey: 'aps.tv', defaultLabel: 'Smart TV', icon: Tv, color: '#ec4899' },
+  other: { labelKey: 'aps.other', defaultLabel: 'Other Device', icon: HardDrive, color: '#6b7280' },
+};
+
+function normalizeMac(mac?: string): string {
+  if (!mac) return '';
+  return mac.toLowerCase().replace(/[^a-f0-9]/g, '');
+}
+
+function parseCategoryAndComment(commentStr?: string, nameStr?: string): { category: DeviceCategory; cleanComment: string } {
+  const text = (commentStr || nameStr || '').trim();
+  
+  // Check for explicit tag like [Mobile], [Laptop], [AP], [Printer], [TV], [Other]
+  const tagMatch = text.match(/^\[(Mobile|Laptop|AP|Printer|TV|Other)\]\s*(.*)$/i);
+  if (tagMatch) {
+    const tag = tagMatch[1].toLowerCase();
+    const cleanComment = tagMatch[2] || '';
+    let category: DeviceCategory = 'other';
+    if (tag === 'mobile') category = 'mobile';
+    else if (tag === 'laptop') category = 'laptop';
+    else if (tag === 'ap') category = 'ap';
+    else if (tag === 'printer') category = 'printer';
+    else if (tag === 'tv') category = 'tv';
+    return { category, cleanComment };
+  }
+
+  // Auto-detect based on text keywords
+  const lower = text.toLowerCase();
+  if (lower.includes('phone') || lower.includes('iphone') || lower.includes('android') || lower.includes('galaxy') || lower.includes('mobile')) {
+    return { category: 'mobile', cleanComment: text };
+  }
+  if (lower.includes('laptop') || lower.includes('pc') || lower.includes('macbook') || lower.includes('desktop')) {
+    return { category: 'laptop', cleanComment: text };
+  }
+  if (lower.includes('ap') || lower.includes('router') || lower.includes('tp-link') || lower.includes('access point') || lower.includes('wifi')) {
+    return { category: 'ap', cleanComment: text };
+  }
+  if (lower.includes('printer') || lower.includes('hp') || lower.includes('epson') || lower.includes('canon')) {
+    return { category: 'printer', cleanComment: text };
+  }
+  if (lower.includes('tv') || lower.includes('smarttv') || lower.includes('roku') || lower.includes('firestick')) {
+    return { category: 'tv', cleanComment: text };
+  }
+
+  return { category: 'other', cleanComment: text };
 }
 
 export default function ApsPage() {
   const { routerId } = useParams<{ routerId: string }>();
-  const { t } = useLanguage();
+  const { t, isRtl } = useLanguage();
 
-  const { data: clients, isLoading, mutate } = useSWR(
-    routerId ? `router-aps-${routerId}` : null,
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'bypassed' | 'regular' | 'blocked' | 'unbound'>('all');
+  const [selectedDevice, setSelectedDevice] = useState<DeviceItem | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Form State
+  const [newMac, setNewMac] = useState('');
+  const [newIp, setNewIp] = useState('');
+  const [newType, setNewType] = useState<'bypassed' | 'regular' | 'blocked'>('bypassed');
+  const [newCategory, setNewCategory] = useState<DeviceCategory>('mobile');
+  const [newComment, setNewComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Deletion state
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Fetch IP Bindings from RouterOS
+  const { data: bindingsData, isLoading: isLoadingBindings, mutate: mutateBindings } = useSWR(
+    routerId ? `router-ip-bindings-${routerId}` : null,
+    () => fetchIpBindingsAPI(routerId!),
+    { revalidateOnFocus: true }
+  );
+
+  // Fetch Active Connected Clients / DHCP Leases / Hotspot Hosts
+  const { data: clientsData, isLoading: isLoadingClients, mutate: mutateClients } = useSWR(
+    routerId ? `router-network-clients-${routerId}` : null,
     () => fetchNetworkClientsAPI(routerId!),
     { revalidateOnFocus: true }
   );
 
-  const apList: AccessPoint[] = Array.isArray(clients) ? clients : [];
+  const handleRefresh = () => {
+    mutateBindings();
+    mutateClients();
+  };
+
+  // Compare & Merge IP Bindings with Active Devices List
+  const { deviceList, activeUnboundList } = useMemo(() => {
+    // 1. Process Active Clients
+    let activeList: any[] = [];
+    if (Array.isArray(clientsData)) {
+      activeList = clientsData;
+    } else if (clientsData && typeof clientsData === 'object') {
+      if (Array.isArray((clientsData as any).clients)) activeList = (clientsData as any).clients;
+      else if (Array.isArray((clientsData as any).active)) activeList = (clientsData as any).active;
+      else if (Array.isArray((clientsData as any).hosts)) activeList = (clientsData as any).hosts;
+      else if (Array.isArray((clientsData as any).data)) activeList = (clientsData as any).data;
+    }
+
+    const activeMap = new Map<string, any>();
+    activeList.forEach(c => {
+      const mac = c.mac || c['mac-address'] || c.macAddress;
+      const normalized = normalizeMac(mac);
+      if (normalized) {
+        activeMap.set(normalized, c);
+      }
+    });
+
+    // 2. Process IP Bindings
+    let bindingRawList: any[] = [];
+    if (Array.isArray(bindingsData)) {
+      bindingRawList = bindingsData;
+    } else if (bindingsData && typeof bindingsData === 'object') {
+      if (Array.isArray((bindingsData as any).bindings)) bindingRawList = (bindingsData as any).bindings;
+      else if (Array.isArray((bindingsData as any).data)) bindingRawList = (bindingsData as any).data;
+    }
+
+    const boundMacSet = new Set<string>();
+    const boundDevices: DeviceItem[] = bindingRawList.map(item => {
+      const mac = item.mac || item['mac-address'] || item.macAddress || '';
+      const normalized = normalizeMac(mac);
+      if (normalized) boundMacSet.add(normalized);
+
+      const activeMatch = normalized ? activeMap.get(normalized) : null;
+      const rawComment = item.comment || item.name || '';
+      const { category, cleanComment } = parseCategoryAndComment(rawComment, item.name);
+
+      let bType: 'bypassed' | 'regular' | 'blocked' = 'regular';
+      const rawType = (item.type || '').toLowerCase();
+      if (rawType === 'bypassed' || item.bypassed) bType = 'bypassed';
+      else if (rawType === 'blocked') bType = 'blocked';
+
+      return {
+        id: item.id || item['.id'] || mac,
+        mac: mac,
+        ip: item.ip || item['address'] || item.ipAddress || (activeMatch ? (activeMatch.ip || activeMatch.address) : ''),
+        type: bType,
+        category: category,
+        comment: cleanComment,
+        rawComment: rawComment,
+        disabled: item.disabled === true || item.disabled === 'true',
+        name: item.name || cleanComment,
+        uptime: item.uptime || (activeMatch ? activeMatch.uptime : undefined),
+        isOnline: !!activeMatch,
+        isBound: true,
+      };
+    });
+
+    // 3. Find Unbound Active Devices (Devices online on network but NOT in IP bindings)
+    const unboundDevices: DeviceItem[] = [];
+    activeList.forEach(c => {
+      const mac = c.mac || c['mac-address'] || c.macAddress || '';
+      const normalized = normalizeMac(mac);
+      if (normalized && !boundMacSet.has(normalized)) {
+        const rawComment = c.comment || c.hostName || c.name || '';
+        const { category, cleanComment } = parseCategoryAndComment(rawComment, c.hostName);
+
+        unboundDevices.push({
+          id: `unbound-${normalized}`,
+          mac: mac,
+          ip: c.ip || c.address || c.ipAddress || '',
+          type: 'unbound',
+          category: category,
+          comment: cleanComment,
+          rawComment: rawComment,
+          disabled: false,
+          name: cleanComment || c.hostName || t('aps.networkDevice'),
+          uptime: c.uptime,
+          isOnline: true,
+          isBound: false,
+        });
+      }
+    });
+
+    return {
+      deviceList: boundDevices,
+      activeUnboundList: unboundDevices,
+    };
+  }, [bindingsData, clientsData]);
+
+  // Combined All List for filtering
+  const allCombinedDevices = useMemo(() => {
+    return [...deviceList, ...activeUnboundList];
+  }, [deviceList, activeUnboundList]);
+
+  // Compute Stat Counters
+  const stats = useMemo(() => {
+    const totalBindings = deviceList.length;
+    const bypassed = deviceList.filter(d => d.type === 'bypassed').length;
+    const blocked = deviceList.filter(d => d.type === 'blocked').length;
+    const regular = deviceList.filter(d => d.type === 'regular').length;
+    const online = deviceList.filter(d => d.isOnline).length;
+    const unbound = activeUnboundList.length;
+    return { totalBindings, bypassed, blocked, regular, online, unbound };
+  }, [deviceList, activeUnboundList]);
+
+  // Filtered devices list based on Search & Selected Filter Tab
+  const filteredDevices = useMemo(() => {
+    let list = allCombinedDevices;
+
+    if (selectedFilter === 'bypassed') {
+      list = list.filter(d => d.type === 'bypassed');
+    } else if (selectedFilter === 'regular') {
+      list = list.filter(d => d.type === 'regular');
+    } else if (selectedFilter === 'blocked') {
+      list = list.filter(d => d.type === 'blocked');
+    } else if (selectedFilter === 'unbound') {
+      list = list.filter(d => d.type === 'unbound');
+    }
+
+    if (!searchTerm.trim()) return list;
+    const term = searchTerm.toLowerCase().trim();
+    return list.filter(d => {
+      const macMatch = (d.mac || '').toLowerCase().includes(term);
+      const ipMatch = (d.ip || '').toLowerCase().includes(term);
+      const commentMatch = (d.comment || '').toLowerCase().includes(term);
+      const typeMatch = (d.type || '').toLowerCase().includes(term);
+      return macMatch || ipMatch || commentMatch || typeMatch;
+    });
+  }, [allCombinedDevices, selectedFilter, searchTerm]);
+
+  const handleCopy = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleOpenAddModalForUnbound = (device: DeviceItem) => {
+    setNewMac(device.mac);
+    setNewIp(device.ip || '');
+    setNewType('bypassed');
+    setNewCategory(device.category || 'mobile');
+    setNewComment(device.comment || '');
+    setFormError(null);
+    setIsAddModalOpen(true);
+  };
+
+  const handleAddDevice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!routerId) return;
+
+    if (!newMac.trim()) {
+      setFormError(t('aps.enterMac'));
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError(null);
+
+    // Format comment with category prefix so it persists on RouterOS
+    const categoryTag = newCategory.charAt(0).toUpperCase() + newCategory.slice(1);
+    const formattedComment = newComment.trim()
+      ? `[${categoryTag}] ${newComment.trim()}`
+      : `[${categoryTag}]`;
+
+    try {
+      await addIpBindingAPI(
+        routerId,
+        newMac.trim(),
+        newIp.trim(),
+        formattedComment,
+        newType
+      );
+
+      setNewMac('');
+      setNewIp('');
+      setNewType('bypassed');
+      setNewCategory('mobile');
+      setNewComment('');
+      setIsAddModalOpen(false);
+      handleRefresh();
+    } catch (err: any) {
+      console.error('Failed to add IP binding:', err);
+      setFormError(err?.message || t('aps.addFailed'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteDevice = async () => {
+    if (!routerId || !selectedDevice) return;
+    const targetId = selectedDevice.id || selectedDevice.mac;
+    if (!targetId) return;
+
+    setIsDeleting(true);
+    try {
+      await removeIpBindingAPI(routerId, targetId);
+      setSelectedDevice(null);
+      setShowDeleteConfirm(false);
+      handleRefresh();
+    } catch (err) {
+      console.error('Failed to delete binding:', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const getTypeBadgeStyle = (type: string) => {
+    if (type === 'bypassed') {
+      return {
+        background: 'rgba(16, 185, 129, 0.15)',
+        border: '1px solid rgba(16, 185, 129, 0.3)',
+        color: '#10b981',
+        label: t('aps.bypassed') || 'Bypassed'
+      };
+    }
+    if (type === 'blocked') {
+      return {
+        background: 'rgba(239, 68, 68, 0.15)',
+        border: '1px solid rgba(239, 68, 68, 0.3)',
+        color: '#ef4444',
+        label: t('aps.blocked') || 'Blocked'
+      };
+    }
+    if (type === 'unbound') {
+      return {
+        background: 'rgba(245, 158, 11, 0.15)',
+        border: '1px solid rgba(245, 158, 11, 0.3)',
+        color: '#f59e0b',
+        label: t('aps.activeUnbound') || 'Active (Unbound)'
+      };
+    }
+    return {
+      background: 'rgba(59, 130, 246, 0.15)',
+      border: '1px solid rgba(59, 130, 246, 0.3)',
+      color: '#3b82f6',
+      label: t('aps.regular') || 'Regular'
+    };
+  };
+
+  const renderCategoryIcon = (category: DeviceCategory, size = 16) => {
+    const config = CATEGORY_MAP[category] || CATEGORY_MAP.other;
+    const IconComp = config.icon;
+    return <IconComp size={size} style={{ color: config.color }} />;
+  };
+
+  const isLoading = isLoadingBindings || isLoadingClients;
 
   return (
-    <div className="responsive-container">
-      {/* ─── Page Header ─── */}
+    <div
+      className="responsive-container"
+      style={{
+        direction: isRtl ? 'rtl' : 'ltr',
+      }}
+    >
+      {/* ─── 1. Page Header ─── */}
       <div className="responsive-card" style={{
         display: 'flex',
         alignItems: 'center',
@@ -57,69 +428,863 @@ export default function ApsPage() {
             <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('aps.title')}
             </h2>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Zap size={10} style={{ color: '#10b981' }} />
+              <span>{t('aps.comparedNotice') || 'IP Bindings synced with active network hosts'}</span>
+            </div>
           </div>
         </div>
 
-        <button
-          onClick={() => mutate()}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '7px 12px',
-            borderRadius: '10px',
-            border: '1px solid var(--glass-border)',
-            background: 'var(--card-bg)',
-            color: 'var(--foreground)',
-            fontSize: '12px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            flexShrink: 0
-          }}
-        >
-          <RefreshCw size={14} className={isLoading ? 'spin' : ''} />
-          <span>{t('common.refresh') || 'Refresh'}</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '9px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--card-bg)',
+              color: 'var(--foreground)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+            title="Refresh"
+          >
+            <RefreshCw size={14} className={isLoading ? 'spin' : ''} />
+          </button>
+          <button
+            onClick={() => {
+              setNewMac('');
+              setNewIp('');
+              setNewType('bypassed');
+              setNewCategory('mobile');
+              setNewComment('');
+              setFormError(null);
+              setIsAddModalOpen(true);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '7px 12px',
+              borderRadius: '10px',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              background: 'linear-gradient(135deg, rgba(16,185,129,0.8) 0%, rgba(5,150,105,0.9) 100%)',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            <Plus size={14} />
+            <span>{t('aps.addDevice')}</span>
+          </button>
+        </div>
       </div>
-      {isLoading ? (
-        <p>Loading access point data…</p>
-      ) : apList.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No access points found.</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {apList.map((ap, idx) => (
-            <div
-              key={ap.id || idx}
-              className="list-item-card"
+
+      {/* ─── 2. Stat Summary Header Cards ─── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: '8px',
+        marginBottom: '10px'
+      }}>
+        {/* Total Bindings */}
+        <div className="responsive-card" style={{ padding: '10px 12px', textAlign: 'center' }}>
+          <div style={{ fontSize: '10px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>
+            {t('aps.totalDevices') || 'Total Bindings'}
+          </div>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)' }}>
+            {stats.totalBindings}
+          </div>
+        </div>
+
+        {/* Bypassed */}
+        <div className="responsive-card" style={{ padding: '10px 12px', textAlign: 'center', border: '1px solid rgba(16, 185, 129, 0.25)', background: 'rgba(16, 185, 129, 0.03)' }}>
+          <div style={{ fontSize: '10px', color: '#10b981', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>
+            {t('aps.bypassedDevices') || 'Bypassed'}
+          </div>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: '#10b981' }}>
+            {stats.bypassed}
+          </div>
+        </div>
+
+        {/* Online Now */}
+        <div className="responsive-card" style={{ padding: '10px 12px', textAlign: 'center', border: '1px solid rgba(59, 130, 246, 0.25)', background: 'rgba(59, 130, 246, 0.03)' }}>
+          <div style={{ fontSize: '10px', color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>
+            {t('aps.onlineNow') || 'Online Now'}
+          </div>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: '#3b82f6' }}>
+            {stats.online}
+          </div>
+        </div>
+
+        {/* Active Unbound */}
+        <div className="responsive-card" style={{ padding: '10px 12px', textAlign: 'center', border: stats.unbound > 0 ? '1px solid rgba(245, 158, 11, 0.35)' : undefined, background: stats.unbound > 0 ? 'rgba(245, 158, 11, 0.05)' : undefined }}>
+          <div style={{ fontSize: '10px', color: stats.unbound > 0 ? '#f59e0b' : 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>
+            {t('aps.unboundCount') || 'Active Unbound'}
+          </div>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: stats.unbound > 0 ? '#f59e0b' : 'var(--foreground)' }}>
+            {stats.unbound}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 3. Search & Filter Bar ─── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+        <div style={{ position: 'relative', width: '100%' }}>
+          <Search
+            size={14}
+            style={{
+              position: 'absolute',
+              [isRtl ? 'right' : 'left']: '10px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--muted)'
+            }}
+          />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder={t('aps.searchPlaceholder') || 'Search by MAC, IP, category, comment...'}
+            style={{
+              width: '100%',
+              padding: '8px 32px',
+              paddingLeft: isRtl ? '12px' : '32px',
+              paddingRight: isRtl ? '32px' : '12px',
+              borderRadius: '10px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--card-bg)',
+              color: 'var(--foreground)',
+              fontSize: '12px',
+              outline: 'none'
+            }}
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
+                position: 'absolute',
+                [isRtl ? 'left' : 'right']: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: 'var(--muted)',
+                cursor: 'pointer',
+                padding: 0
               }}
             >
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <strong className="item-title" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {ap.name || ap.ssid || 'Unnamed AP'}
-                </strong>
-                <div className="item-subtext" style={{ marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {ap.mac && <span>MAC: {ap.mac}</span>}
-                  {ap.ip && <span> • IP: {ap.ip}</span>}
-                  {ap.ssid && <span> • SSID: {ap.ssid}</span>}
-                  {ap.channel != null && <span> • Ch: {ap.channel}</span>}
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* Filter Tabs */}
+        <div style={{
+          display: 'flex',
+          gap: '6px',
+          overflowX: 'auto',
+          paddingBottom: '2px',
+          scrollbarWidth: 'none'
+        }}>
+          <button
+            onClick={() => setSelectedFilter('all')}
+            style={{
+              padding: '5px 10px',
+              borderRadius: '8px',
+              fontSize: '11px',
+              fontWeight: 700,
+              border: selectedFilter === 'all' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-color)',
+              background: selectedFilter === 'all' ? 'rgba(16, 185, 129, 0.15)' : 'var(--card-bg)',
+              color: selectedFilter === 'all' ? '#10b981' : 'var(--foreground)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {t('aps.allDevices') || 'All Devices'} ({allCombinedDevices.length})
+          </button>
+          <button
+            onClick={() => setSelectedFilter('bypassed')}
+            style={{
+              padding: '5px 10px',
+              borderRadius: '8px',
+              fontSize: '11px',
+              fontWeight: 700,
+              border: selectedFilter === 'bypassed' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-color)',
+              background: selectedFilter === 'bypassed' ? 'rgba(16, 185, 129, 0.15)' : 'var(--card-bg)',
+              color: selectedFilter === 'bypassed' ? '#10b981' : 'var(--foreground)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {t('aps.bypassed')} ({stats.bypassed})
+          </button>
+          <button
+            onClick={() => setSelectedFilter('regular')}
+            style={{
+              padding: '5px 10px',
+              borderRadius: '8px',
+              fontSize: '11px',
+              fontWeight: 700,
+              border: selectedFilter === 'regular' ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid var(--border-color)',
+              background: selectedFilter === 'regular' ? 'rgba(59, 130, 246, 0.15)' : 'var(--card-bg)',
+              color: selectedFilter === 'regular' ? '#3b82f6' : 'var(--foreground)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {t('aps.regular') || 'Regular'} ({stats.regular})
+          </button>
+          <button
+            onClick={() => setSelectedFilter('blocked')}
+            style={{
+              padding: '5px 10px',
+              borderRadius: '8px',
+              fontSize: '11px',
+              fontWeight: 700,
+              border: selectedFilter === 'blocked' ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border-color)',
+              background: selectedFilter === 'blocked' ? 'rgba(239, 68, 68, 0.15)' : 'var(--card-bg)',
+              color: selectedFilter === 'blocked' ? '#ef4444' : 'var(--foreground)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {t('aps.blocked') || 'Blocked'} ({stats.blocked})
+          </button>
+          {stats.unbound > 0 && (
+            <button
+              onClick={() => setSelectedFilter('unbound')}
+              style={{
+                padding: '5px 10px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                border: selectedFilter === 'unbound' ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(245, 158, 11, 0.3)',
+                background: selectedFilter === 'unbound' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.08)',
+                color: '#f59e0b',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {t('aps.activeUnbound')} ({stats.unbound})
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ─── 4. Devices List ─── */}
+      {isLoading ? (
+        <div className="responsive-card" style={{ padding: '30px', textAlign: 'center', color: 'var(--muted)' }}>
+          <RefreshCw size={24} className="spin" style={{ margin: '0 auto 10px auto', display: 'block' }} />
+          <span style={{ fontSize: '13px' }}>{t('aps.loadingDevices')}</span>
+        </div>
+      ) : filteredDevices.length === 0 ? (
+        <div className="responsive-card" style={{ padding: '30px', textAlign: 'center', color: 'var(--muted)' }}>
+          <Radio size={32} style={{ margin: '0 auto 10px auto', display: 'block', opacity: 0.5 }} />
+          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--foreground)', marginBottom: '4px' }}>
+            {t('aps.noApsFound')}
+          </div>
+          <div style={{ fontSize: '12px' }}>
+            {t('aps.noApsDesc')}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {filteredDevices.map(device => {
+            const badgeStyle = getTypeBadgeStyle(device.type);
+            const catConfig = CATEGORY_MAP[device.category] || CATEGORY_MAP.other;
+
+            return (
+              <div
+                key={device.id || device.mac}
+                onClick={() => setSelectedDevice(device)}
+                className="responsive-card"
+                style={{
+                  padding: '10px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                  cursor: 'pointer',
+                  border: device.type === 'unbound' ? '1px dashed rgba(245, 158, 11, 0.4)' : undefined,
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {/* Left: Device Icon & Identification */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: 'var(--glass-bg, rgba(255,255,255,0.03))',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                    flexShrink: 0
+                  }}>
+                    {renderCategoryIcon(device.category, 18)}
+                    {/* Online status indicator dot */}
+                    <span style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      right: '-2px',
+                      width: '9px',
+                      height: '9px',
+                      borderRadius: '50%',
+                      background: device.isOnline ? '#10b981' : '#6b7280',
+                      border: '2px solid var(--card-bg)'
+                    }} />
+                  </div>
+
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: 'var(--foreground)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {device.comment || device.name || device.mac}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--muted)', flexWrap: 'wrap' }}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{device.mac}</span>
+                      {device.ip && (
+                        <>
+                          <span>•</span>
+                          <span style={{ color: '#3b82f6', fontFamily: 'monospace' }}>{device.ip}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Status Badge or Quick Bypass Button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                  {device.type === 'unbound' ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenAddModalForUnbound(device);
+                      }}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '8px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        border: '1px solid rgba(16, 185, 129, 0.4)',
+                        background: 'linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.3) 100%)',
+                        color: '#10b981',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Plus size={12} />
+                      <span>{t('aps.bypassNow')}</span>
+                    </button>
+                  ) : (
+                    <span style={{
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      background: badgeStyle.background,
+                      border: badgeStyle.border,
+                      color: badgeStyle.color,
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {badgeStyle.label}
+                    </span>
+                  )}
                 </div>
               </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                {ap.signal != null && (
-                  <div className="item-value" style={{ fontWeight: 700 }}>
-                    {ap.signal}%
-                  </div>
-                )}
-                {ap.uptime && (
-                  <div className="item-subtext">Up: {ap.uptime}</div>
-                )}
+            );
+          })}
+        </div>
+      )}
+
+      {/* ─── 5. Add Device Modal ─── */}
+      {isAddModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div className="responsive-card" style={{
+            width: '100%',
+            maxWidth: '420px',
+            background: 'var(--card-bg)',
+            borderRadius: '16px',
+            padding: '20px',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  color: '#10b981',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Plus size={16} />
+                </div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--foreground)' }}>
+                  {t('aps.addDeviceTitle')}
+                </h3>
               </div>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
             </div>
-          ))}
+
+            {formError && (
+              <div style={{
+                padding: '10px 12px',
+                borderRadius: '8px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#ef4444',
+                fontSize: '12px',
+                marginBottom: '12px'
+              }}>
+                {formError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddDevice} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Device Category Selector */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '6px' }}>
+                  {t('aps.deviceCategory') || 'Device Type / Category'}
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                  {(Object.keys(CATEGORY_MAP) as DeviceCategory[]).map(catKey => {
+                    const cat = CATEGORY_MAP[catKey];
+                    const IconC = cat.icon;
+                    const isSelected = newCategory === catKey;
+                    return (
+                      <button
+                        key={catKey}
+                        type="button"
+                        onClick={() => setNewCategory(catKey)}
+                        style={{
+                          padding: '8px',
+                          borderRadius: '8px',
+                          border: isSelected ? `1px solid ${cat.color}` : '1px solid var(--border-color)',
+                          background: isSelected ? `${cat.color}15` : 'var(--card-bg)',
+                          color: isSelected ? cat.color : 'var(--muted)',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <IconC size={14} />
+                        <span>{t(cat.labelKey) || cat.defaultLabel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Binding Type Selector */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px' }}>
+                  {t('aps.bindingType')}
+                </label>
+                <select
+                  value={newType}
+                  onChange={e => setNewType(e.target.value as any)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--card-bg)',
+                    color: 'var(--foreground)',
+                    fontSize: '12px'
+                  }}
+                >
+                  <option value="bypassed">{t('aps.bypassed')}</option>
+                  <option value="regular">{t('aps.regular')}</option>
+                  <option value="blocked">{t('aps.blocked')}</option>
+                </select>
+              </div>
+
+              {/* MAC Address */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px' }}>
+                  {t('aps.macAddress')} *
+                </label>
+                <input
+                  type="text"
+                  value={newMac}
+                  onChange={e => setNewMac(e.target.value)}
+                  placeholder="e.g. AA:BB:CC:DD:EE:FF"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--card-bg)',
+                    color: 'var(--foreground)',
+                    fontSize: '12px',
+                    fontFamily: 'monospace'
+                  }}
+                  required
+                />
+              </div>
+
+              {/* IP Address */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px' }}>
+                  {t('aps.ipAddress')} (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={newIp}
+                  onChange={e => setNewIp(e.target.value)}
+                  placeholder="e.g. 192.168.88.100"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--card-bg)',
+                    color: 'var(--foreground)',
+                    fontSize: '12px',
+                    fontFamily: 'monospace'
+                  }}
+                />
+              </div>
+
+              {/* Device Comment / Name */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px' }}>
+                  {t('aps.deviceName')}
+                </label>
+                <input
+                  type="text"
+                  value={newComment}
+                  onChange={e => setNewComment(e.target.value)}
+                  placeholder="e.g. Manager iPhone, Reception Printer..."
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--card-bg)',
+                    color: 'var(--foreground)',
+                    fontSize: '12px'
+                  }}
+                />
+              </div>
+
+              {/* Buttons */}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--card-bg)',
+                    color: 'var(--foreground)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {t('aps.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, rgba(16,185,129,0.9) 0%, rgba(5,150,105,1) 100%)',
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {isSubmitting ? t('aps.saving') : t('aps.saveDevice')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 6. Device Detail & Action Modal ─── */}
+      {selectedDevice && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div className="responsive-card" style={{
+            width: '100%',
+            maxWidth: '440px',
+            background: 'var(--card-bg)',
+            borderRadius: '16px',
+            padding: '20px',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: 'var(--glass-bg, rgba(255,255,255,0.03))',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {renderCategoryIcon(selectedDevice.category, 16)}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
+                    {selectedDevice.comment || selectedDevice.name || selectedDevice.mac}
+                  </h3>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>{CATEGORY_MAP[selectedDevice.category]?.defaultLabel}</span>
+                    <span>•</span>
+                    <span style={{ color: selectedDevice.isOnline ? '#10b981' : '#6b7280', fontWeight: 600 }}>
+                      {selectedDevice.isOnline ? t('aps.online') || 'Online' : t('aps.offline') || 'Offline'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedDevice(null);
+                  setShowDeleteConfirm(false);
+                }}
+                style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Specifications Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '8px',
+              marginBottom: '16px'
+            }}>
+              {/* Type Badge */}
+              <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'var(--glass-bg, rgba(255,255,255,0.03))', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '10px', color: 'var(--muted)', display: 'block', marginBottom: '2px' }}>
+                  {t('aps.bindingType')}
+                </span>
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: getTypeBadgeStyle(selectedDevice.type).color
+                }}>
+                  {getTypeBadgeStyle(selectedDevice.type).label}
+                </span>
+              </div>
+
+              {/* Category */}
+              <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'var(--glass-bg, rgba(255,255,255,0.03))', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '10px', color: 'var(--muted)', display: 'block', marginBottom: '2px' }}>
+                  {t('aps.deviceCategory') || 'Category'}
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--foreground)' }}>
+                  {t(CATEGORY_MAP[selectedDevice.category]?.labelKey) || CATEGORY_MAP[selectedDevice.category]?.defaultLabel}
+                </span>
+              </div>
+
+              {/* MAC Address */}
+              <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'var(--glass-bg, rgba(255,255,255,0.03))', border: '1px solid var(--border-color)', gridColumn: 'span 2' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{t('aps.macAddress')}</span>
+                  <button
+                    onClick={() => handleCopy(selectedDevice.mac, 'mac')}
+                    style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '2px' }}
+                  >
+                    {copiedField === 'mac' ? <Check size={10} /> : <Copy size={10} />}
+                    <span>{copiedField === 'mac' ? t('aps.copied') : t('aps.copyMac')}</span>
+                  </button>
+                </div>
+                <span style={{ fontSize: '12px', fontFamily: 'monospace', fontWeight: 700, color: 'var(--foreground)', display: 'block', marginTop: '2px' }}>
+                  {selectedDevice.mac}
+                </span>
+              </div>
+
+              {/* IP Address */}
+              {selectedDevice.ip && (
+                <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'var(--glass-bg, rgba(255,255,255,0.03))', border: '1px solid var(--border-color)', gridColumn: 'span 2' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{t('aps.ipAddress')}</span>
+                    <button
+                      onClick={() => handleCopy(selectedDevice.ip!, 'ip')}
+                      style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '2px' }}
+                    >
+                      {copiedField === 'ip' ? <Check size={10} /> : <Copy size={10} />}
+                      <span>{copiedField === 'ip' ? t('aps.copied') : t('aps.copyIp')}</span>
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '12px', fontFamily: 'monospace', fontWeight: 700, color: '#3b82f6', display: 'block', marginTop: '2px' }}>
+                    {selectedDevice.ip}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Actions / Deletion */}
+            {selectedDevice.type === 'unbound' ? (
+              <button
+                onClick={() => {
+                  const dev = selectedDevice;
+                  setSelectedDevice(null);
+                  handleOpenAddModalForUnbound(dev);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, rgba(16,185,129,0.9) 0%, rgba(5,150,105,1) 100%)',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Plus size={14} />
+                <span>{t('aps.bypassNow')}</span>
+              </button>
+            ) : showDeleteConfirm ? (
+              <div style={{
+                padding: '12px',
+                borderRadius: '10px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                textAlign: 'center'
+              }}>
+                <span style={{ fontSize: '12px', color: '#ef4444', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+                  {t('aps.confirmRemove')}
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--card-bg)',
+                      color: 'var(--foreground)',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {t('aps.cancel')}
+                  </button>
+                  <button
+                    onClick={handleDeleteDevice}
+                    disabled={isDeleting}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {isDeleting ? t('aps.removing') : t('aps.removeBinding')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#ef4444',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Trash2 size={14} />
+                <span>{t('aps.removeBinding')}</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

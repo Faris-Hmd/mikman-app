@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { Zap, Sun, Moon, Menu } from 'lucide-react';
+import { Sun, Moon, Menu } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import BrandLogo from './BrandLogo';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -65,13 +66,7 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
             </button>
           )}
           <Link to="/" className="mobile-nav flex items-center gap-2.5 rounded-lg px-1.5 py-1 no-underline transition-colors" title={t('header.routerSelection')}>
-            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: '#3B82F6', boxShadow: '0 2px 8px rgba(59,130,246,0.4)' }}>
-              <Zap size={20} color="#fff" />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-[15px] font-extrabold m-0 tracking-tight leading-tight" style={{ color: 'var(--foreground)' }}>MIKMAN</h1>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.5px]" style={{ color: 'var(--text-muted)' }}>{title}</span>
-            </div>
+            <BrandLogo size={36} iconSize={20} showText textTitle="MIKMAN" subtitle={title} />
           </Link>
           <div className="desktop-nav">
             <h1 className="text-lg font-extrabold text-[var(--foreground)] m-0 tracking-tight">{title}</h1>

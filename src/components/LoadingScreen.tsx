@@ -1,4 +1,4 @@
-import { Ticket } from 'lucide-react';
+import ZapIcon from './ZapIcon';
 
 interface LoadingScreenProps {
   loadingTitle?: string;
@@ -16,10 +16,10 @@ export default function LoadingScreen({ loadingTitle, loadingSubtitle, compact }
     }}>
       <div style={{
         width: 48, height: 48, borderRadius: 12,
-        background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 0 20px rgba(var(--primary-rgb), 0.4)',
+        background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 4px 16px rgba(59, 130, 246, 0.45)',
       }}>
-        <Ticket size={28} style={{ color: '#fff', transform: 'rotate(-45deg)' }} />
+        <ZapIcon size={26} color="#ffffff" fill="#ffffff" strokeWidth="1.2" />
       </div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         {[0, 1, 2].map(i => (

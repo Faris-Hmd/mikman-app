@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { Zap, Ticket, Server, Layers, Users, Laptop, Settings, ChevronLeft, ChevronRight, LogOut, LayoutDashboard, TrendingUp, User, Home, Printer, Sun, Moon, Globe } from 'lucide-react';
+import { Ticket, Server, Layers, Users, Laptop, Settings, ChevronLeft, ChevronRight, LogOut, LayoutDashboard, TrendingUp, User, Home, Printer, Sun, Moon, Globe } from 'lucide-react';
+import BrandLogo from './BrandLogo';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import LogoutConfirmModal from './LogoutConfirmModal';
@@ -111,12 +112,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {/* Logo Header */}
           <Link to="/" onClick={() => { if (isMobile && onClose) onClose(); }} title={t('header.routerSelection')}
             style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', boxSizing: 'border-box', height: isMobile ? '52px' : '56px', marginTop: '0', marginLeft: isMobile ? '-16px' : '-10px', marginRight: isMobile ? '-16px' : '-10px', paddingLeft: isMobile ? '16px' : '12px', paddingRight: isMobile ? '16px' : '12px', borderBottom: '1px solid var(--glass-border)', marginBottom: '4px', width: isMobile ? 'calc(100% + 32px)' : 'calc(100% + 20px)', cursor: 'pointer', transition: 'background-color 0.2s', textDecoration: 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(59,130,246,0.4)' }}>
-                <Zap size={20} color="#fff" />
-              </div>
-              {!collapsed && <h1 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--foreground)', margin: 0, whiteSpace: 'nowrap', letterSpacing: '-0.02em' }}>{t('sidebar.menuTitle') || 'MIKMAN Menu'}</h1>}
-            </div>
+            <BrandLogo size={36} iconSize={20} showText={!collapsed} textTitle={t('sidebar.menuTitle') || 'MIKMAN Menu'} />
           </Link>
 
           {/* Collapse Menu Button (Desktop) */}
