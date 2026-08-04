@@ -336,81 +336,51 @@ export default function UsersPage() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Segmented Pill Tabs Bar */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '3px',
-        background: 'var(--card-bg, rgba(255, 255, 255, 0.04))',
-        padding: '3px',
-        borderRadius: '8px',
-        border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.08))',
-        width: 'fit-content'
-      }}>
-        <button
-          onClick={() => setActiveTab('signedIn')}
-          style={{
-            padding: '4px 8px',
-            borderRadius: '6px',
-            border: 'none',
-            background: activeTab === 'signedIn' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-            color: activeTab === 'signedIn' ? '#60a5fa' : 'var(--text-muted)',
-            fontSize: '11px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <UserCheck size={12} />
-          <span>{t('users.signedIn')} ({signedInClients.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('waiting')}
-          style={{
-            padding: '4px 8px',
-            borderRadius: '6px',
-            border: 'none',
-            background: activeTab === 'waiting' ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
-            color: activeTab === 'waiting' ? '#fbbf24' : 'var(--text-muted)',
-            fontSize: '11px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <Clock size={12} />
-          <span>{t('users.waiting')} ({waitingClients.length})</span>
-        </button>
-
-        <button
+        {/* Group 3: All Users */}
+        <div
           onClick={() => setActiveTab('all')}
           style={{
-            padding: '4px 8px',
-            borderRadius: '6px',
-            border: 'none',
-            background: activeTab === 'all' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-            color: activeTab === 'all' ? 'var(--foreground)' : 'var(--text-muted)',
-            fontSize: '11px',
-            fontWeight: 700,
-            cursor: 'pointer',
+            background: activeTab === 'all'
+              ? 'rgba(99, 102, 241, 0.12)'
+              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+            backdropFilter: 'blur(12px)',
+            border: activeTab === 'all'
+              ? '1px solid rgba(99, 102, 241, 0.4)'
+              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+            borderRadius: '10px',
+            padding: '8px 10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            transition: 'all 0.15s ease'
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: activeTab === 'all' ? '0 2px 8px rgba(99, 102, 241, 0.15)' : 'none'
           }}
         >
-          <Users size={12} />
-          <span>{t('users.all')} ({rawClientList.length})</span>
-        </button>
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: activeTab === 'all' ? 'rgba(99, 102, 241, 0.25)' : 'rgba(99, 102, 241, 0.15)',
+            color: '#818cf8',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(99, 102, 241, 0.25)',
+            flexShrink: 0
+          }}>
+            <Users size={14} />
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+              {t('users.all')}
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', marginTop: '1px' }}>
+              {isLoading ? '—' : rawClientList.length}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Search Input Filter Bar */}

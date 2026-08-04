@@ -286,10 +286,13 @@ export default function RecordsPage() {
       if (r.operator) operatorsSet.add(r.operator);
     });
 
+    const otherCount = recordList.length - creationsCount - deletionsCount;
+
     return {
       totalRecords: recordList.length,
       creationsCount,
       deletionsCount,
+      otherCount,
       operatorsCount: operatorsSet.size,
     };
   }, [recordList]);
@@ -414,286 +417,241 @@ export default function RecordsPage() {
         </button>
       </div>
 
-      {/* ─── Summary Stat Header Grid ─── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-          gap: '8px',
-          marginBottom: '4px'
-        }}
-      >
+      {/* ─── 2. Overview Stat Cards / Interactive Group Tabs ─── */}
+      <div className="stat-summary-grid">
         {/* Total Operations */}
         <div
-          className="responsive-card"
+          onClick={() => setActiveTab('all')}
           style={{
-            padding: '10px 12px',
+            background: activeTab === 'all'
+              ? 'rgba(168, 85, 247, 0.12)'
+              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+            backdropFilter: 'blur(12px)',
+            border: activeTab === 'all'
+              ? '1px solid rgba(168, 85, 247, 0.4)'
+              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+            borderRadius: '10px',
+            padding: '8px 10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px'
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: activeTab === 'all' ? '0 2px 8px rgba(168, 85, 247, 0.15)' : 'none'
           }}
         >
-          <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '7px',
-              background: 'rgba(59, 130, 246, 0.15)',
-              color: '#3b82f6',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: activeTab === 'all' ? 'rgba(168, 85, 247, 0.25)' : 'rgba(168, 85, 247, 0.15)',
+            color: '#c084fc',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(168, 85, 247, 0.25)',
+            flexShrink: 0
+          }}>
             <Layers size={14} />
           </div>
-          <div>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
               {t('records.totalRecords')}
             </div>
-            <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
-              {stats.totalRecords}
+            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', marginTop: '1px' }}>
+              {isLoading ? '—' : stats.totalRecords}
             </div>
           </div>
         </div>
 
         {/* Creations */}
         <div
-          className="responsive-card"
+          onClick={() => setActiveTab('create')}
           style={{
-            padding: '10px 12px',
+            background: activeTab === 'create'
+              ? 'rgba(16, 185, 129, 0.12)'
+              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+            backdropFilter: 'blur(12px)',
+            border: activeTab === 'create'
+              ? '1px solid rgba(16, 185, 129, 0.4)'
+              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+            borderRadius: '10px',
+            padding: '8px 10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px'
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: activeTab === 'create' ? '0 2px 8px rgba(16, 185, 129, 0.15)' : 'none'
           }}
         >
-          <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '7px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              color: '#10b981',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: activeTab === 'create' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.15)',
+            color: '#10b981',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            flexShrink: 0
+          }}>
             <PlusCircle size={14} />
           </div>
-          <div>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
               {t('records.creations')}
             </div>
-            <div style={{ fontSize: '15px', fontWeight: 800, color: '#10b981' }}>
-              {stats.creationsCount}
+            <div style={{ fontSize: '14px', fontWeight: 800, color: '#10b981', marginTop: '1px' }}>
+              {isLoading ? '—' : stats.creationsCount}
             </div>
           </div>
         </div>
 
         {/* Deletions */}
         <div
-          className="responsive-card"
+          onClick={() => setActiveTab('delete')}
           style={{
-            padding: '10px 12px',
+            background: activeTab === 'delete'
+              ? 'rgba(239, 68, 68, 0.12)'
+              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+            backdropFilter: 'blur(12px)',
+            border: activeTab === 'delete'
+              ? '1px solid rgba(239, 68, 68, 0.4)'
+              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+            borderRadius: '10px',
+            padding: '8px 10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px'
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: activeTab === 'delete' ? '0 2px 8px rgba(239, 68, 68, 0.15)' : 'none'
           }}
         >
-          <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '7px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              color: '#ef4444',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: activeTab === 'delete' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.15)',
+            color: '#ef4444',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            flexShrink: 0
+          }}>
             <Trash2 size={14} />
           </div>
-          <div>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
               {t('records.deletions')}
             </div>
-            <div style={{ fontSize: '15px', fontWeight: 800, color: '#ef4444' }}>
-              {stats.deletionsCount}
+            <div style={{ fontSize: '14px', fontWeight: 800, color: '#ef4444', marginTop: '1px' }}>
+              {isLoading ? '—' : stats.deletionsCount}
             </div>
           </div>
         </div>
 
-        {/* Unique Operators */}
+        {/* Other Operations */}
         <div
-          className="responsive-card"
+          onClick={() => setActiveTab('other')}
           style={{
-            padding: '10px 12px',
+            background: activeTab === 'other'
+              ? 'rgba(59, 130, 246, 0.12)'
+              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+            backdropFilter: 'blur(12px)',
+            border: activeTab === 'other'
+              ? '1px solid rgba(59, 130, 246, 0.4)'
+              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+            borderRadius: '10px',
+            padding: '8px 10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px'
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: activeTab === 'other' ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none'
           }}
         >
-          <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '7px',
-              background: 'rgba(168, 85, 247, 0.15)',
-              color: '#a855f7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <UserCheck size={14} />
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: activeTab === 'other' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(59, 130, 246, 0.15)',
+            color: '#60a5fa',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(59, 130, 246, 0.25)',
+            flexShrink: 0
+          }}>
+            <Edit3 size={14} />
           </div>
-          <div>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
-              {t('records.operators')}
+              {t('records.filterOther') || 'Other'}
             </div>
-            <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
-              {stats.operatorsCount}
+            <div style={{ fontSize: '14px', fontWeight: 800, color: '#60a5fa', marginTop: '1px' }}>
+              {isLoading ? '—' : stats.otherCount}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ─── Search and Tabs Controls ─── */}
-      <div
-        className="responsive-card"
-        style={{
-          padding: '10px 12px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px'
-        }}
-      >
-        {/* Search Bar */}
-        <div
+      {/* ─── Search Input Filter Bar ─── */}
+      <div style={{ position: 'relative', width: '100%' }}>
+        <Search
+          size={14}
           style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            width: '100%'
+            position: 'absolute',
+            [isRtl ? 'right' : 'left']: '10px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: 'var(--text-muted)',
+            pointerEvents: 'none'
           }}
-        >
-          <Search
-            size={14}
+        />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder={t('records.searchPlaceholder')}
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            paddingTop: '8px',
+            paddingBottom: '8px',
+            paddingLeft: isRtl ? '10px' : '32px',
+            paddingRight: isRtl ? '32px' : '10px',
+            fontSize: '12px',
+            borderRadius: '8px',
+            border: '1px solid var(--glass-border)',
+            background: 'var(--glass-bg)',
+            color: 'var(--foreground)',
+            outline: 'none'
+          }}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
             style={{
               position: 'absolute',
-              [isRtl ? 'right' : 'left']: '10px',
+              [isRtl ? 'left' : 'right']: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
               color: 'var(--text-muted)',
-              pointerEvents: 'none'
-            }}
-          />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder={t('records.searchPlaceholder')}
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              paddingTop: '8px',
-              paddingBottom: '8px',
-              paddingLeft: isRtl ? '10px' : '32px',
-              paddingRight: isRtl ? '32px' : '10px',
-              fontSize: '12px',
-              borderRadius: '8px',
-              border: '1px solid var(--glass-border)',
-              background: 'var(--glass-bg)',
-              color: 'var(--foreground)',
-              outline: 'none'
-            }}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              style={{
-                position: 'absolute',
-                [isRtl ? 'left' : 'right']: '8px',
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center'
-              }}
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-
-        {/* Filter Tabs */}
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
-          <button
-            onClick={() => setActiveTab('all')}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '6px',
-              border: activeTab === 'all' ? '1px solid #a855f7' : '1px solid var(--glass-border)',
-              background: activeTab === 'all' ? 'rgba(168,85,247,0.15)' : 'var(--glass-bg)',
-              color: activeTab === 'all' ? '#a855f7' : 'var(--foreground)',
-              fontSize: '11px',
-              fontWeight: 600,
               cursor: 'pointer',
-              whiteSpace: 'nowrap'
+              display: 'flex',
+              alignItems: 'center'
             }}
           >
-            {t('records.allRecords')} ({recordList.length})
+            <X size={14} />
           </button>
-          <button
-            onClick={() => setActiveTab('create')}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '6px',
-              border: activeTab === 'create' ? '1px solid #10b981' : '1px solid var(--glass-border)',
-              background: activeTab === 'create' ? 'rgba(16,185,129,0.15)' : 'var(--glass-bg)',
-              color: activeTab === 'create' ? '#10b981' : 'var(--foreground)',
-              fontSize: '11px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {t('records.filterCreate')} ({stats.creationsCount})
-          </button>
-          <button
-            onClick={() => setActiveTab('delete')}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '6px',
-              border: activeTab === 'delete' ? '1px solid #ef4444' : '1px solid var(--glass-border)',
-              background: activeTab === 'delete' ? 'rgba(239,68,68,0.15)' : 'var(--glass-bg)',
-              color: activeTab === 'delete' ? '#ef4444' : 'var(--foreground)',
-              fontSize: '11px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {t('records.filterDelete')} ({stats.deletionsCount})
-          </button>
-          <button
-            onClick={() => setActiveTab('other')}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '6px',
-              border: activeTab === 'other' ? '1px solid #3b82f6' : '1px solid var(--glass-border)',
-              background: activeTab === 'other' ? 'rgba(59,130,246,0.15)' : 'var(--glass-bg)',
-              color: activeTab === 'other' ? '#3b82f6' : 'var(--foreground)',
-              fontSize: '11px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {t('records.filterOther')}
-          </button>
-        </div>
+        )}
       </div>
 
       {/* ─── Record Items List ─── */}
