@@ -241,12 +241,12 @@ export default function UsersPage() {
           }}
         >
           <RefreshCw size={13} className={isLoading ? 'spin' : ''} />
-          <span>{t('common.refresh') || 'Refresh'}</span>
+          <span className="hide-sm-only">{t('common.refresh') || 'Refresh'}</span>
         </button>
       </div>
 
       {/* ─── 2. Overview Stat Cards / Interactive Group Tabs ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
+      <div className="stat-summary-grid">
         {/* Group 1: Signed In Users */}
         <div
           onClick={() => setActiveTab('signedIn')}

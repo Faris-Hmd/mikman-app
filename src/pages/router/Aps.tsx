@@ -28,7 +28,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Zap,
-  ArrowUpRight
+  ArrowUpRight,
+  Info
 } from 'lucide-react';
 
 export type DeviceCategory = 'mobile' | 'laptop' | 'ap' | 'printer' | 'tv' | 'other';
@@ -48,13 +49,13 @@ interface DeviceItem {
   rawComment?: string;
 }
 
-const CATEGORY_MAP: Record<DeviceCategory, { labelKey: string; defaultLabel: string; icon: any; color: string }> = {
-  mobile: { labelKey: 'aps.mobile', defaultLabel: 'Mobile / Phone', icon: Smartphone, color: '#3b82f6' },
-  laptop: { labelKey: 'aps.laptop', defaultLabel: 'Laptop / PC', icon: Laptop, color: '#8b5cf6' },
-  ap: { labelKey: 'aps.ap', defaultLabel: 'Access Point / Router', icon: Radio, color: '#10b981' },
-  printer: { labelKey: 'aps.printer', defaultLabel: 'Printer', icon: Printer, color: '#f59e0b' },
-  tv: { labelKey: 'aps.tv', defaultLabel: 'Smart TV', icon: Tv, color: '#ec4899' },
-  other: { labelKey: 'aps.other', defaultLabel: 'Other Device', icon: HardDrive, color: '#6b7280' },
+const CATEGORY_MAP: Record<DeviceCategory, { labelKey: string; defaultLabel: string; icon: any; color: string; bg: string; border: string }> = {
+  mobile: { labelKey: 'aps.mobile', defaultLabel: 'Mobile / Phone', icon: Smartphone, color: '#3b82f6', bg: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.3) 100%)', border: 'rgba(59,130,246,0.25)' },
+  laptop: { labelKey: 'aps.laptop', defaultLabel: 'Laptop / PC', icon: Laptop, color: '#8b5cf6', bg: 'linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(124,58,237,0.3) 100%)', border: 'rgba(139,92,246,0.25)' },
+  ap: { labelKey: 'aps.ap', defaultLabel: 'Access Point / Router', icon: Radio, color: '#10b981', bg: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.3) 100%)', border: 'rgba(16,185,129,0.25)' },
+  printer: { labelKey: 'aps.printer', defaultLabel: 'Printer', icon: Printer, color: '#f59e0b', bg: 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(217,119,6,0.3) 100%)', border: 'rgba(245,158,11,0.25)' },
+  tv: { labelKey: 'aps.tv', defaultLabel: 'Smart TV', icon: Tv, color: '#ec4899', bg: 'linear-gradient(135deg, rgba(236,72,153,0.15) 0%, rgba(219,39,119,0.3) 100%)', border: 'rgba(236,72,153,0.25)' },
+  other: { labelKey: 'aps.other', defaultLabel: 'Other Device', icon: HardDrive, color: '#6b7280', bg: 'linear-gradient(135deg, rgba(107,114,128,0.15) 0%, rgba(75,85,99,0.3) 100%)', border: 'rgba(107,114,128,0.25)' },
 };
 
 function normalizeMac(mac?: string): string {
@@ -414,24 +415,21 @@ export default function ApsPage() {
             width: '32px',
             height: '32px',
             borderRadius: '9px',
-            background: 'linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.4) 100%)',
+            background: 'linear-gradient(135deg, rgba(16,185,129,0.25) 0%, rgba(5,150,105,0.45) 100%)',
             color: '#10b981',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(16,185,129,0.3)',
+            border: '1px solid rgba(16,185,129,0.35)',
+            boxShadow: '0 2px 6px rgba(16,185,129,0.2)',
             flexShrink: 0
           }}>
             <Radio size={16} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('aps.title')}
             </h2>
-            <div style={{ fontSize: '11px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Zap size={10} style={{ color: '#10b981' }} />
-              <span>{t('aps.comparedNotice') || 'IP Bindings synced with active network hosts'}</span>
-            </div>
           </div>
         </div>
 
@@ -440,21 +438,24 @@ export default function ApsPage() {
             onClick={handleRefresh}
             disabled={isLoading}
             style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '9px',
-              border: '1px solid var(--border-color)',
-              background: 'var(--card-bg)',
-              color: 'var(--foreground)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: '4px',
+              padding: '6px 8px',
+              borderRadius: '8px',
+              border: '1px solid var(--glass-border)',
+              background: 'var(--card-bg)',
+              color: 'var(--foreground)',
+              fontSize: '11px',
+              fontWeight: '600',
               cursor: 'pointer',
-              flexShrink: 0
+              flexShrink: 0,
+              transition: 'all 0.15s ease',
             }}
             title="Refresh"
           >
-            <RefreshCw size={14} className={isLoading ? 'spin' : ''} />
+            <RefreshCw size={13} className={isLoading ? 'spin' : ''} />
+            <span className="hide-sm-only">{t('common.refresh') || 'Refresh'}</span>
           </button>
           <button
             onClick={() => {
@@ -470,309 +471,499 @@ export default function ApsPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              padding: '7px 12px',
-              borderRadius: '10px',
+              padding: '6px 10px',
+              borderRadius: '8px',
               border: '1px solid rgba(16, 185, 129, 0.4)',
               background: 'linear-gradient(135deg, rgba(16,185,129,0.8) 0%, rgba(5,150,105,0.9) 100%)',
               color: '#ffffff',
-              fontSize: '12px',
+              fontSize: '11.5px',
               fontWeight: '700',
               cursor: 'pointer',
-              flexShrink: 0
+              flexShrink: 0,
+              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
+              whiteSpace: 'nowrap'
             }}
           >
-            <Plus size={14} />
-            <span>{t('aps.addDevice')}</span>
+            <Plus size={13} />
+            <span className="show-sm-only">{t('common.add') || 'Add'}</span>
+            <span className="hide-sm-only">{t('aps.addDevice')}</span>
           </button>
         </div>
       </div>
 
-      {/* ─── 2. Stat Summary Header Cards ─── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '8px',
-        marginBottom: '10px'
-      }}>
+      {/* ─── 2. Overview Stat Cards / Interactive Group Tabs ─── */}
+      <div className="stat-summary-grid">
         {/* Total Bindings */}
-        <div className="responsive-card" style={{ padding: '10px 12px', textAlign: 'center' }}>
-          <div style={{ fontSize: '10px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>
-            {t('aps.totalDevices') || 'Total Bindings'}
+        <div
+          onClick={() => setSelectedFilter('all')}
+          style={{
+            background: selectedFilter === 'all'
+              ? 'rgba(16, 185, 129, 0.12)'
+              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+            backdropFilter: 'blur(12px)',
+            border: selectedFilter === 'all'
+              ? '1px solid rgba(16, 185, 129, 0.4)'
+              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+            borderRadius: '10px',
+            padding: '8px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: selectedFilter === 'all' ? '0 2px 8px rgba(16, 185, 129, 0.15)' : 'none'
+          }}
+        >
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: selectedFilter === 'all' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.08)',
+            color: selectedFilter === 'all' ? '#10b981' : 'var(--foreground)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            flexShrink: 0
+          }}>
+            <Radio size={14} />
           </div>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)' }}>
-            {stats.totalBindings}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+              {t('aps.totalDevices') || 'Total'}
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', marginTop: '1px' }}>
+              {isLoading ? '—' : stats.totalBindings}
+            </div>
           </div>
         </div>
 
         {/* Bypassed */}
-        <div className="responsive-card" style={{ padding: '10px 12px', textAlign: 'center', border: '1px solid rgba(16, 185, 129, 0.25)', background: 'rgba(16, 185, 129, 0.03)' }}>
-          <div style={{ fontSize: '10px', color: '#10b981', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>
-            {t('aps.bypassedDevices') || 'Bypassed'}
+        <div
+          onClick={() => setSelectedFilter('bypassed')}
+          style={{
+            background: selectedFilter === 'bypassed'
+              ? 'rgba(16, 185, 129, 0.12)'
+              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+            backdropFilter: 'blur(12px)',
+            border: selectedFilter === 'bypassed'
+              ? '1px solid rgba(16, 185, 129, 0.4)'
+              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+            borderRadius: '10px',
+            padding: '8px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: selectedFilter === 'bypassed' ? '0 2px 8px rgba(16, 185, 129, 0.15)' : 'none'
+          }}
+        >
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'rgba(16, 185, 129, 0.2)',
+            color: '#10b981',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            flexShrink: 0
+          }}>
+            <CheckCircle2 size={14} />
           </div>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: '#10b981' }}>
-            {stats.bypassed}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+              {t('aps.bypassed')}
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: '#10b981', marginTop: '1px' }}>
+              {isLoading ? '—' : stats.bypassed}
+            </div>
           </div>
         </div>
 
-        {/* Online Now */}
-        <div className="responsive-card" style={{ padding: '10px 12px', textAlign: 'center', border: '1px solid rgba(59, 130, 246, 0.25)', background: 'rgba(59, 130, 246, 0.03)' }}>
-          <div style={{ fontSize: '10px', color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>
-            {t('aps.onlineNow') || 'Online Now'}
+        {/* Regular */}
+        <div
+          onClick={() => setSelectedFilter('regular')}
+          style={{
+            background: selectedFilter === 'regular'
+              ? 'rgba(59, 130, 246, 0.12)'
+              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+            backdropFilter: 'blur(12px)',
+            border: selectedFilter === 'regular'
+              ? '1px solid rgba(59, 130, 246, 0.4)'
+              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+            borderRadius: '10px',
+            padding: '8px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: selectedFilter === 'regular' ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none'
+          }}
+        >
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'rgba(59, 130, 246, 0.2)',
+            color: '#3b82f6',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            flexShrink: 0
+          }}>
+            <Shield size={14} />
           </div>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: '#3b82f6' }}>
-            {stats.online}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+              {t('aps.regular') || 'Regular'}
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: '#3b82f6', marginTop: '1px' }}>
+              {isLoading ? '—' : stats.regular}
+            </div>
           </div>
         </div>
 
         {/* Active Unbound */}
-        <div className="responsive-card" style={{ padding: '10px 12px', textAlign: 'center', border: stats.unbound > 0 ? '1px solid rgba(245, 158, 11, 0.35)' : undefined, background: stats.unbound > 0 ? 'rgba(245, 158, 11, 0.05)' : undefined }}>
-          <div style={{ fontSize: '10px', color: stats.unbound > 0 ? '#f59e0b' : 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>
-            {t('aps.unboundCount') || 'Active Unbound'}
+        <div
+          onClick={() => setSelectedFilter('unbound')}
+          style={{
+            background: selectedFilter === 'unbound'
+              ? 'rgba(245, 158, 11, 0.12)'
+              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+            backdropFilter: 'blur(12px)',
+            border: selectedFilter === 'unbound'
+              ? '1px solid rgba(245, 158, 11, 0.4)'
+              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+            borderRadius: '10px',
+            padding: '8px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: selectedFilter === 'unbound' ? '0 2px 8px rgba(245, 158, 11, 0.15)' : 'none'
+          }}
+        >
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'rgba(245, 158, 11, 0.2)',
+            color: '#f59e0b',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            flexShrink: 0
+          }}>
+            <Zap size={14} />
           </div>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: stats.unbound > 0 ? '#f59e0b' : 'var(--foreground)' }}>
-            {stats.unbound}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+              {t('aps.unboundCount') || 'Unbound'}
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: '#f59e0b', marginTop: '1px' }}>
+              {isLoading ? '—' : stats.unbound}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ─── 3. Search & Filter Bar ─── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-        <div style={{ position: 'relative', width: '100%' }}>
-          <Search
-            size={14}
+      {/* Segmented Pill Tabs Bar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '3px',
+        background: 'var(--card-bg, rgba(255, 255, 255, 0.04))',
+        padding: '3px',
+        borderRadius: '8px',
+        border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.08))',
+        width: 'fit-content',
+        overflowX: 'auto',
+        maxWidth: '100%'
+      }}>
+        <button
+          onClick={() => setSelectedFilter('all')}
+          style={{
+            padding: '4px 8px',
+            borderRadius: '6px',
+            border: 'none',
+            background: selectedFilter === 'all' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+            color: selectedFilter === 'all' ? 'var(--foreground)' : 'var(--text-muted)',
+            fontSize: '11px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          {t('aps.allDevices') || 'All'} ({allCombinedDevices.length})
+        </button>
+
+        <button
+          onClick={() => setSelectedFilter('bypassed')}
+          style={{
+            padding: '4px 8px',
+            borderRadius: '6px',
+            border: 'none',
+            background: selectedFilter === 'bypassed' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+            color: selectedFilter === 'bypassed' ? '#10b981' : 'var(--text-muted)',
+            fontSize: '11px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          {t('aps.bypassed')} ({stats.bypassed})
+        </button>
+
+        <button
+          onClick={() => setSelectedFilter('regular')}
+          style={{
+            padding: '4px 8px',
+            borderRadius: '6px',
+            border: 'none',
+            background: selectedFilter === 'regular' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+            color: selectedFilter === 'regular' ? '#60a5fa' : 'var(--text-muted)',
+            fontSize: '11px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          {t('aps.regular') || 'Regular'} ({stats.regular})
+        </button>
+
+        <button
+          onClick={() => setSelectedFilter('blocked')}
+          style={{
+            padding: '4px 8px',
+            borderRadius: '6px',
+            border: 'none',
+            background: selectedFilter === 'blocked' ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
+            color: selectedFilter === 'blocked' ? '#f87171' : 'var(--text-muted)',
+            fontSize: '11px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          {t('aps.blocked') || 'Blocked'} ({stats.blocked})
+        </button>
+
+        {stats.unbound > 0 && (
+          <button
+            onClick={() => setSelectedFilter('unbound')}
+            style={{
+              padding: '4px 8px',
+              borderRadius: '6px',
+              border: 'none',
+              background: selectedFilter === 'unbound' ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
+              color: selectedFilter === 'unbound' ? '#fbbf24' : 'var(--text-muted)',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {t('aps.activeUnbound')} ({stats.unbound})
+          </button>
+        )}
+      </div>
+
+      {/* Search Input Filter Bar */}
+      <div style={{ position: 'relative', width: '100%' }}>
+        <Search
+          size={14}
+          style={{
+            position: 'absolute',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            [isRtl ? 'right' : 'left']: '10px',
+            color: 'var(--text-muted)',
+            pointerEvents: 'none'
+          }}
+        />
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder={t('aps.searchPlaceholder') || 'Search by MAC, IP, category, comment...'}
+          style={{
+            width: '100%',
+            padding: `8px ${isRtl ? '30px' : '30px'} 8px ${isRtl ? '30px' : '30px'}`,
+            background: 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+            borderRadius: '8px',
+            color: 'var(--foreground)',
+            fontSize: '12px',
+            outline: 'none',
+            boxSizing: 'border-box',
+            transition: 'border-color 0.2s ease',
+          }}
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm('')}
             style={{
               position: 'absolute',
-              [isRtl ? 'right' : 'left']: '10px',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: 'var(--muted)'
-            }}
-          />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder={t('aps.searchPlaceholder') || 'Search by MAC, IP, category, comment...'}
-            style={{
-              width: '100%',
-              padding: '8px 32px',
-              paddingLeft: isRtl ? '12px' : '32px',
-              paddingRight: isRtl ? '32px' : '12px',
-              borderRadius: '10px',
-              border: '1px solid var(--border-color)',
-              background: 'var(--card-bg)',
-              color: 'var(--foreground)',
-              fontSize: '12px',
-              outline: 'none'
-            }}
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              style={{
-                position: 'absolute',
-                [isRtl ? 'left' : 'right']: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                color: 'var(--muted)',
-                cursor: 'pointer',
-                padding: 0
-              }}
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-
-        {/* Filter Tabs */}
-        <div style={{
-          display: 'flex',
-          gap: '6px',
-          overflowX: 'auto',
-          paddingBottom: '2px',
-          scrollbarWidth: 'none'
-        }}>
-          <button
-            onClick={() => setSelectedFilter('all')}
-            style={{
-              padding: '5px 10px',
-              borderRadius: '8px',
-              fontSize: '11px',
-              fontWeight: 700,
-              border: selectedFilter === 'all' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-color)',
-              background: selectedFilter === 'all' ? 'rgba(16, 185, 129, 0.15)' : 'var(--card-bg)',
-              color: selectedFilter === 'all' ? '#10b981' : 'var(--foreground)',
+              [isRtl ? 'left' : 'right']: '8px',
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
-              whiteSpace: 'nowrap'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '2px',
             }}
           >
-            {t('aps.allDevices') || 'All Devices'} ({allCombinedDevices.length})
+            <X size={13} />
           </button>
-          <button
-            onClick={() => setSelectedFilter('bypassed')}
-            style={{
-              padding: '5px 10px',
-              borderRadius: '8px',
-              fontSize: '11px',
-              fontWeight: 700,
-              border: selectedFilter === 'bypassed' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-color)',
-              background: selectedFilter === 'bypassed' ? 'rgba(16, 185, 129, 0.15)' : 'var(--card-bg)',
-              color: selectedFilter === 'bypassed' ? '#10b981' : 'var(--foreground)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {t('aps.bypassed')} ({stats.bypassed})
-          </button>
-          <button
-            onClick={() => setSelectedFilter('regular')}
-            style={{
-              padding: '5px 10px',
-              borderRadius: '8px',
-              fontSize: '11px',
-              fontWeight: 700,
-              border: selectedFilter === 'regular' ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid var(--border-color)',
-              background: selectedFilter === 'regular' ? 'rgba(59, 130, 246, 0.15)' : 'var(--card-bg)',
-              color: selectedFilter === 'regular' ? '#3b82f6' : 'var(--foreground)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {t('aps.regular') || 'Regular'} ({stats.regular})
-          </button>
-          <button
-            onClick={() => setSelectedFilter('blocked')}
-            style={{
-              padding: '5px 10px',
-              borderRadius: '8px',
-              fontSize: '11px',
-              fontWeight: 700,
-              border: selectedFilter === 'blocked' ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border-color)',
-              background: selectedFilter === 'blocked' ? 'rgba(239, 68, 68, 0.15)' : 'var(--card-bg)',
-              color: selectedFilter === 'blocked' ? '#ef4444' : 'var(--foreground)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {t('aps.blocked') || 'Blocked'} ({stats.blocked})
-          </button>
-          {stats.unbound > 0 && (
-            <button
-              onClick={() => setSelectedFilter('unbound')}
-              style={{
-                padding: '5px 10px',
-                borderRadius: '8px',
-                fontSize: '11px',
-                fontWeight: 700,
-                border: selectedFilter === 'unbound' ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(245, 158, 11, 0.3)',
-                background: selectedFilter === 'unbound' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.08)',
-                color: '#f59e0b',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {t('aps.activeUnbound')} ({stats.unbound})
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* ─── 4. Devices List ─── */}
+      {/* ─── 4. Devices List / Skeletons / Empty State ─── */}
       {isLoading ? (
-        <div className="responsive-card" style={{ padding: '30px', textAlign: 'center', color: 'var(--muted)' }}>
-          <RefreshCw size={24} className="spin" style={{ margin: '0 auto 10px auto', display: 'block' }} />
-          <span style={{ fontSize: '13px' }}>{t('aps.loadingDevices')}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {[1, 2, 3, 4].map(n => (
+            <div
+              key={n}
+              className="skeleton"
+              style={{
+                height: '72px',
+                borderRadius: '12px',
+                width: '100%'
+              }}
+            />
+          ))}
         </div>
       ) : filteredDevices.length === 0 ? (
-        <div className="responsive-card" style={{ padding: '30px', textAlign: 'center', color: 'var(--muted)' }}>
-          <Radio size={32} style={{ margin: '0 auto 10px auto', display: 'block', opacity: 0.5 }} />
-          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--foreground)', marginBottom: '4px' }}>
-            {t('aps.noApsFound')}
+        <div style={{
+          background: 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+          borderRadius: '16px',
+          padding: '40px 20px',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <div style={{
+            width: '52px',
+            height: '52px',
+            borderRadius: '16px',
+            background: 'rgba(16, 185, 129, 0.1)',
+            color: '#10b981',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(16, 185, 129, 0.2)'
+          }}>
+            <Radio size={24} />
           </div>
-          <div style={{ fontSize: '12px' }}>
-            {t('aps.noApsDesc')}
+          <div>
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--foreground)' }}>
+              {t('aps.noApsFound')}
+            </h3>
+            <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: 'var(--text-muted)', maxWidth: '320px' }}>
+              {t('aps.noApsDesc')}
+            </p>
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="list-container">
           {filteredDevices.map(device => {
             const badgeStyle = getTypeBadgeStyle(device.type);
             const catConfig = CATEGORY_MAP[device.category] || CATEGORY_MAP.other;
+            const CategoryIcon = catConfig.icon;
 
             return (
               <div
                 key={device.id || device.mac}
                 onClick={() => setSelectedDevice(device)}
-                className="responsive-card"
+                className="list-item-card hover-card"
                 style={{
-                  padding: '10px 12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '10px',
+                  gap: '8px',
                   cursor: 'pointer',
                   border: device.type === 'unbound' ? '1px dashed rgba(245, 158, 11, 0.4)' : undefined,
-                  transition: 'all 0.15s ease'
                 }}
               >
-                {/* Left: Device Icon & Identification */}
+                {/* Left: Category Icon & Details */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-                  <div style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: 'var(--glass-bg, rgba(255,255,255,0.03))',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    flexShrink: 0
-                  }}>
-                    {renderCategoryIcon(device.category, 18)}
-                    {/* Online status indicator dot */}
+                  {/* Avatar Icon + Online Pulse Dot */}
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <div
+                      className="item-icon"
+                      style={{
+                        background: catConfig.bg,
+                        color: catConfig.color,
+                        border: `1px solid ${catConfig.border}`
+                      }}
+                    >
+                      <CategoryIcon size={16} />
+                    </div>
                     <span style={{
                       position: 'absolute',
-                      bottom: '-2px',
-                      right: '-2px',
-                      width: '9px',
-                      height: '9px',
+                      bottom: '-1px',
+                      [isRtl ? 'left' : 'right']: '-1px',
+                      width: '8px',
+                      height: '8px',
                       borderRadius: '50%',
                       background: device.isOnline ? '#10b981' : '#6b7280',
-                      border: '2px solid var(--card-bg)'
+                      border: '1.5px solid var(--card-bg, #0f172a)',
+                      boxShadow: device.isOnline ? '0 0 4px rgba(16,185,129,0.8)' : 'none'
                     }} />
                   </div>
 
+                  {/* Name & Identifiers */}
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                      <span style={{
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        color: 'var(--foreground)',
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <strong className="item-title" style={{
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap'
                       }}>
                         {device.comment || device.name || device.mac}
-                      </span>
+                      </strong>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--muted)', flexWrap: 'wrap' }}>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{device.mac}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
+                      <span className="item-subtext" style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                        {device.mac}
+                      </span>
+
                       {device.ip && (
                         <>
-                          <span>•</span>
-                          <span style={{ color: '#3b82f6', fontFamily: 'monospace' }}>{device.ip}</span>
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>•</span>
+                          <span className="item-subtext" style={{ color: '#3b82f6', fontFamily: 'monospace' }}>
+                            {device.ip}
+                          </span>
                         </>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Right: Status Badge or Quick Bypass Button */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                {/* Right: Status Badge & Info Button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                   {device.type === 'unbound' ? (
                     <button
                       onClick={(e) => {
@@ -780,8 +971,8 @@ export default function ApsPage() {
                         handleOpenAddModalForUnbound(device);
                       }}
                       style={{
-                        padding: '5px 10px',
-                        borderRadius: '8px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
                         fontSize: '11px',
                         fontWeight: 700,
                         border: '1px solid rgba(16, 185, 129, 0.4)',
@@ -797,11 +988,7 @@ export default function ApsPage() {
                       <span>{t('aps.bypassNow')}</span>
                     </button>
                   ) : (
-                    <span style={{
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      fontSize: '10px',
-                      fontWeight: 700,
+                    <span className="item-badge" style={{
                       background: badgeStyle.background,
                       border: badgeStyle.border,
                       color: badgeStyle.color,
@@ -810,6 +997,17 @@ export default function ApsPage() {
                       {badgeStyle.label}
                     </span>
                   )}
+
+                  {/* Info Icon Button */}
+                  <div style={{
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2px'
+                  }}>
+                    <Info size={14} />
+                  </div>
                 </div>
               </div>
             );

@@ -611,3 +611,16 @@ input, textarea { font-family: inherit; }
     display: none !important;
   }
 }
+
+/* ─── Responsive Stat Summary Grid (2x2 on mobile, 1x4 on desktop) ─── */
+.stat-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+@media (min-width: 640px) {
+  .stat-summary-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
