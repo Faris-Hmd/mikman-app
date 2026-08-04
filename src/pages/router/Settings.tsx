@@ -795,7 +795,7 @@ export default function SettingsPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {safeOwners.map((ownerEmail, index) => (
-                  <div key={index} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <div key={`owner-setting-${index}`} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <div style={{
                       position: 'relative',
                       flex: 1,

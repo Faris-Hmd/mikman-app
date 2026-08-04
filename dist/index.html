@@ -14,29 +14,31 @@
     <title>MIKMAN</title>
     <style>
       #app-loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: #141414; z-index: 9999; font-family: 'Cairo', system-ui, sans-serif; }
-      #app-loading .icon { width: 48px; height: 48px; border-radius: 12px; background: #3b74d6; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(59,116,214,0.4); }
-      #app-loading .icon svg { color: #fff; transform: rotate(-45deg); width: 28px; height: 28px; }
+      #app-loading .icon { width: 48px; height: 48px; border-radius: 12px; background: #3b82f6; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(59,130,246,0.45); }
+      #app-loading .icon svg { width: 26px; height: 26px; fill: #ffffff; stroke: #ffffff; stroke-width: 1.2; }
       #app-loading h1 { font-size: 20px; font-weight: 850; color: #ececec; margin: 0; letter-spacing: -0.5px; }
       #app-loading p { font-size: 11px; color: #8e9196; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
       #app-loading .dots { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
-      #app-loading .dots div { width: 8px; height: 8px; border-radius: 50%; background: #3b74d6; opacity: 0.4; animation: jump 1.2s ease-in-out infinite; }
+      #app-loading .dots div { width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; opacity: 0.4; animation: jump 1.2s ease-in-out infinite; }
       #app-loading .dots div:nth-child(1) { animation-delay: 0s; }
       #app-loading .dots div:nth-child(2) { animation-delay: 0.15s; }
       #app-loading .dots div:nth-child(3) { animation-delay: 0.30s; }
       @keyframes jump { 0%, 100% { transform: translateY(0); opacity: 0.4; } 50% { transform: translateY(-10px); opacity: 1; } }
     </style>
-    <script type="module" crossorigin src="/assets/index-DRUdveDT.js"></script>
+    <script type="module" crossorigin src="/assets/index-B5DYh6Ln.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-react-BXEZKkQu.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-swr-BlQDE35U.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-supabase-kPbh7bwL.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-icons-Ccf4lca-.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-icons-NlFgf59j.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-router-DJaI5Czl.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-pdf-ddTvJh9d.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-BqnsAefV.css">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-pdf-Bb2wTEPh.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-C64UGpTT.css">
   </head>
   <body>
     <div id="app-loading">
-      <img src="/favicon.svg" style="width:48px;height:48px;border-radius:12px;box-shadow:0 0 20px rgba(59,116,214,0.4)" alt="MIKMAN" />
+      <div class="icon">
+        <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+      </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:4px">
         <h1>MIKMAN</h1>
         <p>Cloud Hotspot Manager</p>

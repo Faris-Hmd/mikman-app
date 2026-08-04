@@ -563,3 +563,51 @@ input, textarea { font-family: inherit; }
     border-radius: 9px !important;
   }
 }
+
+/* ─── Responsive Account Status Bar ─── */
+.account-status-bar {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.account-status-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.account-status-group-bottom {
+  padding-top: 6px;
+  border-top: 1px solid var(--glass-border);
+}
+
+@media (min-width: 640px) {
+  .account-status-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .account-status-group {
+    width: auto;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+  .account-status-group-bottom {
+    padding-top: 0;
+    border-top: none;
+  }
+  .show-sm-only {
+    display: none !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .hide-sm-only {
+    display: none !important;
+  }
+}

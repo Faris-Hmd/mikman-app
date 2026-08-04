@@ -25,6 +25,7 @@ export default function LandingPage() {
   const savedRouters = routerData?.profiles || [];
   const userData = routerData?.userData ?? null;
   const routerStatuses = routerStatusesData || [];
+  const isInitialLoading = !routerData;
 
   const statusMap = React.useMemo(() => {
     const map = new Map<string, typeof routerStatuses[number]>();
@@ -104,91 +105,39 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Sleek Compact Account Status Bar */}
-      <div 
-        className="account-status-bar responsive-card"
-        style={{
-          marginBottom: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '10px'
-        }}
-      >
-        {/* Left: User Identity & Active Plan Pill */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(var(--primary-rgb), 0.12)',
-            border: '1px solid rgba(var(--primary-rgb), 0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--primary)',
-            overflow: 'hidden',
-            flexShrink: 0
-          }}>
-            {currentUser?.user_metadata?.avatar_url ? (
-              <img src={currentUser.user_metadata.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
-            ) : (
-              <UserIcon size={14} />
-            )}
-          </div>
+      {/* Sleek Account Status Bar */}
+      <div className="account-status-bar responsive-card">
+        {/* Row 1 / Left Group: User Identity & Mobile Settings Link */}
+        <div className="account-status-group">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <div style={{
+              width: '26px',
+              height: '26px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(var(--primary-rgb), 0.12)',
+              border: '1px solid rgba(var(--primary-rgb), 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--primary)',
+              overflow: 'hidden',
+              flexShrink: 0
+            }}>
+              {currentUser?.user_metadata?.avatar_url ? (
+                <img src={currentUser.user_metadata.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+              ) : (
+                <UserIcon size={13} />
+              )}
+            </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '13px', fontWeight: '750', color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>
+            <span style={{ fontSize: '13px', fontWeight: '750', color: 'var(--foreground)', whiteSpace: 'nowrap' }}>
               {currentUser?.email?.split('@')[0] || currentUser?.email || <span style={skeletonStyle('80px')} />}
             </span>
-
-            {userData && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
-                  color: 'var(--primary)',
-                  fontWeight: '700',
-                  fontSize: '11px',
-                  padding: '2px 8px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(var(--primary-rgb), 0.2)'
-                }}>
-                  <Crown size={11} />
-                  {planName}
-                </span>
-
-                {userData?.expiresAt && (
-                  <span style={{
-                    fontSize: '10.5px',
-                    fontWeight: '600',
-                    color: days !== null && days <= 3 ? 'var(--danger)' : 'var(--text-muted)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                    padding: '2px 6px',
-                    borderRadius: '5px'
-                  }}>
-                    {days !== null && days > 0 ? `${days}${language === 'ar' ? 'يوم' : 'd'}` : (t('dashboard.expired') || 'Expired')}
-                  </span>
-                )}
-              </div>
-            )}
           </div>
-        </div>
-
-        {/* Right: Router Capacity & Online Status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--foreground)', fontWeight: '700' }} title="Registered Routers Quota">
-            <Server size={13} color="var(--primary)" />
-            <span>{totalRouters}/{maxRouters}</span>
-          </div>
-
-
 
           <Link
             to="/account"
+            className="show-sm-only"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -198,12 +147,78 @@ export default function LandingPage() {
               borderRadius: '6px',
               backgroundColor: 'rgba(255, 255, 255, 0.04)',
               color: 'var(--text-muted)',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              flexShrink: 0
             }}
             title={t('sidebar.accountDetails') || 'Account Settings'}
           >
             <Settings size={13} />
           </Link>
+        </div>
+
+        {/* Row 2 / Right Group: Plan Info & Router Capacity */}
+        <div className="account-status-group account-status-group-bottom">
+          {userData && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                color: 'var(--primary)',
+                fontWeight: '700',
+                fontSize: '11px',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                border: '1px solid rgba(var(--primary-rgb), 0.2)',
+                whiteSpace: 'nowrap'
+              }}>
+                <Crown size={11} />
+                {planName}
+              </span>
+
+              {userData?.expiresAt && (
+                <span style={{
+                  fontSize: '10.5px',
+                  fontWeight: '600',
+                  color: days !== null && days <= 3 ? 'var(--danger)' : 'var(--text-muted)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                  padding: '2px 6px',
+                  borderRadius: '5px',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {days !== null && days > 0 ? `${days}${language === 'ar' ? 'يوم' : 'd'}` : (t('dashboard.expired') || 'Expired')}
+                </span>
+              )}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--foreground)', fontWeight: '700', fontSize: '11.5px', whiteSpace: 'nowrap' }} title="Registered Routers Quota">
+              <Server size={13} color="var(--primary)" />
+              <span>{totalRouters}/{maxRouters}</span>
+            </div>
+
+            <Link
+              to="/account"
+              className="hide-sm-only"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '26px',
+                height: '26px',
+                borderRadius: '6px',
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                color: 'var(--text-muted)',
+                transition: 'all 0.2s ease',
+                flexShrink: 0
+              }}
+              title={t('sidebar.accountDetails') || 'Account Settings'}
+            >
+              <Settings size={13} />
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -274,22 +289,52 @@ export default function LandingPage() {
       )}
 
       {/* Routers Grid Header */}
-      {savedRouters.length > 0 && (
+      {(savedRouters.length > 0 || isInitialLoading) && (
         <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <h3 style={{ fontSize: '13.5px', fontWeight: '800', margin: 0, color: 'var(--foreground)' }}>
               {t('dashboard.registeredRouters')}
             </h3>
-            <span style={{ fontSize: '10.5px', fontWeight: '700', color: 'var(--primary)', backgroundColor: 'rgba(var(--primary-rgb), 0.1)', padding: '1px 6px', borderRadius: '8px' }}>
-              {savedRouters.length}
-            </span>
+            {savedRouters.length > 0 && (
+              <span style={{ fontSize: '10.5px', fontWeight: '700', color: 'var(--primary)', backgroundColor: 'rgba(var(--primary-rgb), 0.1)', padding: '1px 6px', borderRadius: '8px' }}>
+                {savedRouters.length}
+              </span>
+            )}
           </div>
         </div>
       )}
 
       {/* Router Cards Grid */}
       <div className="router-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
-        {savedRouters.length === 0 ? (
+        {isInitialLoading ? (
+          [1, 2].map(n => (
+            <div
+              key={n}
+              style={{
+                background: 'var(--card-bg)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', ...skeletonStyle('32px') }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ height: '14px', width: '55%', borderRadius: '4px', ...skeletonStyle('100%') }} />
+                </div>
+              </div>
+              <div style={{ paddingTop: '8px', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ height: '12px', width: '18%', borderRadius: '3px', ...skeletonStyle('100%') }} />
+                <div style={{ height: '12px', width: '18%', borderRadius: '3px', ...skeletonStyle('100%') }} />
+                <div style={{ height: '12px', width: '18%', borderRadius: '3px', ...skeletonStyle('100%') }} />
+                <div style={{ height: '12px', width: '18%', borderRadius: '3px', ...skeletonStyle('100%') }} />
+              </div>
+            </div>
+          ))
+        ) : savedRouters.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', background: 'var(--card-bg)', border: '1px dashed var(--glass-border)', borderRadius: '12px', gridColumn: '1 / -1' }}>
             <Server size={24} color="var(--primary)" style={{ marginBottom: '8px', opacity: 0.8 }} />
             <p style={{ fontSize: '14px', fontWeight: '750', margin: '0 0 4px', color: 'var(--foreground)' }}>No routers registered</p>

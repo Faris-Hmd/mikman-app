@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { useAuth } from '../context/AuthContext';
 import { generateCloudScriptAPI } from '../api';
-import { Router, Cpu, User, Lock, Users, MapPin, ArrowLeft, Terminal, Copy, Check, Plus, Trash2 } from 'lucide-react';
+import { Router, Cpu, User, Lock, ArrowLeft, Terminal, Copy, Check } from 'lucide-react';
 
 const HARDWARE_MODELS: { value: string; label: string }[] = [
   { value: 'hap-ax3', label: 'hAP AX³' },
@@ -17,8 +17,6 @@ const HARDWARE_MODELS: { value: string; label: string }[] = [
   { value: 'chr', label: 'CHR (Cloud Hosted Router)' },
   { value: 'other', label: 'Other' },
 ];
-
-import { TIMEZONES } from '../constants/timezones';
 
 export default function RegisterRouterPage() {
   const { t } = useLanguage();
@@ -44,6 +42,15 @@ export default function RegisterRouterPage() {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
   });
 
+  useEffect(() => {
+    if (currentUserEmail && (!formData.owners[0] || formData.owners[0] !== currentUserEmail)) {
+      setFormData(prev => ({
+        ...prev,
+        owners: [currentUserEmail]
+      }));
+    }
+  }, [currentUserEmail]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<'form' | 'configuring' | 'done'>('form');
   const [generatedScript, setGeneratedScript] = useState('');
@@ -60,29 +67,6 @@ export default function RegisterRouterPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleOwnerChange = (index: number, value: string) => {
-    setFormData((prev) => {
-      const current = Array.isArray(prev.owners) ? [...prev.owners] : [String(prev.owners || '')];
-      current[index] = value;
-      return { ...prev, owners: current };
-    });
-  };
-
-  const handleAddOwner = () => {
-    setFormData((prev) => {
-      const current = Array.isArray(prev.owners) ? [...prev.owners] : [String(prev.owners || '')];
-      return { ...prev, owners: [...current, ''] };
-    });
-  };
-
-  const handleRemoveOwner = (index: number) => {
-    setFormData((prev) => {
-      const current = Array.isArray(prev.owners) ? prev.owners : [String(prev.owners || '')];
-      const updated = current.filter((_, i) => i !== index);
-      return { ...prev, owners: updated.length > 0 ? updated : [''] };
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -96,7 +80,7 @@ export default function RegisterRouterPage() {
       return;
     }
 
-    const ownersArray = safeOwners
+    const ownersArray = (currentUserEmail ? [currentUserEmail] : safeOwners)
       .map((o: string) => o.trim())
       .filter((o: string) => o.length > 0);
 
@@ -432,94 +416,6 @@ export default function RegisterRouterPage() {
                 placeholder={t('dashboard.placeholderPassword') || 'Leave empty if none'}
                 style={inputStyle}
               />
-            </div>
-          </div>
-        </div>
-
-        {/* ── Ownership & Location Section ── */}
-        <div style={cardStyle}>
-          <div style={sectionTitleStyle}>{t('sections.ownershipLocation') || 'Ownership & Location'}</div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div>
-              <label style={labelStyle}>
-                <Users size={10} />
-                {t('dashboard.authorizedOwners') || 'Authorized Owners'}
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {safeOwners.map((ownerEmail, index) => (
-                  <div key={index} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <input
-                      type="email"
-                      value={ownerEmail}
-                      onChange={(e) => handleOwnerChange(index, e.target.value)}
-                      placeholder={t('dashboard.placeholderOwners') || 'e.g. owner@example.com'}
-                      style={inputStyle}
-                      required={index === 0}
-                    />
-                    {safeOwners.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveOwner(index)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          padding: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: '6px',
-                        }}
-                        title={t('common.delete') || 'Remove'}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={handleAddOwner}
-                  style={{
-                    alignSelf: 'flex-start',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--glass-border)',
-                    color: 'var(--primary)',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    marginTop: '2px',
-                    padding: '5px 10px',
-                    borderRadius: '8px',
-                  }}
-                >
-                  <Plus size={13} />
-                  <span>{t('dashboard.addOwner') || 'Add Owner Email'}</span>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="timezone" style={labelStyle}>
-                <MapPin size={10} />
-                {t('dashboard.timezone') || 'Timezone'}
-              </label>
-              <select
-                id="timezone"
-                name="timezone"
-                value={formData.timezone}
-                onChange={handleChange}
-                style={{ ...inputStyle, cursor: 'pointer', appearance: 'auto' } as React.CSSProperties}
-              >
-                {TIMEZONES.map(tz => (
-                  <option key={tz} value={tz}>{tz}</option>
-                ))}
-              </select>
             </div>
           </div>
         </div>

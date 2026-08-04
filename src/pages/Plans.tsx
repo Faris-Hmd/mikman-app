@@ -67,8 +67,15 @@ export default function PlansPage() {
   const currentRoutersCount = routerData?.profiles?.length || 0;
   const currentPlanQuota = (userData?.quota || accountInfo?.plan || 'free').toLowerCase().trim();
 
-  // Selected plan state
-  const [selectedPlanId, setSelectedPlanId] = useState<string>(currentPlanQuota);
+  // Track selected plan and whether user manually selected a plan
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('free');
+  const [userSelected, setUserSelected] = useState(false);
+
+  useEffect(() => {
+    if (!userSelected && currentPlanQuota) {
+      setSelectedPlanId(currentPlanQuota);
+    }
+  }, [currentPlanQuota, userSelected]);
 
   useEffect(() => {
     if (plansList.length > 0) {
@@ -92,6 +99,7 @@ export default function PlansPage() {
     if (plan.maxRouters < currentRoutersCount) {
       return;
     }
+    setUserSelected(true);
     setSelectedPlanId(plan.id);
   };
 

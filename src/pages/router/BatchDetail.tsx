@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import useSWR, { mutate } from 'swr';
-import { jsPDF } from 'jspdf';
 import {
   fetchVoucherBatchDetailAPI,
   deleteVouchersAPI,
@@ -376,6 +375,7 @@ export default function BatchDetailPage() {
 
       const pages = chunkArray(vouchersToPrint, itemsPerPage);
 
+      const { jsPDF } = await import('jspdf');
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
