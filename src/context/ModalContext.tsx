@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState } from 'react';
-import { ShieldCheck, AlertTriangle, HelpCircle, X } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, HelpCircle, X, RefreshCw } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 
 interface ModalContextType {
   showAlert: (title: string, message: string, type?: 'success' | 'error' | 'warning') => void;
-  showConfirm: (title: string, message: string, onConfirm: () => void) => void;
+  showConfirm: (title: string, message: string, onConfirm: () => void | Promise<void>) => void;
 }
 
 const ModalContext = createContext<ModalContextType | undefined>(undefined);
@@ -16,7 +16,7 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
     title: string;
     message: string;
     type: 'success' | 'error' | 'warning' | 'confirm';
-    onConfirm?: () => void;
+    onConfirm?: () => void | Promise<void>;
   }>({
     isOpen: false,
     title: '',
@@ -24,12 +24,37 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
     type: 'success'
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setModal({ isOpen: true, title, message, type });
   };
 
-  const showConfirm = (title: string, message: string, onConfirm: () => void) => {
+  const showConfirm = (title: string, message: string, onConfirm: () => void | Promise<void>) => {
+    setIsSubmitting(false);
     setModal({ isOpen: true, title, message, type: 'confirm', onConfirm });
+  };
+
+  const handleClose = () => {
+    if (isSubmitting) return;
+    setModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleProceed = async () => {
+    if (isSubmitting) return;
+    if (modal.onConfirm) {
+      try {
+        setIsSubmitting(true);
+        await modal.onConfirm();
+      } catch (err) {
+        console.error('Modal confirm action error:', err);
+      } finally {
+        setIsSubmitting(false);
+        setModal(prev => ({ ...prev, isOpen: false }));
+      }
+    } else {
+      setModal(prev => ({ ...prev, isOpen: false }));
+    }
   };
 
   return (
@@ -55,8 +80,18 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
                 {modal.type === 'confirm' && <HelpCircle size={20} color="var(--primary)" />}
                 <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: 'var(--foreground)' }}>{modal.title}</h4>
               </div>
-              <button onClick={() => setModal(prev => ({ ...prev, isOpen: false }))}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+              <button
+                onClick={handleClose}
+                disabled={isSubmitting}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: isSubmitting ? 'var(--text-muted)' : 'var(--foreground)',
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  padding: '4px',
+                  opacity: isSubmitting ? 0.5 : 1
+                }}
+              >
                 <X size={18} />
               </button>
             </div>
@@ -64,14 +99,50 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', gap: '8px', width: '100%', marginTop: '4px' }}>
               {modal.type === 'confirm' ? (
                 <>
-                  <button className="btn-secondary" style={{ flex: 1, padding: '10px', fontSize: '13px', borderRadius: '10px', minHeight: '40px' }}
-                    onClick={() => setModal(prev => ({ ...prev, isOpen: false }))}>{t('common.cancel')}</button>
-                  <button className="btn-primary" style={{ flex: 1, padding: '10px', fontSize: '13px', borderRadius: '10px', minHeight: '40px' }}
-                    onClick={() => { setModal(prev => ({ ...prev, isOpen: false })); if (modal.onConfirm) modal.onConfirm(); }}>{t('common.proceed')}</button>
+                  <button
+                    className="btn-secondary"
+                    disabled={isSubmitting}
+                    style={{ flex: 1, padding: '10px', fontSize: '13px', borderRadius: '10px', minHeight: '40px', opacity: isSubmitting ? 0.5 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
+                    onClick={handleClose}
+                  >
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    className="btn-primary"
+                    disabled={isSubmitting}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      fontSize: '13px',
+                      borderRadius: '10px',
+                      minHeight: '40px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      opacity: isSubmitting ? 0.7 : 1,
+                      cursor: isSubmitting ? 'not-allowed' : 'pointer'
+                    }}
+                    onClick={handleProceed}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <RefreshCw size={14} className="spin" />
+                        <span>{t('common.loading') || 'Processing...'}</span>
+                      </>
+                    ) : (
+                      t('common.proceed')
+                    )}
+                  </button>
                 </>
               ) : (
-                <button className="btn-primary" style={{ flex: 1, padding: '10px', fontSize: '13px', borderRadius: '10px', minHeight: '40px' }}
-                  onClick={() => setModal(prev => ({ ...prev, isOpen: false }))}>{t('common.ok')}</button>
+                <button
+                  className="btn-primary"
+                  style={{ flex: 1, padding: '10px', fontSize: '13px', borderRadius: '10px', minHeight: '40px' }}
+                  onClick={handleClose}
+                >
+                  {t('common.ok')}
+                </button>
               )}
             </div>
           </div>

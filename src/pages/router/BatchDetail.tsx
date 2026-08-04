@@ -190,12 +190,14 @@ export default function BatchDetailPage() {
     }
   };
 
-  const formatBytes = (bytes: number | null | undefined) => {
-    if (bytes == null) return '—';
-    if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(2)} GB`;
-    if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
-    if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)} KB`;
-    return `${bytes} B`;
+  const formatBytes = (bytes: number | string | null | undefined) => {
+    if (bytes == null || bytes === '') return '—';
+    const num = typeof bytes === 'string' ? parseFloat(bytes) : bytes;
+    if (isNaN(num) || num <= 0) return '—';
+    if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(2)} GB`;
+    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)} MB`;
+    if (num >= 1_000) return `${(num / 1_000).toFixed(1)} KB`;
+    return `${num} B`;
   };
 
   // ── Delete ──
@@ -780,54 +782,128 @@ export default function BatchDetailPage() {
 
   // ── Render: Voucher Info Modal ──
 
+  // ── Render: Voucher Info Modal ──
+
   const renderInfoModal = () => {
     if (!infoVoucher) return null;
 
     const name = (infoVoucher as any).name || (infoVoucher as any)['.id'] || '';
-    const v = infoVoucher as ActiveVoucher & ExpiredVoucher;
-    const isActive = infoStatus === 'active';
-    const isExpired = infoStatus === 'expired';
 
-    const rows: { label: string; value: string }[] = [
-      { label: 'Code', value: name },
-      { label: 'Profile', value: (v as any).profile || '—' },
-    ];
+    // Synchronize with latest data from batchDetail or searchResults if available
+    let resolvedVoucher: any = { ...infoVoucher };
+    let resolvedStatus: 'active' | 'expired' | 'unused' = infoStatus || 'unused';
 
-    if (isActive || isExpired) {
-      rows.push({ label: 'Start Date', value: formatDate((v as any).startDate) });
-      rows.push({ label: 'Start Time', value: (v as any).startTime || '—' });
-      rows.push({ label: 'Expiry Date', value: formatDate((v as any).expDate) });
-      rows.push({ label: 'Login Date', value: formatDate((v as any).loginDate) });
+    if (searchResults) {
+      const sr = searchResults.find((x) => x.name === name || (x as any)['.id'] === name);
+      if (sr) {
+        resolvedVoucher = { ...resolvedVoucher, ...sr };
+        resolvedStatus = sr.isExpired ? 'expired' : sr.isInUse ? 'active' : 'unused';
+      }
     }
 
-    if (isActive) {
-      rows.push({ label: 'Status', value: 'Active' });
-      rows.push({ label: 'Time Left', value: v.timeLeftText || '—' });
-      if (v.remainingSeconds != null) {
-        const hrs = Math.floor(v.remainingSeconds / 3600);
-        const mins = Math.floor((v.remainingSeconds % 3600) / 60);
-        rows.push({ label: 'Remaining', value: `${hrs}h ${mins}m` });
+    if (batchDetail) {
+      const act = batchDetail.activeVouchers?.find((x) => x.name === name || (x as any)['.id'] === name);
+      if (act) {
+        resolvedVoucher = { ...resolvedVoucher, ...act };
+        resolvedStatus = 'active';
+      } else {
+        const exp = batchDetail.expiredVouchers?.find((x) => x.name === name || (x as any)['.id'] === name);
+        if (exp) {
+          resolvedVoucher = { ...resolvedVoucher, ...exp };
+          resolvedStatus = 'expired';
+        } else {
+          const uns = batchDetail.unusedVouchers?.find((x) => x.name === name || (x as any)['.id'] === name);
+          if (uns) {
+            resolvedVoucher = { ...resolvedVoucher, ...uns };
+            resolvedStatus = 'unused';
+          }
+        }
       }
-      rows.push({ label: 'Limit (Bytes)', value: formatBytes(v.limitBytesTotal) });
-      if (v.remainingBytes != null) {
-        rows.push({ label: 'Remaining Bytes', value: formatBytes(v.remainingBytes) });
-      }
-      rows.push({ label: 'Device', value: v.deviceName || '—' });
-      rows.push({ label: 'IP Address', value: v.ipAddress || '—' });
-      rows.push({ label: 'Uptime', value: v.uptime || '—' });
-      rows.push({ label: 'Bytes In', value: v.bytesIn || '—' });
-      rows.push({ label: 'Bytes Out', value: v.bytesOut || '—' });
-      rows.push({ label: 'Session ID', value: v.sessionId || '—' });
     }
+
+    const v = resolvedVoucher;
+    const isOnline = v.isOnline === true;
+    const isInUse = v.isInUse === true || resolvedStatus === 'active' || isOnline || v.loginDate || v.startDate;
+    const isExpired = v.isExpired === true || resolvedStatus === 'expired';
+
+    let statusDisplay = 'Unused';
+    let statusColor = 'var(--success)';
 
     if (isExpired) {
-      rows.push({ label: 'Status', value: 'Expired' });
-      rows.push({ label: 'Time Left', value: v.timeLeftText || '—' });
-      rows.push({ label: 'Limit (Bytes)', value: formatBytes(v.limitBytesTotal) });
-      if (v.remainingBytes != null) {
-        rows.push({ label: 'Remaining Bytes', value: formatBytes(v.remainingBytes) });
+      statusDisplay = 'Expired';
+      statusColor = 'var(--text-muted)';
+    } else if (isOnline) {
+      statusDisplay = 'Active (Online)';
+      statusColor = 'var(--accent)';
+    } else if (isInUse) {
+      statusDisplay = 'Active (Logged Out)';
+      statusColor = '#f59e0b';
+    }
+
+    const rows: { label: string; value: React.ReactNode }[] = [
+      { label: 'Code', value: <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{name}</span> },
+      { label: 'Status', value: <span style={{ fontWeight: 700, color: statusColor }}>{statusDisplay}</span> },
+      { label: 'Profile', value: v.profile || profile || '—' },
+    ];
+
+    if (v.comment || comment) {
+      rows.push({ label: 'Comment', value: v.comment || comment });
+    }
+
+    // Dates & Times
+    const startDate = v.startDate;
+    const startTime = v.startTime;
+    const loginDate = v.loginDate || v.firstLogin || v.loginTime;
+    const logoutDate = v.logoutDate || v.lastLogout || v.logoutTime;
+    const expDate = v.expDate || v.expirationDate || v.expiredAt;
+
+    if (startDate) rows.push({ label: 'Start Date', value: formatDate(startDate) });
+    if (startTime) rows.push({ label: 'Start Time', value: startTime });
+    if (loginDate) rows.push({ label: 'Login Date', value: formatDate(loginDate) });
+    if (logoutDate) rows.push({ label: 'Logout Date', value: formatDate(logoutDate) });
+    if (expDate) rows.push({ label: 'Expiry Date', value: formatDate(expDate) });
+
+    // Time Left & Duration
+    if (v.timeLeftText) {
+      rows.push({ label: 'Time Left', value: v.timeLeftText });
+    }
+
+    if (v.remainingSeconds != null) {
+      const remSec = Number(v.remainingSeconds);
+      if (!isNaN(remSec) && remSec >= 0) {
+        const hrs = Math.floor(remSec / 3600);
+        const mins = Math.floor((remSec % 3600) / 60);
+        const secs = remSec % 60;
+        rows.push({ label: 'Remaining Time', value: `${hrs}h ${mins}m ${secs}s` });
       }
     }
+
+    const limitBytes = v.limitBytesTotal ?? v['limit-bytes-total'];
+    if (limitBytes != null && limitBytes !== '' && Number(limitBytes) > 0) {
+      rows.push({ label: 'Data Limit', value: formatBytes(limitBytes) });
+    }
+
+    const remBytes = v.remainingBytes ?? v['remaining-bytes'];
+    if (remBytes != null && remBytes !== '') {
+      rows.push({ label: 'Remaining Data', value: formatBytes(remBytes) });
+    }
+
+    // Network / Device Details
+    const device = v.deviceName || v.hostName;
+    const ip = v.ipAddress || v.ip || v.address;
+    const mac = v.mac || v.macAddress;
+    const uptime = v.uptime || v.connUptime;
+    const bytesIn = v.bytesIn ?? v['bytes-in'];
+    const bytesOut = v.bytesOut ?? v['bytes-out'];
+    const sessionId = v.sessionId ?? v['session-id'];
+
+    if (device) rows.push({ label: 'Device', value: device });
+    if (ip) rows.push({ label: 'IP Address', value: ip });
+    if (mac) rows.push({ label: 'MAC Address', value: mac });
+    if (uptime) rows.push({ label: 'Uptime', value: uptime });
+    if (bytesIn != null && bytesIn !== '') rows.push({ label: 'Bytes In (Upload)', value: typeof bytesIn === 'number' ? formatBytes(bytesIn) : formatBytes(parseFloat(bytesIn)) !== '—' ? formatBytes(parseFloat(bytesIn)) : bytesIn });
+    if (bytesOut != null && bytesOut !== '') rows.push({ label: 'Bytes Out (Download)', value: typeof bytesOut === 'number' ? formatBytes(bytesOut) : formatBytes(parseFloat(bytesOut)) !== '—' ? formatBytes(parseFloat(bytesOut)) : bytesOut });
+    if (sessionId) rows.push({ label: 'Session ID', value: sessionId });
 
     return (
       <div
@@ -857,12 +933,8 @@ export default function BatchDetailPage() {
           onClick={(e) => e.stopPropagation()}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ margin: 0, fontSize: '16px', fontFamily: 'monospace' }}>
-              {statusFilter === 'active' || isActive
-                ? <span style={{ color: 'var(--accent)' }}>●</span>
-                : statusFilter === 'expired' || isExpired
-                  ? <span style={{ color: 'var(--text-muted)' }}>●</span>
-                  : <span style={{ color: 'var(--success)' }}>●</span>}{' '}
+            <h3 style={{ margin: 0, fontSize: '16px', fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: statusColor }}>●</span>
               {name}
             </h3>
             <button
@@ -1644,7 +1716,7 @@ export default function BatchDetailPage() {
             </p>
             {searchResults!.map((v) =>
               renderVoucherCard(
-                { '.id': v.name, name: v.name, comment: v.comment || '', profile: v.profile || '', 'limit-bytes-total': String(v.limitBytesTotal || 0) },
+                v,
                 v.isExpired ? 'expired' : v.isInUse ? 'active' : 'unused'
               )
             )}
