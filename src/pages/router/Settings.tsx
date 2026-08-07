@@ -83,11 +83,11 @@ export default function SettingsPage() {
   const [wifiSsid, setWifiSsid] = useState('');
 
   // Branding & Print Label Form State
-  const [useCustomHotspotName, setUseCustomHotspotName] = useState(false);
   const [hotspotWifiName, setHotspotWifiName] = useState('');
-  const [useCustomPrintLabel, setUseCustomPrintLabel] = useState(false);
   const [cardPrintLabel, setCardPrintLabel] = useState('');
   const [isSavingBranding, setIsSavingBranding] = useState(false);
+  const useCustomHotspotName = !!hotspotWifiName.trim();
+  const useCustomPrintLabel = !!cardPrintLabel.trim();
 
   // Provisioning Terminal Script State
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
@@ -126,25 +126,23 @@ export default function SettingsPage() {
           owners: ownersList,
         });
 
-        setUseCustomHotspotName(!!currentConfig.useCustomHotspotName);
-        setHotspotWifiName(currentConfig.hotspotWifiName || currentConfig.wifiName || status?.wifiName || '');
-        setUseCustomPrintLabel(!!currentConfig.useCustomPrintLabel);
-        setCardPrintLabel(currentConfig.cardPrintLabel || '');
+        const savedHotspot = currentConfig.hotspotWifiName || (currentConfig as any).hotspot_wifi_name || '';
+        const savedLabel = currentConfig.cardPrintLabel || (currentConfig as any).card_print_label || '';
+
+        setHotspotWifiName(savedHotspot);
+        setCardPrintLabel(savedLabel);
       }
     });
 
     return () => {
       isMounted = false;
     };
-  }, [routerId, status?.timezone]);
+  }, [routerId]);
 
   // Populate Wi-Fi SSID and Timezone strictly from router status API (live router settings)
   useEffect(() => {
     if (status?.wifiName) {
       setWifiSsid(status.wifiName);
-      if (!useCustomHotspotName) {
-        setHotspotWifiName(status.wifiName);
-      }
     }
     if (status?.timezone) {
       setInfoForm((prev) => ({
@@ -222,9 +220,9 @@ export default function SettingsPage() {
     try {
       setIsSavingBranding(true);
       await updateRouterProfileAPI(routerId, {
-        useCustomHotspotName,
+        useCustomHotspotName: !!hotspotWifiName.trim(),
         hotspotWifiName: hotspotWifiName.trim(),
-        useCustomPrintLabel,
+        useCustomPrintLabel: !!cardPrintLabel.trim(),
         cardPrintLabel: cardPrintLabel.trim(),
       });
 
@@ -1005,65 +1003,35 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* 1. Hotspot Portal Wi-Fi Name Opt-In */}
-            <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
-                <input
-                  type="checkbox"
-                  checked={useCustomHotspotName}
-                  onChange={(e) => setUseCustomHotspotName(e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
-                  {t('settings.useCustomHotspotName')}
-                </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* 1. Hotspot Portal Wi-Fi Name Input */}
+            <div>
+              <label htmlFor="hotspot-portal-name" style={labelStyle}>
+                <Wifi size={11} style={{ color: '#ec4899' }} /> {t('settings.hotspotWifiNameLabel')}
               </label>
-              {useCustomHotspotName && (
-                <div>
-                  <label htmlFor="hotspot-portal-name" style={labelStyle}>
-                    <Wifi size={11} style={{ color: '#ec4899' }} /> {t('settings.hotspotWifiNameLabel')}
-                  </label>
-                  <input
-                    id="hotspot-portal-name"
-                    type="text"
-                    value={hotspotWifiName}
-                    onChange={(e) => setHotspotWifiName(e.target.value)}
-                    placeholder={t('settings.hotspotWifiNamePlaceholder')}
-                    style={inputStyle}
-                  />
-                </div>
-              )}
+              <input
+                id="hotspot-portal-name"
+                type="text"
+                value={hotspotWifiName}
+                onChange={(e) => setHotspotWifiName(e.target.value)}
+                placeholder={t('settings.hotspotWifiNamePlaceholder')}
+                style={inputStyle}
+              />
             </div>
 
-            {/* 2. Voucher Card Print Label Opt-In */}
-            <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
-                <input
-                  type="checkbox"
-                  checked={useCustomPrintLabel}
-                  onChange={(e) => setUseCustomPrintLabel(e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
-                  {t('settings.useCustomPrintLabel')}
-                </span>
+            {/* 2. Voucher Card Print Label Input */}
+            <div>
+              <label htmlFor="voucher-card-print-label" style={labelStyle}>
+                <Tag size={11} style={{ color: '#ec4899' }} /> {t('settings.cardPrintLabelLabel')}
               </label>
-              {useCustomPrintLabel && (
-                <div>
-                  <label htmlFor="voucher-card-print-label" style={labelStyle}>
-                    <Tag size={11} style={{ color: '#ec4899' }} /> {t('settings.cardPrintLabelLabel')}
-                  </label>
-                  <input
-                    id="voucher-card-print-label"
-                    type="text"
-                    value={cardPrintLabel}
-                    onChange={(e) => setCardPrintLabel(e.target.value)}
-                    placeholder={t('settings.cardPrintLabelPlaceholder')}
-                    style={inputStyle}
-                  />
-                </div>
-              )}
+              <input
+                id="voucher-card-print-label"
+                type="text"
+                value={cardPrintLabel}
+                onChange={(e) => setCardPrintLabel(e.target.value)}
+                placeholder={t('settings.cardPrintLabelPlaceholder')}
+                style={inputStyle}
+              />
             </div>
           </div>
 
