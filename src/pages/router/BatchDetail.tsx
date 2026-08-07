@@ -16,6 +16,7 @@ import {
   type VoucherSearchResult,
 } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
+import { useModal } from '../../context/ModalContext';
 import {
   Trash2,
   Search,
@@ -99,6 +100,7 @@ export default function BatchDetailPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { t, isRtl } = useLanguage();
+  const { showConfirm } = useModal();
 
   const profile = searchParams.get('profile') || '';
   const comment = searchParams.get('comment') || undefined;
@@ -119,7 +121,14 @@ export default function BatchDetailPage() {
     ? (routerProfilesData as any).profiles
     : [];
   const activeRouter = routersList.find((r: any) => r.id === routerId || r.name === routerId);
-  const defaultWifiName = activeRouter?.wifiName || routerStatus?.wifiName || activeRouter?.name || 'Mikrotik wifi';
+  const defaultWifiName =
+    (activeRouter?.useCustomPrintLabel && activeRouter?.cardPrintLabel?.trim())
+      ? activeRouter.cardPrintLabel.trim()
+      : activeRouter?.cardPrintLabel?.trim()
+      || activeRouter?.wifiName
+      || routerStatus?.wifiName
+      || activeRouter?.name
+      || 'Mikrotik wifi';
   const [wifiInput, setWifiInput] = useState<string | null>(null);
   const wifiName = (wifiInput !== null && wifiInput.trim() !== '') ? wifiInput.trim() : defaultWifiName;
 
@@ -225,6 +234,28 @@ export default function BatchDetailPage() {
     } catch (err: any) {
       showToast(err?.message || 'Failed to delete voucher.', 'error');
     }
+  };
+
+  const confirmDeleteSingle = (code: string, onSuccess?: () => void) => {
+    showConfirm(
+      t('common.delete') || 'Delete',
+      (t('batch.deleteSingleConfirm') || 'Are you sure you want to delete voucher card "{code}"?').replace('{code}', code),
+      async () => {
+        await handleDeleteSingle(code);
+        if (onSuccess) onSuccess();
+      }
+    );
+  };
+
+  const confirmDeleteSelected = () => {
+    if (selectedCodes.size === 0) return;
+    showConfirm(
+      t('common.delete') || 'Delete',
+      (t('batch.deleteSelectedConfirm') || 'Are you sure you want to delete {count} selected vouchers?').replace('{count}', String(selectedCodes.size)),
+      async () => {
+        await handleDeleteSelected();
+      }
+    );
   };
 
   const handleDeleteBatch = async () => {
@@ -333,6 +364,11 @@ export default function BatchDetailPage() {
       if (vouchersToPrint.length === 0) {
         showToast('No unused vouchers available to print.', 'error');
         return;
+      }
+
+      if (vouchersToPrint.length > 5000) {
+        vouchersToPrint = vouchersToPrint.slice(0, 5000);
+        showToast(t('batch.printLimitNotice') || 'Print limit capped at 5000 cards maximum.', 'error');
       }
 
       setPrintableVouchers(vouchersToPrint);
@@ -762,7 +798,7 @@ export default function BatchDetailPage() {
           <Info size={13} />
         </button>
         <button
-          onClick={() => handleDeleteSingle(name)}
+          onClick={() => confirmDeleteSingle(name)}
           style={{
             background: 'none',
             border: 'none',
@@ -1908,8 +1944,9 @@ export default function BatchDetailPage() {
                     </button>
                     <button
                       onClick={() => {
-                        handleDeleteSingle(name);
-                        setAllVouchers((prev) => prev?.filter((x) => (x.name || (x as any)['.id']) !== name) || null);
+                        confirmDeleteSingle(name, () => {
+                          setAllVouchers((prev) => prev?.filter((x) => (x.name || (x as any)['.id']) !== name) || null);
+                        });
                       }}
                       style={{
                         background: 'none',

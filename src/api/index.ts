@@ -682,6 +682,10 @@ export const updateRouterProfileAPI = async (
     supportName?: string;
     supportPhone?: string;
     timezone?: string;
+    hotspotWifiName?: string;
+    cardPrintLabel?: string;
+    useCustomHotspotName?: boolean;
+    useCustomPrintLabel?: boolean;
   }
 ): Promise<{ success: boolean; message: string; updates?: string[]; errors?: string[] }> => {
   return apiCall(`/routers/${id}`, {

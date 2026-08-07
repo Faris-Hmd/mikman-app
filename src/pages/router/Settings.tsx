@@ -35,6 +35,7 @@ import {
   Terminal,
   Copy,
   Check,
+  Tag,
   Settings as SettingsIcon,
 } from 'lucide-react';
 
@@ -81,8 +82,12 @@ export default function SettingsPage() {
   // Wi-Fi SSID Form State
   const [wifiSsid, setWifiSsid] = useState('');
 
-  // Hotspot Files Form State
+  // Branding & Print Label Form State
+  const [useCustomHotspotName, setUseCustomHotspotName] = useState(false);
   const [hotspotWifiName, setHotspotWifiName] = useState('');
+  const [useCustomPrintLabel, setUseCustomPrintLabel] = useState(false);
+  const [cardPrintLabel, setCardPrintLabel] = useState('');
+  const [isSavingBranding, setIsSavingBranding] = useState(false);
 
   // Provisioning Terminal Script State
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
@@ -120,6 +125,11 @@ export default function SettingsPage() {
           timezone: currentConfig.timezone || status?.timezone || 'UTC',
           owners: ownersList,
         });
+
+        setUseCustomHotspotName(!!currentConfig.useCustomHotspotName);
+        setHotspotWifiName(currentConfig.hotspotWifiName || currentConfig.wifiName || status?.wifiName || '');
+        setUseCustomPrintLabel(!!currentConfig.useCustomPrintLabel);
+        setCardPrintLabel(currentConfig.cardPrintLabel || '');
       }
     });
 
@@ -132,7 +142,9 @@ export default function SettingsPage() {
   useEffect(() => {
     if (status?.wifiName) {
       setWifiSsid(status.wifiName);
-      setHotspotWifiName(status.wifiName);
+      if (!useCustomHotspotName) {
+        setHotspotWifiName(status.wifiName);
+      }
     }
     if (status?.timezone) {
       setInfoForm((prev) => ({
@@ -199,6 +211,30 @@ export default function SettingsPage() {
       showAlert(t('dashboard.saveFailed'), (t('dashboard.saveFailedMsg') || 'Failed to save: {error}').replace('{error}', errMsg), 'error');
     } finally {
       setIsSavingInfo(false);
+    }
+  };
+
+  // 1b. Save Branding Settings
+  const handleSaveBranding = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!routerId) return;
+
+    try {
+      setIsSavingBranding(true);
+      await updateRouterProfileAPI(routerId, {
+        useCustomHotspotName,
+        hotspotWifiName: hotspotWifiName.trim(),
+        useCustomPrintLabel,
+        cardPrintLabel: cardPrintLabel.trim(),
+      });
+
+      showAlert(t('common.success'), t('settings.infoSavedSuccess'), 'success');
+      mutateStatus();
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      showAlert(t('common.error'), errMsg, 'error');
+    } finally {
+      setIsSavingBranding(false);
     }
   };
 
@@ -917,6 +953,100 @@ export default function SettingsPage() {
             <button type="submit" disabled={isProvisioningWifi} style={primaryBtnStyle(isProvisioningWifi)}>
               <RefreshCw size={13} className={isProvisioningWifi ? 'spin' : ''} />
               <span>{isProvisioningWifi ? t('settings.provisioning') : t('settings.resetWifiBtn')}</span>
+            </button>
+          </div>
+        </form>
+
+        {/* ── 2b. Unique Branding & Print Labels Card ── */}
+        <form onSubmit={handleSaveBranding} style={cardStyle}>
+          <div style={sectionHeaderStyle}>
+            <div style={iconCircleStyle('rgba(236, 72, 153, 0.15)', '#ec4899')}>
+              <Tag size={16} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--foreground)' }}>
+                {t('settings.brandingTitle')}
+              </h3>
+              <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
+                {t('settings.brandingSubtitle')}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* 1. Hotspot Portal Wi-Fi Name Opt-In */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
+                <input
+                  type="checkbox"
+                  checked={useCustomHotspotName}
+                  onChange={(e) => setUseCustomHotspotName(e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
+                  {t('settings.useCustomHotspotName')}
+                </span>
+              </label>
+              {useCustomHotspotName && (
+                <div>
+                  <label htmlFor="hotspot-portal-name" style={labelStyle}>
+                    <Wifi size={11} style={{ color: '#ec4899' }} /> {t('settings.hotspotWifiNameLabel')}
+                  </label>
+                  <input
+                    id="hotspot-portal-name"
+                    type="text"
+                    value={hotspotWifiName}
+                    onChange={(e) => setHotspotWifiName(e.target.value)}
+                    placeholder={t('settings.hotspotWifiNamePlaceholder')}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* 2. Voucher Card Print Label Opt-In */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
+                <input
+                  type="checkbox"
+                  checked={useCustomPrintLabel}
+                  onChange={(e) => setUseCustomPrintLabel(e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
+                  {t('settings.useCustomPrintLabel')}
+                </span>
+              </label>
+              {useCustomPrintLabel && (
+                <div>
+                  <label htmlFor="voucher-card-print-label" style={labelStyle}>
+                    <Tag size={11} style={{ color: '#ec4899' }} /> {t('settings.cardPrintLabelLabel')}
+                  </label>
+                  <input
+                    id="voucher-card-print-label"
+                    type="text"
+                    value={cardPrintLabel}
+                    onChange={(e) => setCardPrintLabel(e.target.value)}
+                    placeholder={t('settings.cardPrintLabelPlaceholder')}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+            <button
+              type="submit"
+              disabled={isSavingBranding}
+              style={{
+                ...primaryBtnStyle(isSavingBranding),
+                background: isSavingBranding ? 'var(--text-muted)' : 'linear-gradient(135deg, #ec4899 0%, #d946ef 100%)',
+                boxShadow: isSavingBranding ? 'none' : '0 4px 12px rgba(236, 72, 153, 0.25)',
+              }}
+            >
+              <Save size={13} />
+              <span>{isSavingBranding ? t('settings.saving') : t('common.save')}</span>
             </button>
           </div>
         </form>

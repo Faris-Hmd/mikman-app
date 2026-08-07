@@ -21,6 +21,10 @@ export interface RouterConfig {
   owner?: string;
   owners?: string[];
   timezone?: string;
+  hotspotWifiName?: string;
+  cardPrintLabel?: string;
+  useCustomHotspotName?: boolean;
+  useCustomPrintLabel?: boolean;
 }
 
 const CONFIG_KEY = '@router_config';

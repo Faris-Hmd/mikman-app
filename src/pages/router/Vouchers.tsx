@@ -33,9 +33,16 @@ export default function VouchersPage() {
 
   // Form State
   const [selectedProfile, setSelectedProfile] = useState<string>('');
-  const [count, setCount] = useState<number>(100);
+  const [countInput, setCountInput] = useState<string>('100');
   const [length, setLength] = useState<number>(6);
   const [comment, setComment] = useState<string>('');
+
+  const count = useMemo(() => {
+    const parsed = parseInt(countInput, 10);
+    if (isNaN(parsed) || parsed < 1) return 1;
+    if (parsed > 5000) return 5000;
+    return parsed;
+  }, [countInput]);
 
   // Status State
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -79,6 +86,11 @@ export default function VouchersPage() {
     e.preventDefault();
     if (!routerId || !selectedProfile) {
       setErrorMsg(t('vouchers.selectProfileFirst') || 'Please select a profile first.');
+      return;
+    }
+
+    if (count > 5000) {
+      setErrorMsg(t('vouchers.maxLimitError') || 'Maximum voucher count limit is 5000 cards per batch.');
       return;
     }
 
@@ -393,11 +405,24 @@ export default function VouchersPage() {
                 }}
               />
               <input
-                type="number"
-                min={1}
-                max={5000}
-                value={count}
-                onChange={(e) => setCount(Math.max(1, parseInt(e.target.value) || 1))}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={countInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '' || /^\d+$/.test(val)) {
+                    setCountInput(val);
+                  }
+                }}
+                onBlur={() => {
+                  const num = parseInt(countInput, 10);
+                  if (isNaN(num) || num < 1) {
+                    setCountInput('1');
+                  } else if (num > 5000) {
+                    setCountInput('5000');
+                  }
+                }}
                 disabled={isSubmitting}
                 style={inputStyle}
                 required
@@ -409,7 +434,7 @@ export default function VouchersPage() {
                 <button
                   key={q}
                   type="button"
-                  onClick={() => setCount(q)}
+                  onClick={() => setCountInput(String(q))}
                   style={{
                     padding: '3px 9px',
                     fontSize: '11px',
