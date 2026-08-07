@@ -120,17 +120,22 @@ export default function BatchDetailPage() {
     : Array.isArray((routerProfilesData as any)?.profiles)
     ? (routerProfilesData as any).profiles
     : [];
-  const activeRouter = routersList.find((r: any) => r.id === routerId || r.name === routerId);
-  const defaultWifiName =
-    (activeRouter?.useCustomPrintLabel && activeRouter?.cardPrintLabel?.trim())
-      ? activeRouter.cardPrintLabel.trim()
-      : activeRouter?.cardPrintLabel?.trim()
-      || activeRouter?.wifiName
-      || routerStatus?.wifiName
-      || activeRouter?.name
-      || 'Mikrotik wifi';
+
+  const activeRouter = routersList.find(
+    (r: any) => r.id === routerId || r.name === routerId || String(r.id) === String(routerId)
+  );
+
+  const cardPrintLabelFromRouter =
+    activeRouter?.cardPrintLabel?.trim() ||
+    (activeRouter as any)?.card_print_label?.trim() ||
+    '';
+
+  const useCustomPrintLabelFromRouter =
+    activeRouter?.useCustomPrintLabel ??
+    (activeRouter as any)?.use_custom_print_label ??
+    false;
+
   const [wifiInput, setWifiInput] = useState<string | null>(null);
-  const wifiName = (wifiInput !== null && wifiInput.trim() !== '') ? wifiInput.trim() : defaultWifiName;
 
   // Detail state
   const [searchQuery, setSearchQuery] = useState('');
@@ -173,6 +178,26 @@ export default function BatchDetailPage() {
     () => fetchVoucherBatchDetailAPI(routerId!, profile, comment, printLabel, batchId),
     { revalidateOnFocus: false, dedupingInterval: 15000, keepPreviousData: true }
   );
+
+  const batchPrintLabel =
+    (printLabel && printLabel.trim() !== '')
+      ? printLabel.trim()
+      : ((batchDetail as any)?.printLabel && (batchDetail as any).printLabel.trim() !== '')
+      ? (batchDetail as any).printLabel.trim()
+      : '';
+
+  const defaultWifiName =
+    (useCustomPrintLabelFromRouter && cardPrintLabelFromRouter)
+      ? cardPrintLabelFromRouter
+      : batchPrintLabel
+      || cardPrintLabelFromRouter
+      || activeRouter?.wifiName
+      || (activeRouter as any)?.wifi_name
+      || routerStatus?.wifiName
+      || activeRouter?.name
+      || 'Mikrotik wifi';
+
+  const wifiName = (wifiInput !== null && wifiInput.trim() !== '') ? wifiInput.trim() : defaultWifiName;
 
   // ── Helpers ──
 
