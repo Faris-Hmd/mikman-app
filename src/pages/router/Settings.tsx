@@ -266,13 +266,25 @@ export default function SettingsPage() {
     if (!routerId) return;
 
     showConfirm(
-      t('settings.hotspotServerTitle'),
-      t('settings.hotspotServerSubtitle') + '?',
+      t('settings.confirmProvisionHotspotServerTitle'),
+      t('settings.confirmProvisionHotspotServerDesc'),
       async () => {
         try {
           setIsProvisioningServer(true);
-          await provisionHotspotServerAPI(routerId);
-          showAlert(t('common.success'), t('settings.hotspotServerSuccess'), 'success');
+          const res = await provisionHotspotServerAPI(routerId);
+          if (res?.success) {
+            showAlert(
+              t('common.success'),
+              res.message || t('settings.hotspotServerSuccess'),
+              'success'
+            );
+          } else {
+            showAlert(
+              t('common.error'),
+              res?.message || 'Failed to provision Hotspot Server.',
+              'error'
+            );
+          }
           mutateStatus();
         } catch (err) {
           const errMsg = err instanceof Error ? err.message : String(err);
@@ -285,14 +297,17 @@ export default function SettingsPage() {
   };
 
   // 4. Send Hotspot Files
-  const handleProvisionHotspotFiles = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeProvisionHotspotFiles = async () => {
     if (!routerId) return;
+
+    const targetHotspotName = (useCustomHotspotName && hotspotWifiName.trim())
+      ? hotspotWifiName.trim()
+      : (wifiSsid.trim() || status?.wifiName || 'MikroTik Wi-Fi');
 
     try {
       setIsProvisioningFiles(true);
       const res = await provisionHotspotFilesAPI(routerId, {
-        wifiName: hotspotWifiName.trim(),
+        wifiName: targetHotspotName,
       });
 
       if (res.jobId) {
@@ -308,7 +323,7 @@ export default function SettingsPage() {
             const jobStatus = await fetchHotspotUploadJobStatusAPI(routerId, jobId);
             if (jobStatus.status === 'completed') {
               completed = true;
-              showAlert(t('common.success'), t('settings.hotspotFilesSuccess'), 'success');
+              showAlert(t('common.success'), jobStatus.message || t('settings.hotspotFilesSuccess'), 'success');
               mutateStatus();
             } else if (jobStatus.status === 'failed') {
               completed = true;
@@ -323,7 +338,7 @@ export default function SettingsPage() {
           showAlert(t('common.error'), 'Upload status check timed out.', 'error');
         }
       } else if (res.success) {
-        showAlert(t('common.success'), t('settings.hotspotFilesSuccess'), 'success');
+        showAlert(t('common.success'), res.message || t('settings.hotspotFilesSuccess'), 'success');
         mutateStatus();
       } else {
         showAlert(t('common.error'), res.message || 'Failed to upload portal files.', 'error');
@@ -334,6 +349,23 @@ export default function SettingsPage() {
     } finally {
       setIsProvisioningFiles(false);
     }
+  };
+
+  const handleProvisionHotspotFiles = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!routerId) return;
+
+    const targetHotspotName = (useCustomHotspotName && hotspotWifiName.trim())
+      ? hotspotWifiName.trim()
+      : (wifiSsid.trim() || status?.wifiName || 'MikroTik Wi-Fi');
+
+    const desc = t('settings.confirmSendHotspotFilesDesc').replace('{brandName}', targetHotspotName);
+
+    showConfirm(
+      t('settings.confirmSendHotspotFilesTitle'),
+      desc,
+      executeProvisionHotspotFiles
+    );
   };
 
   // 5. Generate / Re-generate Terminal Provisioning Script
@@ -1103,18 +1135,26 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div>
-            <label htmlFor="hotspot-wifi-name" style={labelStyle}>
-              <Wifi size={11} /> {t('dashboard.ssidWifiName')}
-            </label>
-            <input
-              id="hotspot-wifi-name"
-              type="text"
-              value={hotspotWifiName}
-              onChange={(e) => setHotspotWifiName(e.target.value)}
-              placeholder={t('dashboard.placeholderSsid')}
-              style={inputStyle}
-            />
+          <div
+            style={{
+              background: 'var(--background-secondary, rgba(255,255,255,0.03))',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color, rgba(255,255,255,0.08))',
+              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
+              <Wifi size={14} />
+              <span>{t('settings.targetHotspotBrand') || 'Portal Brand Name'}:</span>
+            </div>
+            <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>
+              {(useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || 'MikroTik Wi-Fi')}
+            </span>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

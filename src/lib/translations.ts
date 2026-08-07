@@ -517,6 +517,11 @@ export const translations: Record<Language, Record<string, any>> = {
       useCustomPrintLabel: "Opt-in: Custom Voucher Card Print Label",
       cardPrintLabelLabel: "Voucher Card Header / Print Label",
       cardPrintLabelPlaceholder: "e.g. High-Speed WiFi Voucher",
+      targetHotspotBrand: "Hotspot Portal Brand Name",
+      confirmProvisionHotspotServerTitle: "Provision Hotspot Server",
+      confirmProvisionHotspotServerDesc: "This will create and configure the dedicated Hotspot server instance on the bridge interface, LAN IP address (192.168.88.1), DHCP pool, static DNS records (wifi.lan / wifi.net), NAT masquerade, and automated scheduler cleanup scripts on your MikroTik device. Do you want to proceed?",
+      confirmSendHotspotFilesTitle: "Send Hotspot Portal Files",
+      confirmSendHotspotFilesDesc: "This will upload and update the essential Hotspot login portal files (HTML, CSS, JS) on your router's flash memory with portal brand name \"{brandName}\". Do you want to proceed?",
     },
     account: {
       title: "Account Details", subtitle: "Manage your MIKMAN profile", signOutBtn: "Sign Out",
@@ -1042,6 +1047,11 @@ export const translations: Record<Language, Record<string, any>> = {
       useCustomPrintLabel: "تفعيل: ملصق مخصص لطباعة الكروت",
       cardPrintLabelLabel: "عنوان ملصق كرت الطباعة",
       cardPrintLabelPlaceholder: "مثال: كرت شبكة الفرسان",
+      targetHotspotBrand: "اسم العلامة التجارية في صفحة الهاتسبوت",
+      confirmProvisionHotspotServerTitle: "إعداد وتجهيز خادم الهاتسبوت",
+      confirmProvisionHotspotServerDesc: "سيؤدي هذا الإجراء إلى إنشاء وتجهيز خادم الهاتسبوت المخصص على الواجهة الرئيسية، عنوان IP المحلي (192.168.88.1)، حوض عناوين DHCP، تسجيلات DNS الثابتة (wifi.lan / wifi.net)، قواعد الجدار الناري NAT وسكريبتات التنظيف التلقائية على راوتر MikroTik الخاص بك. هل ترغب في المتابعة؟",
+      confirmSendHotspotFilesTitle: "إرسال ملفات صفحة الهاتسبوت",
+      confirmSendHotspotFilesDesc: "سيؤدي هذا الإجراء إلى رفع وتحديث ملفات صفحة تسجيل الدخول (HTML, CSS, JS) على ذاكرة الراوتر باسم الشبكة \"{brandName}\". هل ترغب في المتابعة؟",
     },
     account: { title: "تفاصيل الحساب", subtitle: "إدارة ملف MIKMAN الشخصي", signOutBtn: "تسجيل الخروج", signOutConfirmTitle: "تسجيل الخروج", signOutConfirmDesc: "هل أنت متأكد من رغبتك في تسجيل الخروج؟" },
     bannedScreen: {
