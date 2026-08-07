@@ -179,23 +179,17 @@ export default function BatchDetailPage() {
     { revalidateOnFocus: false, dedupingInterval: 15000, keepPreviousData: true }
   );
 
-  const batchPrintLabel =
-    (printLabel && printLabel.trim() !== '')
-      ? printLabel.trim()
-      : ((batchDetail as any)?.printLabel && (batchDetail as any).printLabel.trim() !== '')
-      ? (batchDetail as any).printLabel.trim()
-      : '';
+  const routerSavedSSID =
+    activeRouter?.wifiName ||
+    (activeRouter as any)?.wifi_name ||
+    routerStatus?.wifiName ||
+    activeRouter?.name ||
+    'Mikrotik wifi';
 
   const defaultWifiName =
     (useCustomPrintLabelFromRouter && cardPrintLabelFromRouter)
       ? cardPrintLabelFromRouter
-      : batchPrintLabel
-      || cardPrintLabelFromRouter
-      || activeRouter?.wifiName
-      || (activeRouter as any)?.wifi_name
-      || routerStatus?.wifiName
-      || activeRouter?.name
-      || 'Mikrotik wifi';
+      : routerSavedSSID;
 
   const wifiName = (wifiInput !== null && wifiInput.trim() !== '') ? wifiInput.trim() : defaultWifiName;
 
