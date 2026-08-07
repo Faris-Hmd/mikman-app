@@ -398,7 +398,7 @@ export default function BatchDetailPage() {
 
       setPrintableVouchers(vouchersToPrint);
 
-      const label = printLabel || profile;
+      const label = profile;
       const batchName = comment ? formatBatchTime(comment) : profile;
       const count = vouchersToPrint.length;
       const originalTitle = document.title;
@@ -566,7 +566,7 @@ export default function BatchDetailPage() {
       }
     } catch (error) {
       console.error('Failed to generate PDF, falling back to window.print():', error);
-      document.title = `${wifiName} - ${printLabel || profile} - Vouchers`;
+      document.title = `${wifiName} - ${profile} - Vouchers`;
       const restoreTitle = () => {
         document.title = originalTitle;
         window.removeEventListener('afterprint', restoreTitle);
@@ -1072,7 +1072,7 @@ export default function BatchDetailPage() {
           />
         ),
       },
-      { label: t('batch.profileName'), value: printLabel || profile },
+      { label: t('batch.profileName'), value: profile },
       { label: t('batch.batchInfoComment'), value: comment || '—' },
       { label: t('batch.unusedVouchersToPrint'), value: <span style={{ fontWeight: 800, color: 'var(--success)' }}>{countToPrint}</span> },
       { label: t('batch.totalBatchSize'), value: batchDetail?.originalCount ?? '—' },
@@ -1257,7 +1257,7 @@ export default function BatchDetailPage() {
                 {t('batch.deleteBatchConfirmTitle')}
               </h3>
               <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
-                {printLabel || profile} {comment ? `(${comment})` : ''}
+                {profile} {comment ? `(${comment})` : ''}
               </p>
             </div>
           </div>
@@ -1373,7 +1373,7 @@ export default function BatchDetailPage() {
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap'
               }}>
-                {printLabel || profile}
+                {profile}
               </h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                 <span style={{
@@ -2344,7 +2344,7 @@ export default function BatchDetailPage() {
             <div key={pageIdx} className="a4-page">
               <div className="print-page-header">
                 <span className="print-header-left">
-                  WiFi: {wifiName} | Profile: {printLabel || profile} | Batch: {batchName}
+                  Print Header: {wifiName} | Profile: {profile} | Batch: {batchName}
                 </span>
                 <span className="print-header-right">
                   Total Vouchers: {totalUnused} | Printed: {printDate}
@@ -2376,7 +2376,7 @@ export default function BatchDetailPage() {
                         <span>{wifiName}</span>
                       </div>
                       <div className="voucher-code">{name}</div>
-                      <div className="voucher-profile">{printLabel || profile}</div>
+                      <div className="voucher-profile">{profile}</div>
                     </div>
                   );
                 })}
