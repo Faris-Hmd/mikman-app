@@ -336,8 +336,8 @@ export default function LandingPage() {
         ) : savedRouters.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', background: 'var(--card-bg)', border: '1px dashed var(--glass-border)', borderRadius: '12px', gridColumn: '1 / -1' }}>
             <Server size={24} color="var(--primary)" style={{ marginBottom: '8px', opacity: 0.8 }} />
-            <p style={{ fontSize: '14px', fontWeight: '750', margin: '0 0 4px', color: 'var(--foreground)' }}>No routers registered</p>
-            <p style={{ fontSize: '12px', margin: '0 0 12px', color: 'var(--text-muted)' }}>Add your MikroTik router to get started.</p>
+            <p style={{ fontSize: '14px', fontWeight: '750', margin: '0 0 4px', color: 'var(--foreground)' }}>{t('dashboard.noRoutersTitle')}</p>
+            <p style={{ fontSize: '12px', margin: '0 0 12px', color: 'var(--text-muted)' }}>{t('dashboard.noRoutersDesc')}</p>
             <Link
               to="/register-router"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textDecoration: 'none', fontWeight: '700', fontSize: '12px' }}
