@@ -15,6 +15,7 @@ import {
 } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 import { useModal } from '../../context/ModalContext';
+import { useAuth } from '../../context/AuthContext';
 import {
   Router,
   Wifi,
@@ -58,6 +59,10 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { showAlert, showConfirm } = useModal();
+  const { user } = useAuth();
+  const currentUserEmail = user?.email ? user.email.toLowerCase().trim() : '';
+
+  const [primaryOwner, setPrimaryOwner] = useState<string>('');
 
   // Loading states for actions
   const [isSavingInfo, setIsSavingInfo] = useState(false);
@@ -110,6 +115,9 @@ export default function SettingsPage() {
       if (!isMounted) return;
       const currentConfig = profiles.find((p) => p.id === routerId);
       if (currentConfig) {
+        const pOwner = currentConfig.owner ? currentConfig.owner.toLowerCase().trim() : '';
+        setPrimaryOwner(pOwner);
+
         let ownersList: string[] = [];
         if (Array.isArray(currentConfig.owners) && currentConfig.owners.length > 0) {
           ownersList = currentConfig.owners;
@@ -397,18 +405,32 @@ export default function SettingsPage() {
     setTimeout(() => setCopiedScript(false), 2500);
   };
 
-  // 5. Delete Router Profile
+  const isPrimaryOwner = !primaryOwner || !currentUserEmail || primaryOwner === currentUserEmail;
+
+  // 5. Delete or Unshare Router Profile
   const handleDeleteRouter = () => {
     if (!routerId) return;
 
+    const title = isPrimaryOwner
+      ? (t('settings.deleteConfirmTitle') || 'Delete Router')
+      : (t('settings.unshareConfirmTitle') || 'Remove Router from My Account');
+
+    const desc = isPrimaryOwner
+      ? (t('settings.deleteConfirmDesc') || 'Are you sure you want to delete this router configuration from the cloud?')
+      : (t('settings.unshareConfirmDesc') || 'Are you sure you want to remove yourself from this shared router? The primary owner will retain access.');
+
     showConfirm(
-      t('settings.deleteConfirmTitle'),
-      t('settings.deleteConfirmDesc'),
+      title,
+      desc,
       async () => {
         try {
           setIsDeleting(true);
-          await deleteRouterProfileAPI(routerId);
-          showAlert(t('dashboard.deleted'), t('dashboard.deleteSuccess'), 'success');
+          const res = await deleteRouterProfileAPI(routerId);
+          showAlert(
+            t('common.success'),
+            res?.message || (isPrimaryOwner ? t('dashboard.deleteSuccess') : 'Removed from shared router successfully'),
+            'success'
+          );
           navigate('/', { replace: true });
         } catch (err) {
           const errMsg = err instanceof Error ? err.message : String(err);
@@ -860,72 +882,105 @@ export default function SettingsPage() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {safeOwners.map((ownerEmail, index) => (
-                  <div key={`owner-setting-${index}`} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <div style={{
-                      position: 'relative',
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}>
-                      <User size={13} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
-                      <input
-                        type="email"
-                        value={ownerEmail}
-                        onChange={(e) => handleOwnerChange(index, e.target.value)}
-                        placeholder={t('dashboard.placeholderOwners') || 'e.g. owner@example.com'}
-                        style={{ ...inputStyle, paddingLeft: '30px' }}
-                        required={index === 0}
-                      />
-                    </div>
-                    {safeOwners.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveOwner(index)}
-                        style={{
-                          background: 'rgba(239, 68, 68, 0.1)',
-                          border: '1px solid rgba(239, 68, 68, 0.2)',
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          padding: '8px',
+                {isPrimaryOwner ? (
+                  <>
+                    {safeOwners.map((ownerEmail, index) => (
+                      <div key={`owner-setting-${index}`} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <div style={{
+                          position: 'relative',
+                          flex: 1,
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: '8px',
-                          transition: 'all 0.2s ease',
-                          flexShrink: 0
-                        }}
-                        title={t('common.delete') || 'Remove'}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                          alignItems: 'center'
+                        }}>
+                          <User size={13} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                          <input
+                            type="email"
+                            value={ownerEmail}
+                            onChange={(e) => handleOwnerChange(index, e.target.value)}
+                            placeholder={t('dashboard.placeholderOwners') || 'e.g. owner@example.com'}
+                            style={{ ...inputStyle, paddingLeft: '30px' }}
+                            required={index === 0}
+                          />
+                        </div>
+                        {safeOwners.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveOwner(index)}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.2)',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              padding: '8px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: '8px',
+                              transition: 'all 0.2s ease',
+                              flexShrink: 0
+                            }}
+                            title={t('common.delete') || 'Remove'}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
 
-                <button
-                  type="button"
-                  onClick={handleAddOwner}
-                  style={{
-                    alignSelf: 'flex-start',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.2)',
-                    color: '#3b82f6',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    marginTop: '2px',
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <Plus size={13} />
-                  <span>{t('dashboard.addOwner') || 'Add Owner Email'}</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={handleAddOwner}
+                      style={{
+                        alignSelf: 'flex-start',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                        color: '#3b82f6',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        marginTop: '2px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <Plus size={13} />
+                      <span>{t('dashboard.addOwner') || 'Add Owner Email'}</span>
+                    </button>
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid var(--glass-border)',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '6px'
+                    }}>
+                      {safeOwners.map((ownerEmail, index) => (
+                        <span key={`readonly-owner-${index}`} style={{
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          background: ownerEmail.toLowerCase().trim() === primaryOwner ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                          color: ownerEmail.toLowerCase().trim() === primaryOwner ? '#3b82f6' : 'var(--foreground)',
+                          border: '1px solid var(--glass-border)',
+                        }}>
+                          {ownerEmail} {ownerEmail.toLowerCase().trim() === primaryOwner ? '(Primary Owner)' : ''}
+                        </span>
+                      ))}
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      ℹ️ {t('settings.onlyPrimaryCanEditOwners') || 'Only the primary router owner can modify authorized owners.'}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1225,7 +1280,7 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* ── 6. Danger Zone Card ── */}
+        {/* ── 6. Danger Zone / Unshare Card ── */}
         <div style={{ ...cardStyle, border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.03)' }}>
           <div style={sectionHeaderStyle}>
             <div style={iconCircleStyle('rgba(239, 68, 68, 0.15)', '#ef4444')}>
@@ -1233,17 +1288,19 @@ export default function SettingsPage() {
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#ef4444' }}>
-                {t('settings.dangerZoneTitle')}
+                {isPrimaryOwner ? t('settings.dangerZoneTitle') : (t('settings.unshareTitle') || 'Remove Router from My Account')}
               </h3>
               <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
-                {t('settings.dangerZoneSubtitle')}
+                {isPrimaryOwner ? t('settings.dangerZoneSubtitle') : (t('settings.unshareSubtitle') || 'Disassociate this shared router from your account. The primary owner will retain access.')}
               </p>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-              Deleting this router configuration will disassociate it from your cloud account.
+              {isPrimaryOwner
+                ? 'Deleting this router configuration will disassociate it from your cloud account.'
+                : 'Removing this router will disassociate it from your account only without deleting it for the primary owner.'}
             </p>
 
             <button
@@ -1266,7 +1323,11 @@ export default function SettingsPage() {
               }}
             >
               <Trash2 size={13} />
-              <span>{isDeleting ? t('settings.deleting') : t('settings.deleteRouterBtn')}</span>
+              <span>
+                {isDeleting
+                  ? t('settings.deleting')
+                  : (isPrimaryOwner ? t('settings.deleteRouterBtn') : (t('settings.unshareBtn') || 'Remove from My Account'))}
+              </span>
             </button>
           </div>
         </div>
