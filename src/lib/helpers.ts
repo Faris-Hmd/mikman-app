@@ -1,14 +1,16 @@
 import { RouterConfig } from '../store';
 import { SERVER_URL } from '../api';
 
-export const getRemainingDays = (expiresAt: any, nowTime: number): number | null => {
+export const getRemainingDays = (expiresAt: any, nowTime?: number): number | null => {
   if (!expiresAt) return null;
   try {
     const expiresAtDate = typeof expiresAt === 'object' && expiresAt.seconds
       ? new Date(expiresAt.seconds * 1000)
       : new Date(expiresAt as string | number);
-    const diffTime = expiresAtDate.getTime() - nowTime;
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (isNaN(expiresAtDate.getTime())) return null;
+    const currentMs = nowTime && nowTime > 0 ? nowTime : Date.now();
+    const diffTime = expiresAtDate.getTime() - currentMs;
+    return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
   } catch { return null; }
 };
 

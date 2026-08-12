@@ -12,7 +12,7 @@ export default function LandingPage() {
   const { user: currentUser } = useAuth();
   const { showAlert } = useModal();
   const { t, language } = useLanguage();
-  const [nowTime, setNowTime] = useState<number>(0);
+  const [nowTime, setNowTime] = useState<number>(() => Date.now());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: routerData, mutate: mutateRouters } = useSWR(
@@ -36,8 +36,7 @@ export default function LandingPage() {
   }, [routerStatuses]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setNowTime(Date.now()), 0);
-    return () => clearTimeout(timer);
+    setNowTime(Date.now());
   }, []);
 
   // Sort by date added: First added router (oldest) on top
