@@ -80,9 +80,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setSupabaseIdToken(session.access_token);
+
+        // Purge cached user data if it belongs to a different email to prevent inheriting another user's status
+        setCachedUserData(prev => {
+          if (prev && prev.email && session.user.email && prev.email.toLowerCase() !== session.user.email.toLowerCase()) {
+            try { localStorage.removeItem('@cached_user_data'); } catch {}
+            return null;
+          }
+          return prev;
+        });
+
         setUser(session.user);
 
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
           try {
             await registerUserAPI();
           } catch (err) {
