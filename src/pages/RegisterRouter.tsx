@@ -4,7 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { useAuth } from '../context/AuthContext';
 import { generateCloudScriptAPI } from '../api';
-import { Router, Cpu, User, Lock, ArrowLeft, Terminal, Copy, Check } from 'lucide-react';
+import { Router, Cpu, User, Lock, ArrowLeft, Terminal, Copy, Check, Info } from 'lucide-react';
 
 const HARDWARE_MODELS: { value: string; label: string }[] = [
   { value: 'hap-ax3', label: 'hAP AX³' },
@@ -385,6 +385,25 @@ export default function RegisterRouterPage() {
         {/* ── Credentials Section ── */}
         <div style={cardStyle}>
           <div style={sectionTitleStyle}>{t('sections.adminCredentials') || 'Admin Credentials'}</div>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+            padding: '8px 10px',
+            borderRadius: '8px',
+            background: 'rgba(59, 130, 246, 0.08)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            color: 'var(--foreground)',
+            fontSize: '11px',
+            lineHeight: '1.4',
+            marginBottom: '10px'
+          }}>
+            <Info size={14} style={{ color: '#3b82f6', flexShrink: 0, marginTop: '2px' }} />
+            <span>
+              {t('dashboard.winboxNotice') || 'Note: Enter the same username & password used to log into your MikroTik router via WinBox or WebFig.'}
+            </span>
+          </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <div style={{ flex: 1 }}>
