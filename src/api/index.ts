@@ -857,6 +857,7 @@ export interface PlanCatalogItem {
   name: string;
   nameAr?: string;
   priceSdg?: number;
+  priceUsd?: number;
   days: number;
   maxRouters: number;
   description?: string;

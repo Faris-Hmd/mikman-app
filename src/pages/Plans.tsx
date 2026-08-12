@@ -11,19 +11,11 @@ const WHATSAPP_NUMBER = '249966626693';
 // Fallback plans if network/server API is unreachable
 const FALLBACK_PLANS: PlanCatalogItem[] = [
   {
-    id: 'free',
-    name: 'Free Trial',
-    nameAr: 'تجربة مجانية',
-    priceSdg: 0,
-    days: 7,
-    maxRouters: 1,
-    description: '7-day free trial with 1 router capacity',
-  },
-  {
     id: 'basic',
     name: 'Basic Tier',
     nameAr: 'الباقة الأساسية',
     priceSdg: 30000,
+    priceUsd: 5,
     days: 30,
     maxRouters: 1,
     description: '30-day subscription for 1 router',
@@ -33,6 +25,7 @@ const FALLBACK_PLANS: PlanCatalogItem[] = [
     name: 'Pro Tier',
     nameAr: 'الباقة الاحترافية',
     priceSdg: 50000,
+    priceUsd: 8,
     days: 30,
     maxRouters: 5,
     description: '30-day subscription for up to 5 routers',
@@ -42,6 +35,7 @@ const FALLBACK_PLANS: PlanCatalogItem[] = [
     name: 'Max Enterprise',
     nameAr: 'الباقة القصوى',
     priceSdg: 80000,
+    priceUsd: 13,
     days: 30,
     maxRouters: 20,
     description: '30-day subscription for up to 20 routers',
@@ -63,16 +57,17 @@ export default function PlansPage() {
     revalidateOnFocus: false,
   });
 
-  const plansList = dbPlans && dbPlans.length > 0 ? dbPlans : FALLBACK_PLANS;
+  const rawPlans = dbPlans && dbPlans.length > 0 ? dbPlans : FALLBACK_PLANS;
+  const plansList = rawPlans.filter((p) => p.id !== 'free');
   const currentRoutersCount = routerData?.profiles?.length || 0;
-  const currentPlanQuota = (userData?.quota || accountInfo?.plan || 'free').toLowerCase().trim();
+  const currentPlanQuota = (userData?.quota || accountInfo?.plan || 'basic').toLowerCase().trim();
 
   // Track selected plan and whether user manually selected a plan
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('free');
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('basic');
   const [userSelected, setUserSelected] = useState(false);
 
   useEffect(() => {
-    if (!userSelected && currentPlanQuota) {
+    if (!userSelected && currentPlanQuota && currentPlanQuota !== 'free') {
       setSelectedPlanId(currentPlanQuota);
     }
   }, [currentPlanQuota, userSelected]);
@@ -118,6 +113,8 @@ export default function PlansPage() {
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  const canGoBack = accountInfo?.subscriptionState === 'active';
+
   return (
     <div
       dir={isRtl ? 'rtl' : 'ltr'}
@@ -145,26 +142,28 @@ export default function PlansPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '34px',
-                height: '34px',
-                borderRadius: '10px',
-                backgroundColor: 'var(--card-bg)',
-                border: '1px solid var(--glass-border)',
-                color: 'var(--foreground)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-              title="Go Back"
-            >
-              {isRtl ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}
-            </button>
+            {canGoBack && (
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
+                  backgroundColor: 'var(--card-bg)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--foreground)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                title="Go Back"
+              >
+                {isRtl ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}
+              </button>
+            )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div
@@ -272,9 +271,8 @@ export default function PlansPage() {
                 const isSelected = selectedPlanId === plan.id && !isTooSmall;
                 const isCurrent = currentPlanQuota === plan.id.toLowerCase().trim();
                 const displayName = isRtl && plan.nameAr ? plan.nameAr : plan.name;
-                const formattedPrice = plan.priceSdg && plan.priceSdg > 0
-                  ? `${plan.priceSdg.toLocaleString()} SDG`
-                  : (isRtl ? 'مجاني' : 'Free');
+                const priceUsd = Math.round(plan.priceUsd ?? (plan.priceSdg ? plan.priceSdg / 6000 : 0));
+                const formattedPrice = `$${priceUsd}`;
 
                 return (
                   <div

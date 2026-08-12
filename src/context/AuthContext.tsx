@@ -83,7 +83,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session.user);
 
         if (event === 'SIGNED_IN') {
-          registerUserAPI().catch(err => console.warn('[Auth] Auto-register call failed:', err));
+          try {
+            await registerUserAPI();
+          } catch (err) {
+            console.warn('[Auth] Auto-register call failed:', err);
+          }
+          await checkStatus();
         }
       } else {
         setSupabaseIdToken(null);
@@ -201,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userData: activeUserData,
       accountInfo,
       isAuthLoading,
-      isSubLoading: user ? (isSubLoading && !activeUserData) : false,
+      isSubLoading: user ? (isSubLoading || !activeUserData) : false,
       signOut,
       checkStatus,
     }}>

@@ -4,20 +4,23 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { supabase } from '../lib/supabase';
-import { fetchUserSubscriptionHistoryAPI, SubscriptionHistoryEntry } from '../api';
+import useSWR from 'swr';
+import { fetchUserSubscriptionHistoryAPI, fetchPlansCatalogAPI, SubscriptionHistoryEntry, PlanCatalogItem } from '../api';
 import { User, ShieldCheck, Clock, CreditCard, History, MessageCircle, Calendar, AlertTriangle, KeyRound, Eye, EyeOff, Lock, CheckCircle2, LogOut } from 'lucide-react';
 import LogoutConfirmModal from '../components/LogoutConfirmModal';
 
 const WHATSAPP_NUMBER = '249966626693';
 
-function formatPlanName(quota?: string, isRtl = false): string {
+function formatPlanName(quota?: string, isRtl = false, plansCatalog?: PlanCatalogItem[], maxRouters?: number): string {
   if (!quota) return isRtl ? 'تجريبي مجاني' : 'Free Trial';
   const q = quota.toLowerCase().trim();
   if (q === 'free') return isRtl ? 'تجريبي مجاني (7 أيام)' : 'Free Trial (7 Days)';
-  if (q === 'basic' || q === 'quota1') return isRtl ? 'الخطة الأساسية (10 راوترات)' : 'Basic Plan (10 Routers)';
-  if (q === 'pro' || q === 'quota2') return isRtl ? 'الخطة الاحترافية (20 راوتر)' : 'Pro Plan (20 Routers)';
-  if (q === 'max') return isRtl ? 'الخطة القصوى' : 'Max Plan';
-  return `${q.charAt(0).toUpperCase() + q.slice(1)} Plan`;
+
+  const matched = plansCatalog?.find(p => p.id.toLowerCase() === q);
+  const title = matched ? (isRtl && matched.nameAr ? matched.nameAr : matched.name) : `${q.charAt(0).toUpperCase() + q.slice(1)} Plan`;
+  const limit = maxRouters ?? matched?.maxRouters ?? 1;
+  const routerText = isRtl ? (limit === 1 ? 'راوتر واحد' : `${limit} راوترات`) : (limit === 1 ? '1 Router' : `${limit} Routers`);
+  return `${title} (${routerText})`;
 }
 
 function formatDate(dateStr?: string | null): string {
@@ -41,6 +44,7 @@ export default function AccountPage() {
   const { user, userData, accountInfo } = useAuth();
   const { t, isRtl } = useLanguage();
   const { showAlert } = useModal();
+  const { data: plansCatalog } = useSWR('plans-catalog', fetchPlansCatalogAPI);
   const [history, setHistory] = useState<SubscriptionHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -76,7 +80,7 @@ export default function AccountPage() {
 
   const handleWhatsAppContact = () => {
     const message = encodeURIComponent(
-      `Hello MikMan Support, I have an inquiry regarding my subscription.\nEmail: ${user?.email || ''}\nCurrent Plan: ${formatPlanName(userData?.quota)}`
+      `Hello MikMan Support, I have an inquiry regarding my subscription.\nEmail: ${user?.email || ''}\nCurrent Plan: ${formatPlanName(userData?.quota, isRtl, plansCatalog, userData?.maxRouters)}`
     );
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
   };
@@ -284,7 +288,7 @@ export default function AccountPage() {
 
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--foreground)', margin: 0 }}>
-              {formatPlanName(userData?.quota, isRtl)}
+              {formatPlanName(userData?.quota, isRtl, plansCatalog, userData?.maxRouters)}
             </h3>
             <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
               {t('accountPage.maxRouterLimit').replace('{count}', String(userData?.maxRouters ?? 1))}
@@ -617,7 +621,7 @@ export default function AccountPage() {
                   {log.details && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '11px', color: 'var(--text-muted)' }}>
                       {log.details.plan && (
-                        <span>{t('accountPage.plan')} <strong style={{ color: 'var(--primary)' }}>{formatPlanName(log.details.plan, isRtl)}</strong></span>
+                        <span>{t('accountPage.plan')} <strong style={{ color: 'var(--primary)' }}>{formatPlanName(log.details.plan, isRtl, plansCatalog, log.details.max_routers)}</strong></span>
                       )}
                       {log.details.max_routers !== undefined && (
                         <span>{t('accountPage.routers')} <strong style={{ color: 'var(--foreground)' }}>{log.details.max_routers}</strong></span>

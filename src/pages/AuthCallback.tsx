@@ -8,16 +8,12 @@ export default function AuthCallback() {
 
   useEffect(() => {
     // AuthContext handles the OAuth exchange and SWR fetching.
-    // Just wait until everything is settled, then redirect.
+    // Just wait until everything is settled, then redirect to root where App.tsx routes appropriately.
     if (!user) return; // Not yet authenticated
 
-    if (isSubLoading) return; // Still fetching account info
+    if (isSubLoading || !accountInfo) return; // Still fetching account info
 
-    if (accountInfo && accountInfo.subscriptionState === 'active') {
-      navigate('/', { replace: true });
-    }
-    // If not active (unapproved/expired), App.tsx will show PlansPage
-    // No need to do anything — the user stays here
+    navigate('/', { replace: true });
   }, [user, accountInfo, isSubLoading, navigate]);
 
   return (
