@@ -785,9 +785,13 @@ export const provisionTimezoneAPI = async (id: string, timezone: string): Promis
 };
 
 export const deleteRouterProfileAPI = async (id: string): Promise<{ success: boolean; message: string }> => {
-  return apiCall(`/routers/${id}`, {
+  const result = await apiCall<{ success: boolean; message: string }>(`/routers/${id}`, {
     method: 'DELETE',
   });
+  mutate('router-profiles-user');
+  mutate('user-routers');
+  mutate((key: any) => typeof key === 'string' && key.includes(id), undefined, { revalidate: false });
+  return result;
 };
 
 export const fetchIpBindingsAPI = async (routerId: string): Promise<any[]> => {
