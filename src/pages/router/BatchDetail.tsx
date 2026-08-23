@@ -178,7 +178,7 @@ export default function BatchDetailPage() {
       ? `batch-detail-${routerId}-${profile}-${batchId || comment || 'none'}`
       : null,
     () => fetchVoucherBatchDetailAPI(routerId!, profile, comment, printLabel, batchId),
-    { revalidateOnFocus: false, dedupingInterval: 15000, keepPreviousData: true }
+    { revalidateOnFocus: true, dedupingInterval: 2000, keepPreviousData: true }
   );
 
   const routerSavedSSID =

@@ -538,6 +538,7 @@ export const revalidateRouterCache = (routerId: string, keys?: string[]) => {
   mutate(`batch-list-${routerId}`);
   mutate(`voucher-profiles-${routerId}`);
   mutate(`router-profiles-${routerId}`);
+  mutate((key: any) => typeof key === 'string' && key.includes(`batch-detail-${routerId}`), undefined, { revalidate: true });
 };
 
 export const deleteVouchersAPI = async (routerId: string, ids: string[]): Promise<void> => {
