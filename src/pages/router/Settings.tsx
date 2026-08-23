@@ -1092,115 +1092,126 @@ export default function SettingsPage() {
 
             {/* ── Live Hotspot Captive Portal Sign-in Preview ── */}
             <div style={{
-              marginTop: '4px',
-              background: 'linear-gradient(135deg, #090d16 0%, #111827 100%)',
-              border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.12))',
-              borderRadius: '16px',
+              marginTop: '16px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '20px',
               padding: '16px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
+              color: '#0f172a',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: '#ec4899' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: '#2563eb' }}>
                   <Smartphone size={13} />
-                  <span>معاينة حية لصفحة تسجيل الدخول (Live Portal Preview)</span>
+                  <span>معاينة حية لصفحة الهوتسبوت (hotspot/login.html)</span>
                 </div>
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#22c55e', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.25)', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#22c55e', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
                   Live
                 </span>
               </div>
 
-              {/* Simulated Phone Frame */}
+              {/* Phone Frame Rendering hotspot/login.html */}
               <div style={{
-                maxWidth: '260px',
+                maxWidth: '280px',
                 margin: '0 auto',
-                background: 'radial-gradient(circle at top, rgba(236, 72, 153, 0.15) 0%, rgba(15, 23, 42, 0.95) 75%)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: '24px',
-                padding: '24px 16px 18px 16px',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '20px',
+                padding: '24px 20px 20px',
                 textAlign: 'center',
-                boxShadow: '0 12px 30px rgba(0,0,0,0.6)',
-                position: 'relative',
-                overflow: 'hidden',
+                boxShadow: '0 15px 35px -10px rgba(15, 23, 42, 0.1)',
+                direction: 'rtl',
+                fontFamily: "'Tajawal', system-ui, sans-serif",
               }}>
-                {/* Ambient Glow */}
-                <div style={{
-                  position: 'absolute',
-                  top: '-30px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '100px',
-                  height: '100px',
-                  background: 'rgba(236, 72, 153, 0.3)',
-                  filter: 'blur(25px)',
-                  borderRadius: '50%',
-                  pointerEvents: 'none',
-                }} />
-
-                {/* Brand Wifi Icon */}
-                <div style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #ec4899 0%, #3b82f6 100%)',
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 10px auto',
-                  boxShadow: '0 4px 15px rgba(236, 72, 153, 0.4)',
-                }}>
-                  <Wifi size={20} />
+                {/* WiFi Brand Icon */}
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
+                  <div style={{
+                    width: '50px',
+                    height: '50px',
+                    borderRadius: '14px',
+                    background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                    border: '1px solid #bfdbfe',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#2563eb',
+                  }}>
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
+                      <path d="M12 3C7.95 3 4.21 4.64 1.41 7.31L3 8.9C5.38 6.63 8.53 5.25 12 5.25C15.47 5.25 18.62 6.63 21 8.9L22.59 7.31C19.79 4.64 16.05 3 12 3ZM12 7.5C9.17 7.5 6.58 8.62 4.64 10.45L6.23 12.04C7.71 10.66 9.75 9.75 12 9.75C14.25 9.75 16.29 10.66 17.77 12.04L19.36 10.45C17.42 8.62 14.83 7.5 12 7.5ZM12 12C10.41 12 8.96 12.63 7.87 13.66L9.46 15.25C10.11 14.63 11 14.25 12 14.25C13 14.25 13.89 14.63 14.54 15.25L16.13 13.66C15.04 12.63 13.59 12 12 12ZM12 16.5C11.17 16.5 10.5 17.17 10.5 18C10.5 18.83 11.17 19.5 12 19.5C12.83 19.5 13.5 18.83 13.5 18C13.5 17.17 12.83 16.5 12 16.5Z"/>
+                    </svg>
+                  </div>
                 </div>
 
                 {/* Live Wifi Brand Title */}
-                <h4 style={{
+                <h1 style={{
                   margin: '0 0 4px 0',
-                  fontSize: '15px',
+                  fontSize: '17px',
                   fontWeight: 800,
-                  color: '#ffffff',
-                  letterSpacing: '-0.2px',
+                  color: '#0f172a',
                   wordBreak: 'break-word',
                 }}>
                   {(useCustomHotspotName && hotspotWifiName.trim())
                     ? hotspotWifiName.trim()
                     : (wifiSsid.trim() || status?.wifiName || 'شبكة الواي فاي')}
-                </h4>
+                </h1>
 
-                <p style={{ margin: '0 0 14px 0', fontSize: '10px', color: 'rgba(255, 255, 255, 0.65)' }}>
-                  مرحباً بك! أدخل كرت الواي فاي للاتصال
+                <p style={{ margin: '0 0 16px 0', fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
+                  أدخل رمز الاشتراك للاتصال بالشبكة
                 </p>
 
-                {/* Simulated Login Form */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {/* Form Simulation */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    width: '100%',
+                    height: '42px',
+                    background: '#ffffff',
+                    border: '1.5px solid #cbd5e1',
                     borderRadius: '10px',
-                    padding: '8px 12px',
-                    color: 'rgba(255, 255, 255, 0.4)',
-                    fontSize: '11px',
-                    textAlign: 'center',
-                    fontFamily: 'monospace',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#94a3b8',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    direction: 'rtl',
                   }}>
-                    رمز الكرت (Voucher Code)
+                    أدخل كرت الشحن
                   </div>
 
                   <div style={{
-                    background: 'linear-gradient(135deg, #ec4899 0%, #3b82f6 100%)',
-                    color: '#fff',
+                    width: '100%',
+                    height: '42px',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    color: '#ffffff',
                     borderRadius: '10px',
-                    padding: '8px 12px',
-                    fontSize: '11px',
+                    fontSize: '13px',
                     fontWeight: 700,
-                    boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
                   }}>
-                    تسجيل الدخول (Login)
+                    اتصال بالشبكة
+                  </div>
+
+                  <div style={{
+                    background: '#f0f9ff',
+                    border: '1px solid #e0f2fe',
+                    color: '#0369a1',
+                    borderRadius: '8px',
+                    fontSize: '10px',
+                    fontWeight: 500,
+                    padding: '8px 10px',
+                    marginTop: '2px',
+                    textAlign: 'center',
+                  }}>
+                    💡 الرجاء الاحتفاظ بكرت الشحن حتى انتهاء الوقت
                   </div>
                 </div>
 
-                <div style={{ marginTop: '14px', fontSize: '9px', color: 'rgba(255, 255, 255, 0.4)' }}>
-                  {cardPrintLabel.trim() ? cardPrintLabel.trim() : ((useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || 'MikroTik'))} • Hotspot Portal
+                <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px dashed #f1f5f9', fontSize: '10px', color: '#94a3b8' }}>
+                  <span>تصميم وتطوير: فارس حمد</span>
                 </div>
               </div>
             </div>
