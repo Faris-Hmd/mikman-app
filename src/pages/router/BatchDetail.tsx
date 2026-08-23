@@ -1566,7 +1566,7 @@ export default function BatchDetailPage() {
                   <Tag size={10} />
                   {profile}
                 </span>
-                <span style={{
+                <span className="hide-sm" style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '3px',
