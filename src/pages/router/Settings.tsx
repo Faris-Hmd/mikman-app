@@ -37,6 +37,7 @@ import {
   Copy,
   Check,
   Tag,
+  Smartphone,
   Settings as SettingsIcon,
 } from 'lucide-react';
 
@@ -1087,6 +1088,121 @@ export default function SettingsPage() {
                 placeholder={t('settings.cardPrintLabelPlaceholder')}
                 style={inputStyle}
               />
+            </div>
+
+            {/* ── Live Hotspot Captive Portal Sign-in Preview ── */}
+            <div style={{
+              marginTop: '4px',
+              background: 'linear-gradient(135deg, #090d16 0%, #111827 100%)',
+              border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.12))',
+              borderRadius: '16px',
+              padding: '16px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: '#ec4899' }}>
+                  <Smartphone size={13} />
+                  <span>معاينة حية لصفحة تسجيل الدخول (Live Portal Preview)</span>
+                </div>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#22c55e', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.25)', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
+                  Live
+                </span>
+              </div>
+
+              {/* Simulated Phone Frame */}
+              <div style={{
+                maxWidth: '260px',
+                margin: '0 auto',
+                background: 'radial-gradient(circle at top, rgba(236, 72, 153, 0.15) 0%, rgba(15, 23, 42, 0.95) 75%)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '24px',
+                padding: '24px 16px 18px 16px',
+                textAlign: 'center',
+                boxShadow: '0 12px 30px rgba(0,0,0,0.6)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
+                {/* Ambient Glow */}
+                <div style={{
+                  position: 'absolute',
+                  top: '-30px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '100px',
+                  height: '100px',
+                  background: 'rgba(236, 72, 153, 0.3)',
+                  filter: 'blur(25px)',
+                  borderRadius: '50%',
+                  pointerEvents: 'none',
+                }} />
+
+                {/* Brand Wifi Icon */}
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #ec4899 0%, #3b82f6 100%)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 10px auto',
+                  boxShadow: '0 4px 15px rgba(236, 72, 153, 0.4)',
+                }}>
+                  <Wifi size={20} />
+                </div>
+
+                {/* Live Wifi Brand Title */}
+                <h4 style={{
+                  margin: '0 0 4px 0',
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  letterSpacing: '-0.2px',
+                  wordBreak: 'break-word',
+                }}>
+                  {(useCustomHotspotName && hotspotWifiName.trim())
+                    ? hotspotWifiName.trim()
+                    : (wifiSsid.trim() || status?.wifiName || 'شبكة الواي فاي')}
+                </h4>
+
+                <p style={{ margin: '0 0 14px 0', fontSize: '10px', color: 'rgba(255, 255, 255, 0.65)' }}>
+                  مرحباً بك! أدخل كرت الواي فاي للاتصال
+                </p>
+
+                {/* Simulated Login Form */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    color: 'rgba(255, 255, 255, 0.4)',
+                    fontSize: '11px',
+                    textAlign: 'center',
+                    fontFamily: 'monospace',
+                  }}>
+                    رمز الكرت (Voucher Code)
+                  </div>
+
+                  <div style={{
+                    background: 'linear-gradient(135deg, #ec4899 0%, #3b82f6 100%)',
+                    color: '#fff',
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)',
+                  }}>
+                    تسجيل الدخول (Login)
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '14px', fontSize: '9px', color: 'rgba(255, 255, 255, 0.4)' }}>
+                  {cardPrintLabel.trim() ? cardPrintLabel.trim() : ((useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || 'MikroTik'))} • Hotspot Portal
+                </div>
+              </div>
             </div>
           </div>
 
