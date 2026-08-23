@@ -58,7 +58,8 @@ import { TIMEZONES } from '../../constants/timezones';
 export default function SettingsPage() {
   const { routerId } = useParams<{ routerId: string }>();
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isRtl = language === 'ar';
   const { showAlert, showConfirm } = useModal();
   const { user } = useAuth();
   const currentUserEmail = user?.email ? user.email.toLowerCase().trim() : '';
@@ -1103,7 +1104,7 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: '#2563eb' }}>
                   <Smartphone size={13} />
-                  <span>معاينة حية لصفحة الهوتسبوت (hotspot/login.html)</span>
+                  <span>{t('settings.livePortalPreview')}</span>
                 </div>
                 <span style={{ fontSize: '10px', fontWeight: 600, color: '#22c55e', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
@@ -1121,7 +1122,7 @@ export default function SettingsPage() {
                 padding: '24px 20px 20px',
                 textAlign: 'center',
                 boxShadow: '0 15px 35px -10px rgba(15, 23, 42, 0.1)',
-                direction: 'rtl',
+                direction: isRtl ? 'rtl' : 'ltr',
                 fontFamily: "'Tajawal', system-ui, sans-serif",
               }}>
                 {/* WiFi Brand Icon */}
@@ -1153,11 +1154,11 @@ export default function SettingsPage() {
                 }}>
                   {(useCustomHotspotName && hotspotWifiName.trim())
                     ? hotspotWifiName.trim()
-                    : (wifiSsid.trim() || status?.wifiName || 'شبكة الواي فاي')}
+                    : (wifiSsid.trim() || status?.wifiName || (isRtl ? 'شبكة الواي فاي' : 'Wi-Fi Network'))}
                 </h1>
 
                 <p style={{ margin: '0 0 16px 0', fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
-                  أدخل رمز الاشتراك للاتصال بالشبكة
+                  {t('settings.enterVoucherCode')}
                 </p>
 
                 {/* Form Simulation */}
@@ -1174,9 +1175,9 @@ export default function SettingsPage() {
                     color: '#94a3b8',
                     fontSize: '13px',
                     fontWeight: 500,
-                    direction: 'rtl',
+                    direction: isRtl ? 'rtl' : 'ltr',
                   }}>
-                    أدخل كرت الشحن
+                    {t('settings.enterVoucherCode')}
                   </div>
 
                   <div style={{
@@ -1192,7 +1193,7 @@ export default function SettingsPage() {
                     justifyContent: 'center',
                     boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
                   }}>
-                    اتصال بالشبكة
+                    {t('settings.connectToNetwork')}
                   </div>
 
                   <div style={{
@@ -1206,12 +1207,12 @@ export default function SettingsPage() {
                     marginTop: '2px',
                     textAlign: 'center',
                   }}>
-                    💡 الرجاء الاحتفاظ بكرت الشحن حتى انتهاء الوقت
+                    {t('settings.keepVoucherNotice')}
                   </div>
                 </div>
 
                 <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px dashed #f1f5f9', fontSize: '10px', color: '#94a3b8' }}>
-                  <span>تصميم وتطوير: فارس حمد</span>
+                  <span>{t('settings.devCredits')}</span>
                 </div>
               </div>
             </div>
@@ -1229,7 +1230,7 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: '#ec4899' }}>
                   <Tag size={13} />
-                  <span>معاينة حية لكرت الطباعة (Live Printed Ticket Preview)</span>
+                  <span>{t('settings.liveTicketPreview')}</span>
                 </div>
                 <span style={{ fontSize: '10px', fontWeight: 600, color: '#22c55e', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
@@ -1253,12 +1254,13 @@ export default function SettingsPage() {
                 boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
                 color: '#000000',
                 boxSizing: 'border-box',
+                direction: isRtl ? 'rtl' : 'ltr',
               }}>
                 {/* Header: Wifi Icon + Printed Wifi Name / Print Label */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px', maxWidth: '100%', overflow: 'hidden' }}>
                   <Wifi size={13} style={{ color: '#000000', flexShrink: 0 }} />
                   <span style={{ fontSize: '13px', fontWeight: 800, color: '#000000', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {cardPrintLabel.trim() ? cardPrintLabel.trim() : ((useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || 'شبكة الواي فاي'))}
+                    {cardPrintLabel.trim() ? cardPrintLabel.trim() : ((useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || (isRtl ? 'شبكة الواي فاي' : 'Wi-Fi Network')))}
                   </span>
                 </div>
 
@@ -1286,7 +1288,7 @@ export default function SettingsPage() {
                   maxWidth: '100%',
                   marginBottom: '2px',
                 }}>
-                  اسم البروفايل (Profile Name)
+                  {t('settings.profileNameLabel')}
                 </div>
               </div>
             </div>
