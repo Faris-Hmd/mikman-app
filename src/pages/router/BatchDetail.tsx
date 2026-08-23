@@ -36,6 +36,7 @@ import {
   Wifi,
   Tag,
   MessageSquare,
+  RefreshCw
 } from 'lucide-react';
 
 type StatusFilter = 'all' | 'unused' | 'active' | 'expired';
@@ -172,14 +173,27 @@ export default function BatchDetailPage() {
   // Copy feedback
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  // Fetch batch detail
-  const { data: batchDetail, isLoading: detailLoading } = useSWR(
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Fetch batch detail with 15s auto-refresh
+  const { data: batchDetail, isLoading: detailLoading, mutate: mutateDetail } = useSWR(
     routerId && profile
       ? `batch-detail-${routerId}-${profile}-${batchId || comment || 'none'}`
       : null,
     () => fetchVoucherBatchDetailAPI(routerId!, profile, comment, printLabel, batchId),
-    { revalidateOnFocus: true, dedupingInterval: 2000, keepPreviousData: true }
+    { revalidateOnFocus: true, refreshInterval: 15000, dedupingInterval: 2000, keepPreviousData: true }
   );
+
+  const handleManualRefresh = async () => {
+    if (!routerId || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      revalidateRouterCache(routerId);
+      await mutateDetail();
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   const routerSavedSSID =
     activeRouter?.wifiName ||
@@ -205,6 +219,7 @@ export default function BatchDetailPage() {
   const refreshDetail = () => {
     if (routerId) {
       revalidateRouterCache(routerId);
+      mutateDetail();
     }
   };
 
@@ -1476,8 +1491,31 @@ export default function BatchDetailPage() {
             </div>
           </div>
 
-          {/* Header Actions: Print & Delete Batch */}
+          {/* Header Actions: Refresh, Print & Delete Batch */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            <button
+              onClick={handleManualRefresh}
+              disabled={isRefreshing || detailLoading}
+              title={t('common.refresh') || 'تحديث'}
+              style={{
+                background: 'var(--card-bg, rgba(0, 0, 0, 0.2))',
+                border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+                color: 'var(--foreground)',
+                borderRadius: '8px',
+                padding: '6px 10px',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: (isRefreshing || detailLoading) ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                flexShrink: 0
+              }}
+            >
+              <RefreshCw size={13} className={isRefreshing || detailLoading ? 'spin' : ''} />
+              <span className="hide-sm">{t('common.refresh') || 'تحديث'}</span>
+            </button>
+
             <button
               onClick={() => {
                 if (wifiInput === null) setWifiInput(defaultWifiName);

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import {
   fetchVoucherBatchesAPI,
+  revalidateRouterCache,
   type VoucherBatch,
 } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
@@ -20,7 +21,8 @@ import {
   Filter,
   PackageOpen,
   Printer,
-  FolderTree
+  FolderTree,
+  RefreshCw
 } from 'lucide-react';
 
 export default function BatchPage() {
@@ -31,14 +33,26 @@ export default function BatchPage() {
   const [selectedProfile, setSelectedProfile] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [groupByProfile, setGroupByProfile] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch batches
-  const { data: batches, isLoading: batchesLoading } = useSWR(
+  // Fetch batches with auto-refresh every 15s
+  const { data: batches, isLoading: batchesLoading, mutate } = useSWR(
     routerId ? `batch-list-${routerId}` : null,
     () => fetchVoucherBatchesAPI(routerId!),
-    { revalidateOnFocus: false, dedupingInterval: 15000, keepPreviousData: true }
+    { revalidateOnFocus: true, refreshInterval: 15000, dedupingInterval: 3000, keepPreviousData: true }
   );
   const batchList: VoucherBatch[] = Array.isArray(batches) ? batches : [];
+
+  const handleManualRefresh = async () => {
+    if (!routerId || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      revalidateRouterCache(routerId);
+      await mutate();
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   // Extract unique profiles for filter dropdown
   const uniqueProfiles = useMemo(() => {
@@ -462,27 +476,52 @@ export default function BatchPage() {
           </div>
         </div>
 
-        <button
-          onClick={goToCreate}
-          style={{
-            background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '6px 10px',
-            fontSize: '11px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            boxShadow: '0 2px 6px rgba(59,130,246,0.3)',
-            flexShrink: 0
-          }}
-        >
-          <Plus size={13} />
-          <span style={{ whiteSpace: 'nowrap' }}>{t('batch.createBatch') || 'إنشاء كروت'}</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <button
+            onClick={handleManualRefresh}
+            disabled={isRefreshing || batchesLoading}
+            title={t('common.refresh') || 'تحديث'}
+            style={{
+              background: 'var(--card-bg, rgba(0, 0, 0, 0.2))',
+              border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+              color: 'var(--foreground)',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: (isRefreshing || batchesLoading) ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              flexShrink: 0
+            }}
+          >
+            <RefreshCw size={13} className={isRefreshing || batchesLoading ? 'spin' : ''} />
+            <span style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
+          </button>
+
+          <button
+            onClick={goToCreate}
+            style={{
+              background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              boxShadow: '0 2px 6px rgba(59,130,246,0.3)',
+              flexShrink: 0
+            }}
+          >
+            <Plus size={13} />
+            <span style={{ whiteSpace: 'nowrap' }}>{t('batch.createBatch') || 'إنشاء كروت'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary Statistics Cards */}
