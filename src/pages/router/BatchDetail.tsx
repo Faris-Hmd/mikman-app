@@ -1565,7 +1565,7 @@ export default function BatchDetailPage() {
               title={t('batch.deleteBatch')}
             >
               <Trash2 size={14} />
-              <span>{t('batch.deleteBatch')}</span>
+              <span>{t('common.delete') || 'حذف'}</span>
             </button>
           </div>
         </div>
