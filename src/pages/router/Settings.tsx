@@ -1254,11 +1254,11 @@ export default function SettingsPage() {
                 color: '#000000',
                 boxSizing: 'border-box',
               }}>
-                {/* Header: Wifi Icon + Wifi Name */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
-                  <Wifi size={13} style={{ color: '#000000' }} />
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#000000', letterSpacing: '-0.2px' }}>
-                    {(useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || 'شبكة الواي فاي')}
+                {/* Header: Wifi Icon + Printed Wifi Name / Print Label */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px', maxWidth: '100%', overflow: 'hidden' }}>
+                  <Wifi size={13} style={{ color: '#000000', flexShrink: 0 }} />
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#000000', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {cardPrintLabel.trim() ? cardPrintLabel.trim() : ((useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || 'شبكة الواي فاي'))}
                   </span>
                 </div>
 
@@ -1275,7 +1275,7 @@ export default function SettingsPage() {
                   84920481
                 </div>
 
-                {/* Bottom: Print Ticket Label / Profile Name */}
+                {/* Bottom: Profile Name */}
                 <div style={{
                   fontSize: '11px',
                   fontWeight: 600,
@@ -1286,7 +1286,7 @@ export default function SettingsPage() {
                   maxWidth: '100%',
                   marginBottom: '2px',
                 }}>
-                  {cardPrintLabel.trim() ? cardPrintLabel.trim() : 'ملصق كرت الطباعة (أو اسم البروفايل)'}
+                  اسم البروفايل (Profile Name)
                 </div>
               </div>
             </div>
