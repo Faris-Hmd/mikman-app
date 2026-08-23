@@ -805,6 +805,33 @@ export default function BatchDetailPage() {
     const isActive = status === 'active';
     const isExpired = status === 'expired';
 
+    const rawRemBytes = (voucher as any).remainingBytes ?? (voucher as any)['remaining-bytes'];
+    let dataLeftStr: string | null = null;
+    if (rawRemBytes != null && rawRemBytes !== '') {
+      const num = Number(rawRemBytes);
+      if (!isNaN(num)) dataLeftStr = formatBytes(num);
+    }
+    if (!dataLeftStr) {
+      const limitBytes = (voucher as any).limitBytesTotal ?? (voucher as any)['limit-bytes-total'];
+      if (limitBytes != null && Number(limitBytes) > 0) {
+        const bIn = Number(((voucher as any).bytesIn ?? (voucher as any)['bytes-in']) || 0);
+        const bOut = Number(((voucher as any).bytesOut ?? (voucher as any)['bytes-out']) || 0);
+        const used = bIn + bOut;
+        const rem = Math.max(0, Number(limitBytes) - used);
+        dataLeftStr = formatBytes(rem);
+      }
+    }
+
+    let timeLeftStr: string | null = active.timeLeftText || null;
+    if (!timeLeftStr && (voucher as any).remainingSeconds != null) {
+      const remSec = Number((voucher as any).remainingSeconds);
+      if (!isNaN(remSec) && remSec >= 0) {
+        const hrs = Math.floor(remSec / 3600);
+        const mins = Math.floor((remSec % 3600) / 60);
+        timeLeftStr = `${hrs}h ${mins}m`;
+      }
+    }
+
     return (
       <div
         key={name}
@@ -836,10 +863,19 @@ export default function BatchDetailPage() {
               {copiedCode === name ? <Check size={13} /> : <Copy size={13} />}
             </button>
           </div>
-          {isActive && (
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {(dataLeftStr || timeLeftStr || active.deviceName) && (
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               {active.deviceName && <span>{active.deviceName}</span>}
-              {active.timeLeftText && <span style={{ color: 'var(--accent)' }}>{active.timeLeftText}</span>}
+              {dataLeftStr && dataLeftStr !== '—' && (
+                <span style={{ color: '#22c55e', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                  💾 {dataLeftStr}
+                </span>
+              )}
+              {timeLeftStr && (
+                <span style={{ color: 'var(--accent, #3b82f6)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                  ⏱ {timeLeftStr}
+                </span>
+              )}
             </div>
           )}
         </div>
