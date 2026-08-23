@@ -33,6 +33,7 @@ import {
   CheckCircle2,
   Zap,
   Clock,
+  HardDrive,
   Wifi,
   Tag,
   MessageSquare,
@@ -867,13 +868,15 @@ export default function BatchDetailPage() {
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               {active.deviceName && <span>{active.deviceName}</span>}
               {dataLeftStr && dataLeftStr !== '—' && (
-                <span style={{ color: '#22c55e', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                  💾 {dataLeftStr}
+                <span style={{ color: '#22c55e', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <HardDrive size={11} />
+                  {dataLeftStr}
                 </span>
               )}
               {timeLeftStr && (
-                <span style={{ color: 'var(--accent, #3b82f6)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                  ⏱ {timeLeftStr}
+                <span style={{ color: 'var(--accent, #3b82f6)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <Clock size={11} />
+                  {timeLeftStr}
                 </span>
               )}
             </div>
