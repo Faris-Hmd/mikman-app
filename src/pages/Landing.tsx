@@ -77,6 +77,8 @@ export default function LandingPage() {
   const days = userData ? getRemainingDays(userData.expiresAt, nowTime) : null;
   const planName = userData ? getQuotaName(t, userData.quota as string, userData.maxRouters as number) : null;
 
+  const userName = userData?.name || currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0] : '');
+
   return (
     <div className="app-container" style={{ padding: '16px 20px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
       {/* Header Section */}
@@ -130,7 +132,7 @@ export default function LandingPage() {
             </div>
 
             <span style={{ fontSize: '13px', fontWeight: '750', color: 'var(--foreground)', whiteSpace: 'nowrap' }}>
-              {currentUser?.email?.split('@')[0] || currentUser?.email || <span style={skeletonStyle('80px')} />}
+              {userName || <span style={skeletonStyle('80px')} />}
             </span>
           </div>
 
