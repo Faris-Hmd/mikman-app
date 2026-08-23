@@ -22,6 +22,7 @@ import {
   Trash2,
   Search,
   Printer,
+  Share2,
   Copy,
   Check,
   ChevronLeft,
@@ -356,7 +357,7 @@ export default function BatchDetailPage() {
 
   // ── Print / Export (MK-Voucher-Web Template) ──
 
-  const handlePrintVouchers = async () => {
+  const handlePrintVouchers = async (mode: 'print' | 'share' = 'print') => {
     if (!routerId) return;
     const originalTitle = document.title;
     try {
@@ -396,7 +397,6 @@ export default function BatchDetailPage() {
       const label = profile;
       const batchName = comment ? formatBatchTime(comment) : profile;
       const count = vouchersToPrint.length;
-      const originalTitle = document.title;
 
       const now = new Date();
       const formattedDate = now.toLocaleString('en-US', {
@@ -409,7 +409,6 @@ export default function BatchDetailPage() {
       setPrintDate(formattedDate);
 
       // Page size A4 is 210 x 297 mm
-      // Optimized canvas resolution (~170 DPI) for crisp text & lightweight file size (~60KB/page instead of 1MB/page)
       const canvasWidth = 1400;
       const canvasHeight = Math.round(canvasWidth * (297 / 210)); // 1980
       const scale = canvasWidth / 210;
@@ -544,23 +543,53 @@ export default function BatchDetailPage() {
       const safeLabel = label.replace(/[\s|/\\:*?"<>|]/g, '_');
       const cleanFileName = `${safeWifiName}-${count}-${safeLabel}.pdf`;
 
-      const file = new File([pdfBlob], cleanFileName, { type: 'application/pdf' });
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `Vouchers - ${wifiName} - ${count} Vouchers - ${label}`,
-          text: `Vouchers PDF for WiFi SSID: ${wifiName} | Count: ${count} | Profile: ${label}`,
-        });
+      if (mode === 'share') {
+        const file = new File([pdfBlob], cleanFileName, { type: 'application/pdf' });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: `Vouchers - ${wifiName} - ${count} Vouchers - ${label}`,
+            text: `Vouchers PDF for WiFi: ${wifiName} | Count: ${count} | Profile: ${label}`,
+          });
+        } else {
+          const url = URL.createObjectURL(pdfBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = cleanFileName;
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast('Downloaded PDF file for sharing.', 'success');
+        }
       } else {
-        const url = URL.createObjectURL(pdfBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = cleanFileName;
-        a.click();
-        URL.revokeObjectURL(url);
+        // Direct Print Mode
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        const printIframe = document.createElement('iframe');
+        printIframe.style.position = 'fixed';
+        printIframe.style.right = '0';
+        printIframe.style.bottom = '0';
+        printIframe.style.width = '0';
+        printIframe.style.height = '0';
+        printIframe.style.border = '0';
+        printIframe.src = pdfUrl;
+        document.body.appendChild(printIframe);
+
+        printIframe.onload = () => {
+          setTimeout(() => {
+            try {
+              printIframe.contentWindow?.focus();
+              printIframe.contentWindow?.print();
+            } catch (pErr) {
+              window.open(pdfUrl, '_blank');
+            }
+            setTimeout(() => {
+              if (printIframe.parentNode) document.body.removeChild(printIframe);
+              URL.revokeObjectURL(pdfUrl);
+            }, 2000);
+          }, 300);
+        };
       }
     } catch (error) {
-      console.error('Failed to generate PDF, falling back to window.print():', error);
+      console.error('Failed to generate PDF:', error);
       document.title = `${wifiName} - ${profile} - Vouchers`;
       const restoreTitle = () => {
         document.title = originalTitle;
@@ -1160,32 +1189,54 @@ export default function BatchDetailPage() {
           </div>
 
           {/* Action buttons */}
-          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
             <button
               onClick={() => setShowPrintConfirmModal(false)}
-              style={{ ...btnSecondary, flex: 1, padding: '10px', fontSize: '13px', justifyContent: 'center' }}
+              style={{ ...btnSecondary, padding: '10px 14px', fontSize: '13px', justifyContent: 'center' }}
             >
               {t('common.cancel')}
             </button>
             <button
               onClick={async () => {
                 setShowPrintConfirmModal(false);
-                await handlePrintVouchers();
+                await handlePrintVouchers('print');
               }}
               disabled={printLoading}
               style={{
                 ...btnPrimary,
-                flex: 1.5,
-                padding: '10px',
+                flex: 1,
+                padding: '10px 14px',
                 fontSize: '13px',
                 justifyContent: 'center',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '6px',
               }}
             >
               <Printer size={16} />
-              <span>{printLoading ? '...' : t('batch.printVouchers')}</span>
+              <span>{printLoading ? '...' : (t('batch.directPrint') || 'Print Directly')}</span>
+            </button>
+            <button
+              onClick={async () => {
+                setShowPrintConfirmModal(false);
+                await handlePrintVouchers('share');
+              }}
+              disabled={printLoading}
+              style={{
+                ...btnPrimary,
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                flex: 1,
+                padding: '10px 14px',
+                fontSize: '13px',
+                justifyContent: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Share2 size={16} />
+              <span>{printLoading ? '...' : (t('batch.directShare') || 'Share PDF')}</span>
             </button>
           </div>
         </div>

@@ -346,6 +346,8 @@ export const translations: Record<Language, Record<string, any>> = {
       deleteSingleConfirm: "Are you sure you want to delete voucher card \"{code}\"?",
       deleteSelectedConfirm: "Are you sure you want to delete {count} selected vouchers?",
       groupByProfile: "Group by Profile",
+      directPrint: "Print Directly",
+      directShare: "Share PDF",
     },
     users: {
       title: "Active Hotspot Sessions",
@@ -892,6 +894,8 @@ export const translations: Record<Language, Record<string, any>> = {
       deleteSingleConfirm: "هل أنت متأكد من رغبتك في حذف الكرت \"{code}\"؟",
       deleteSelectedConfirm: "هل أنت متأكد من حذف {count} كرت محددة؟",
       groupByProfile: "تجميع حسب البروفايل",
+      directPrint: "طباعة مباشرة",
+      directShare: "مشاركة الملف",
     },
     users: {
       title: "جلسات Hotspot النشطة",
