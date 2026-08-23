@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import { createContext, useContext } from 'react';
 import { RouterProvisionStatus } from '../api';
 
 export interface RouterContextValue {
@@ -9,15 +9,9 @@ export interface RouterContextValue {
   mutate: () => Promise<any>;
 }
 
-const RouterContext = createContext<RouterContextValue | null>(null);
+export const RouterContext = createContext<RouterContextValue | null>(null);
 
-export function RouterProvider({ children, value }: { children: React.ReactNode; value: RouterContextValue }) {
-  return (
-    <RouterContext.Provider value={value}>
-      {children}
-    </RouterContext.Provider>
-  );
-}
+export { RouterProvider } from './RouterProvider';
 
 export function useRouterContext() {
   const context = useContext(RouterContext);

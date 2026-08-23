@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchProfilesAPI, createVouchersAPI } from '../../api';
+import { fetchProfilesAPI, createVouchersAPI, fetchVoucherJobStatusAPI, revalidateRouterCache } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 
 interface Profile {
@@ -46,6 +46,7 @@ export default function VouchersPage() {
 
   // Status State
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [jobProgress, setJobProgress] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -97,6 +98,7 @@ export default function VouchersPage() {
     setIsSubmitting(true);
     setErrorMsg(null);
     setSuccessMsg(null);
+    setJobProgress(null);
 
     try {
       const res = await createVouchersAPI(
@@ -107,25 +109,54 @@ export default function VouchersPage() {
         comment.trim() || undefined
       );
 
+      if (res?.jobId) {
+        setSuccessMsg(t('vouchers.pushingToRouter') || (isRtl ? 'جاري كتابة الكروت في الراوتر...' : 'Pushing vouchers to router...'));
+        setJobProgress(5);
+        let done = false;
+        let attempts = 0;
+        while (!done && attempts < 120) {
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          attempts++;
+          try {
+            const job = await fetchVoucherJobStatusAPI(routerId, res.jobId);
+            if (job.progress !== undefined) {
+              setJobProgress(job.progress);
+            }
+            if (job.status === 'completed') {
+              done = true;
+            } else if (job.status === 'failed') {
+              throw new Error(job.error || 'Voucher generation failed on router');
+            }
+          } catch (pollErr: any) {
+            if (attempts > 5) done = true;
+          }
+        }
+      }
+
       setSuccessMsg(
         t('vouchers.doneGenerated')
           .replace('{count}', String(count))
           .replace('{profile}', selectedProfile)
       );
+      setJobProgress(100);
 
-      // Brief delay then navigate directly to batch detail view
+      // Revalidate cache across app immediately
+      revalidateRouterCache(routerId);
+
+      // Navigate to batch detail view after background job / creation is 100% finished
       setTimeout(() => {
         const params = new URLSearchParams();
         params.set('profile', selectedProfile);
         if (res?.batchId) params.set('batchId', res.batchId);
         if (comment.trim()) params.set('comment', comment.trim());
         navigate(`/${routerId}/batch/detail?${params.toString()}`);
-      }, 1000);
+      }, 400);
     } catch (err: any) {
       console.error('Failed to generate batch vouchers:', err);
       setErrorMsg(err?.message || t('vouchers.couldNotGenerate'));
     } finally {
       setIsSubmitting(false);
+      setJobProgress(null);
     }
   };
 
@@ -558,7 +589,11 @@ export default function VouchersPage() {
             {isSubmitting ? (
               <>
                 <Loader2 size={18} className="animate-spin" />
-                <span>{t('vouchers.generating')}</span>
+                <span>
+                  {jobProgress !== null
+                    ? `${t('vouchers.generating')} ${jobProgress}%`
+                    : t('vouchers.generating')}
+                </span>
               </>
             ) : (
               <>
@@ -567,6 +602,19 @@ export default function VouchersPage() {
               </>
             )}
           </button>
+
+          {jobProgress !== null && (
+            <div style={{ width: '100%', height: '4px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden', marginTop: '-6px' }}>
+              <div
+                style={{
+                  width: `${jobProgress}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #3b82f6 0%, #22c55e 100%)',
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+          )}
         </form>
 
         {/* Right Card: Live Ticket Preview */}

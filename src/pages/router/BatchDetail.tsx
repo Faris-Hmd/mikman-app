@@ -9,6 +9,7 @@ import {
   getAllVouchersByStatusAPI,
   fetchRouterProfilesAPI,
   fetchSingleRouterStatusAPI,
+  revalidateRouterCache,
   type VoucherBatchDetail,
   type VoucherSummary,
   type ActiveVoucher,
@@ -201,8 +202,8 @@ export default function BatchDetailPage() {
   };
 
   const refreshDetail = () => {
-    if (routerId && profile) {
-      mutate(`batch-detail-${routerId}-${profile}-${batchId || comment || 'none'}`);
+    if (routerId) {
+      revalidateRouterCache(routerId);
     }
   };
 
@@ -295,7 +296,7 @@ export default function BatchDetailPage() {
         return;
       }
       await deleteVouchersAPI(routerId, codes);
-      mutate(`batch-list-${routerId}`);
+      revalidateRouterCache(routerId);
       showToast(t('batch.batchDeletedSuccess'), 'success');
       setShowDeleteBatchModal(false);
       navigate(`/${routerId}/batch`);

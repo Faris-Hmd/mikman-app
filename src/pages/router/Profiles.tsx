@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchProfilesAPI, createProfileAPI, renameProfileAPI, deleteProfileAPI } from '../../api';
+import { fetchProfilesAPI, createProfileAPI, renameProfileAPI, deleteProfileAPI, revalidateRouterCache } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 import {
   Layers,
@@ -68,6 +68,9 @@ export default function ProfilesPage() {
 
   const [limitMB, setLimitMB] = useState<number | undefined>(undefined);
   const [isUnlimited, setIsUnlimited] = useState(true);
+  const [isCustomLimit, setIsCustomLimit] = useState(false);
+  const [customVal, setCustomVal] = useState<number | string>('');
+  const [customUnit, setCustomUnit] = useState<'MB' | 'GB'>('GB');
   const [printLabel, setPrintLabel] = useState('');
   const [revenue, setRevenue] = useState<string | number>('');
 
@@ -88,6 +91,14 @@ export default function ProfilesPage() {
     return profiles.filter((p) => p.name && p.name.toLowerCase() !== 'default');
   }, [profiles]);
 
+  // Data Limit Presets
+  const dataPresets = [
+    { label: '500 MB', mb: 500 },
+    { label: '1 GB', mb: 1024 },
+    { label: '2 GB', mb: 2048 },
+    { label: '5 GB', mb: 5120 },
+  ];
+
   // Telemetry counts
   const totalProfiles = profileList.length;
   const unlimitedCount = profileList.filter((p) => p.isUnlimited || !p.limitMB).length;
@@ -102,6 +113,9 @@ export default function ProfilesPage() {
     setIsUnlimitedTime(false);
     setLimitMB(undefined);
     setIsUnlimited(true);
+    setIsCustomLimit(false);
+    setCustomVal('');
+    setCustomUnit('GB');
     setPrintLabel('');
     setRevenue('');
     setErrorMsg('');
@@ -116,8 +130,27 @@ export default function ProfilesPage() {
     setIsUnlimitedTime(isUnl);
     setValidityNum(isUnl ? 1 : num);
     setValidityUnit(isUnl ? 'd' : unit);
+    
+    const profileIsUnl = p.isUnlimited ?? !p.limitMB;
+    setIsUnlimited(profileIsUnl);
     setLimitMB(p.limitMB);
-    setIsUnlimited(p.isUnlimited ?? !p.limitMB);
+
+    if (!profileIsUnl && p.limitMB) {
+      const isPreset = dataPresets.some((dp) => dp.mb === p.limitMB);
+      setIsCustomLimit(!isPreset);
+      if (p.limitMB % 1024 === 0) {
+        setCustomUnit('GB');
+        setCustomVal(p.limitMB / 1024);
+      } else {
+        setCustomUnit('MB');
+        setCustomVal(p.limitMB);
+      }
+    } else {
+      setIsCustomLimit(false);
+      setCustomVal('');
+      setCustomUnit('GB');
+    }
+
     setPrintLabel(p.printLabel || '');
     const initialRev = p.revenue != null ? p.revenue : p.price != null ? p.price : '';
     setRevenue(initialRev !== '' ? String(initialRev) : '');
@@ -137,6 +170,18 @@ export default function ProfilesPage() {
     const formattedValidity = isUnlimitedTime ? '0d' : `${validityNum || 1}${validityUnit || 'd'}`;
     const apiIsUnlimited = isUnlimitedTime && isUnlimited;
 
+    const effectiveLimitMB = isUnlimited
+      ? undefined
+      : isCustomLimit
+      ? customVal !== '' && !isNaN(Number(customVal))
+        ? customUnit === 'GB'
+          ? Math.round(Number(customVal) * 1024)
+          : Math.round(Number(customVal))
+        : undefined
+      : limitMB
+      ? Number(limitMB)
+      : undefined;
+
     try {
       if (editingProfile) {
         // Edit Mode
@@ -147,7 +192,7 @@ export default function ProfilesPage() {
           printLabel.trim() || undefined,
           revenue ? Number(revenue) : undefined,
           formattedValidity,
-          isUnlimited ? undefined : Number(limitMB) || undefined,
+          effectiveLimitMB,
           apiIsUnlimited
         );
         setSuccessMsg(t('profiles.profileUpdated'));
@@ -157,7 +202,7 @@ export default function ProfilesPage() {
           routerId!,
           name.trim(),
           formattedValidity,
-          isUnlimited ? undefined : Number(limitMB) || undefined,
+          effectiveLimitMB,
           apiIsUnlimited,
           printLabel.trim() || undefined,
           revenue ? Number(revenue) : undefined
@@ -167,6 +212,7 @@ export default function ProfilesPage() {
 
       setIsModalOpen(false);
       mutate();
+      if (routerId) revalidateRouterCache(routerId);
     } catch (err: any) {
       setErrorMsg(err?.message || (editingProfile ? t('profiles.couldNotUpdate') : t('profiles.couldNotCreate')));
     } finally {
@@ -183,6 +229,7 @@ export default function ProfilesPage() {
     try {
       await deleteProfileAPI(routerId!, p['.id']);
       mutate();
+      if (routerId) revalidateRouterCache(routerId);
     } catch (err: any) {
       if (err?.code === 'PROFILE_IN_USE' || err?.userCount || err?.message?.includes('assigned to') || err?.message?.includes('PROFILE_IN_USE')) {
         setWarningModalData({
@@ -285,13 +332,6 @@ export default function ProfilesPage() {
     { label: `1 ${t('profiles.unitDays') || 'Day'}`, num: 1, unit: 'd', isUnl: false },
     { label: `7 ${t('profiles.unitDays') || 'Days'}`, num: 7, unit: 'd', isUnl: false },
     { label: `30 ${t('profiles.unitDays') || 'Days'}`, num: 30, unit: 'd', isUnl: false },
-  ];
-
-  const dataPresets = [
-    { label: t('profiles.unlimited'), mb: undefined, isUnl: true },
-    { label: '500 MB', mb: 500, isUnl: false },
-    { label: '1 GB', mb: 1024, isUnl: false },
-    { label: '2 GB', mb: 2048, isUnl: false },
   ];
 
   return (
@@ -774,21 +814,115 @@ export default function ProfilesPage() {
                 )}
               </div>
 
-              {/* Data Limit */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--foreground)' }}>
-                  {t('profiles.trafficLimit')}
-                </label>
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  {dataPresets.map((dp) => {
-                    const isSelected = dp.isUnl ? isUnlimited : !isUnlimited && limitMB === dp.mb;
-                    return (
+              {/* Data Limit Control */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(0, 0, 0, 0.12)', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.08))' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <HardDrive size={14} style={{ color: !isUnlimited ? '#a855f7' : 'var(--text-muted)' }} />
+                    <div>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--foreground)', display: 'block' }}>
+                        {t('profiles.limitDataTraffic')}
+                      </span>
+                      <span style={{ fontSize: '9px', color: 'var(--text-muted)', display: 'block' }}>
+                        {isUnlimited
+                          ? t('profiles.unlimitedDataDesc')
+                          : t('profiles.limitedDataDesc')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Switch Toggle */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={!isUnlimited}
+                    onClick={() => {
+                      if (isUnlimited) {
+                        setIsUnlimited(false);
+                        if (!limitMB) {
+                          setLimitMB(1024);
+                          setIsCustomLimit(false);
+                        }
+                      } else {
+                        setIsUnlimited(true);
+                      }
+                    }}
+                    style={{
+                      width: '38px',
+                      height: '20px',
+                      borderRadius: '10px',
+                      background: !isUnlimited ? 'var(--primary, #3b82f6)' : 'rgba(255, 255, 255, 0.15)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'background 0.2s ease',
+                      padding: '2px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                        transform: !isUnlimited ? (isRtl ? 'translateX(-18px)' : 'translateX(18px)') : 'translateX(0)',
+                        transition: 'transform 0.2s ease',
+                      }}
+                    />
+                  </button>
+                </div>
+
+                {/* If Limited Data Traffic is active (!isUnlimited) */}
+                {!isUnlimited && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '4px', borderTop: '1px dashed var(--glass-border, rgba(255, 255, 255, 0.08))' }}>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {dataPresets.map((dp) => {
+                        const isSelected = !isCustomLimit && limitMB === dp.mb;
+                        return (
+                          <button
+                            key={dp.label}
+                            type="button"
+                            onClick={() => {
+                              setIsCustomLimit(false);
+                              setLimitMB(dp.mb);
+                            }}
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '5px',
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              background: isSelected ? 'var(--primary, #3b82f6)' : 'var(--input-bg, rgba(0, 0, 0, 0.15))',
+                              color: isSelected ? '#ffffff' : 'var(--foreground)',
+                              border: '1px solid ' + (isSelected ? 'var(--primary, #3b82f6)' : 'var(--glass-border, rgba(255, 255, 255, 0.1))'),
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            {dp.label}
+                          </button>
+                        );
+                      })}
+
+                      {/* Custom / Specific Limit Option Button */}
                       <button
-                        key={dp.label}
                         type="button"
                         onClick={() => {
-                          setIsUnlimited(dp.isUnl);
-                          setLimitMB(dp.mb);
+                          setIsCustomLimit(true);
+                          if (!customVal && limitMB) {
+                            if (limitMB % 1024 === 0) {
+                              setCustomUnit('GB');
+                              setCustomVal(limitMB / 1024);
+                            } else {
+                              setCustomUnit('MB');
+                              setCustomVal(limitMB);
+                            }
+                          } else if (!customVal && !limitMB) {
+                            setCustomUnit('GB');
+                            setCustomVal(1);
+                            setLimitMB(1024);
+                          }
                         }}
                         style={{
                           padding: '3px 8px',
@@ -796,28 +930,58 @@ export default function ProfilesPage() {
                           fontSize: '10px',
                           fontWeight: 600,
                           cursor: 'pointer',
-                          background: isSelected ? 'var(--primary, #3b82f6)' : 'var(--input-bg, rgba(0, 0, 0, 0.15))',
-                          color: isSelected ? '#ffffff' : 'var(--foreground)',
-                          border: '1px solid ' + (isSelected ? 'var(--primary, #3b82f6)' : 'var(--glass-border, rgba(255, 255, 255, 0.1))'),
+                          background: isCustomLimit ? 'var(--primary, #3b82f6)' : 'var(--input-bg, rgba(0, 0, 0, 0.15))',
+                          color: isCustomLimit ? '#ffffff' : 'var(--foreground)',
+                          border: '1px solid ' + (isCustomLimit ? 'var(--primary, #3b82f6)' : 'var(--glass-border, rgba(255, 255, 255, 0.1))'),
+                          transition: 'all 0.15s ease',
                         }}
                       >
-                        {dp.label}
+                        {t('profiles.specificLimit')}
                       </button>
-                    );
-                  })}
-                </div>
+                    </div>
 
-                {!isUnlimited && (
-                  <div style={inputContainerStyle}>
-                    <HardDrive size={13} style={embeddedIconStyle} />
-                    <input
-                      type="number"
-                      min="1"
-                      value={limitMB || ''}
-                      onChange={(e) => setLimitMB(e.target.value ? Number(e.target.value) : undefined)}
-                      placeholder={t('profiles.limitMBPlaceholder')}
-                      style={inputStyle}
-                    />
+                    {/* Specific Data Limit input field */}
+                    {isCustomLimit && (
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
+                        <div style={{ ...inputContainerStyle, flex: 1 }}>
+                          <HardDrive size={13} style={embeddedIconStyle} />
+                          <input
+                            type="number"
+                            step="any"
+                            min="0.1"
+                            required={!isUnlimited && isCustomLimit}
+                            value={customVal || ''}
+                            onChange={(e) => {
+                              const val = e.target.value ? parseFloat(e.target.value) : '';
+                              setCustomVal(val);
+                              if (val !== '' && !isNaN(Number(val))) {
+                                const mbValue = customUnit === 'GB' ? Math.round(Number(val) * 1024) : Math.round(Number(val));
+                                setLimitMB(mbValue);
+                              } else {
+                                setLimitMB(undefined);
+                              }
+                            }}
+                            placeholder={customUnit === 'GB' ? 'e.g. 1.5' : 'e.g. 750'}
+                            style={inputStyle}
+                          />
+                        </div>
+                        <select
+                          value={customUnit}
+                          onChange={(e) => {
+                            const newUnit = e.target.value as 'MB' | 'GB';
+                            setCustomUnit(newUnit);
+                            if (customVal !== '' && !isNaN(Number(customVal))) {
+                              const mbValue = newUnit === 'GB' ? Math.round(Number(customVal) * 1024) : Math.round(Number(customVal));
+                              setLimitMB(mbValue);
+                            }
+                          }}
+                          style={{ ...selectStyle, minWidth: '75px' }}
+                        >
+                          <option value="MB">MB</option>
+                          <option value="GB">GB</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

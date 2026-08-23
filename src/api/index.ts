@@ -1,3 +1,4 @@
+import { mutate } from 'swr';
 import { supabase } from '../lib/supabase';
 import type { RouterConfig } from '../store';
 
@@ -506,6 +507,34 @@ export const createVouchersAPI = async (
     }
   );
   return { pins: data.pins, jobId: data.jobId, batchId: data.batchId };
+};
+
+export interface VoucherJobStatus {
+  id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  total?: number;
+  error?: string | null;
+}
+
+export const fetchVoucherJobStatusAPI = async (
+  routerId: string,
+  jobId: string
+): Promise<VoucherJobStatus> => {
+  return apiCall(`/vouchers/jobs/${jobId}`, {
+    routerId,
+    cache: 'no-store',
+    timeoutMs: 15_000,
+  });
+};
+
+export const revalidateRouterCache = (routerId: string) => {
+  if (!routerId) return;
+  mutate(
+    (key: any) => typeof key === 'string' && key.includes(routerId),
+    undefined,
+    { revalidate: true }
+  );
 };
 
 export const deleteVouchersAPI = async (routerId: string, ids: string[]): Promise<void> => {
