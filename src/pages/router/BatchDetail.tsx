@@ -803,34 +803,43 @@ export default function BatchDetailPage() {
     const name = voucher.name || (voucher as any)['.id'] || '';
 
     const active = voucher as ActiveVoucher;
-    const isActive = status === 'active';
     const isExpired = status === 'expired';
 
-    const rawRemBytes = (voucher as any).remainingBytes ?? (voucher as any)['remaining-bytes'];
+    const limitBytesNum = Number(((voucher as any).limitBytesTotal ?? (voucher as any)['limit-bytes-total']) || 0);
+    const bIn = Number(((voucher as any).bytesIn ?? (voucher as any)['bytes-in']) || 0);
+    const bOut = Number(((voucher as any).bytesOut ?? (voucher as any)['bytes-out']) || 0);
+    const usedBytes = bIn + bOut;
+    let dataPct: number | null = null;
     let dataLeftStr: string | null = null;
+
+    const rawRemBytes = (voucher as any).remainingBytes ?? (voucher as any)['remaining-bytes'];
     if (rawRemBytes != null && rawRemBytes !== '') {
       const num = Number(rawRemBytes);
       if (!isNaN(num)) dataLeftStr = formatBytes(num);
-    }
-    if (!dataLeftStr) {
-      const limitBytes = (voucher as any).limitBytesTotal ?? (voucher as any)['limit-bytes-total'];
-      if (limitBytes != null && Number(limitBytes) > 0) {
-        const bIn = Number(((voucher as any).bytesIn ?? (voucher as any)['bytes-in']) || 0);
-        const bOut = Number(((voucher as any).bytesOut ?? (voucher as any)['bytes-out']) || 0);
-        const used = bIn + bOut;
-        const rem = Math.max(0, Number(limitBytes) - used);
-        dataLeftStr = formatBytes(rem);
+      if (limitBytesNum > 0 && !isNaN(num)) {
+        dataPct = Math.min(100, Math.max(0, (num / limitBytesNum) * 100));
       }
+    }
+    if (!dataLeftStr && limitBytesNum > 0) {
+      const rem = Math.max(0, limitBytesNum - usedBytes);
+      dataLeftStr = formatBytes(rem);
+      dataPct = Math.min(100, Math.max(0, (rem / limitBytesNum) * 100));
     }
 
     let timeLeftStr: string | null = active.timeLeftText || null;
-    if (!timeLeftStr && (voucher as any).remainingSeconds != null) {
-      const remSec = Number((voucher as any).remainingSeconds);
-      if (!isNaN(remSec) && remSec >= 0) {
-        const hrs = Math.floor(remSec / 3600);
-        const mins = Math.floor((remSec % 3600) / 60);
+    let timePct: number | null = null;
+    const remainingSec = (voucher as any).remainingSeconds != null ? Number((voucher as any).remainingSeconds) : null;
+    const totalSec = (voucher as any).limitUptimeSeconds != null ? Number((voucher as any).limitUptimeSeconds) : null;
+
+    if (!timeLeftStr && remainingSec != null) {
+      if (!isNaN(remainingSec) && remainingSec >= 0) {
+        const hrs = Math.floor(remainingSec / 3600);
+        const mins = Math.floor((remainingSec % 3600) / 60);
         timeLeftStr = `${hrs}h ${mins}m`;
       }
+    }
+    if (remainingSec != null && totalSec != null && totalSec > 0) {
+      timePct = Math.min(100, Math.max(0, (remainingSec / totalSec) * 100));
     }
 
     return (
@@ -838,7 +847,7 @@ export default function BatchDetailPage() {
         key={name}
         style={{
           ...cardStyle,
-          padding: '5px 8px',
+          padding: '6px 10px',
           display: 'flex',
           alignItems: 'center',
           gap: '4px',
@@ -865,19 +874,47 @@ export default function BatchDetailPage() {
             </button>
           </div>
           {(dataLeftStr || timeLeftStr || active.deviceName) && (
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               {active.deviceName && <span>{active.deviceName}</span>}
               {dataLeftStr && dataLeftStr !== '—' && (
-                <span style={{ color: '#22c55e', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                  <HardDrive size={11} />
-                  {dataLeftStr}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '65px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <HardDrive size={11} style={{ color: '#22c55e' }} />
+                    <span style={{ color: '#22c55e', fontWeight: 600, fontSize: '10px' }}>{dataLeftStr}</span>
+                  </div>
+                  {dataPct !== null && (
+                    <div style={{ width: '100%', height: '3px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${dataPct}%`,
+                          height: '100%',
+                          background: dataPct > 20 ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #ef4444, #dc2626)',
+                          borderRadius: '2px',
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               )}
               {timeLeftStr && (
-                <span style={{ color: 'var(--accent, #3b82f6)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                  <Clock size={11} />
-                  {timeLeftStr}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '65px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <Clock size={11} style={{ color: 'var(--accent, #3b82f6)' }} />
+                    <span style={{ color: 'var(--accent, #3b82f6)', fontWeight: 600, fontSize: '10px' }}>{timeLeftStr}</span>
+                  </div>
+                  {timePct !== null && (
+                    <div style={{ width: '100%', height: '3px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${timePct}%`,
+                          height: '100%',
+                          background: timePct > 20 ? 'linear-gradient(90deg, #3b82f6, #2563eb)' : 'linear-gradient(90deg, #ef4444, #dc2626)',
+                          borderRadius: '2px',
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
