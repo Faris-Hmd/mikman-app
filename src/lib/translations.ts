@@ -348,6 +348,9 @@ export const translations: Record<Language, Record<string, any>> = {
       groupByProfile: "Group by Profile",
       directPrint: "Print Directly",
       directShare: "Share PDF",
+      distribution: "Distribution",
+      viewGrid: "Grid View",
+      viewList: "List View",
     },
     users: {
       title: "Active Hotspot Sessions",
@@ -896,6 +899,9 @@ export const translations: Record<Language, Record<string, any>> = {
       groupByProfile: "تجميع حسب البروفايل",
       directPrint: "طباعة مباشرة",
       directShare: "مشاركة الملف",
+      distribution: "التوزيع",
+      viewGrid: "عرض كأيقونات",
+      viewList: "عرض كقائمة",
     },
     users: {
       title: "جلسات Hotspot النشطة",
