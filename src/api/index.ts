@@ -528,13 +528,16 @@ export const fetchVoucherJobStatusAPI = async (
   });
 };
 
-export const revalidateRouterCache = (routerId: string) => {
+export const revalidateRouterCache = (routerId: string, keys?: string[]) => {
   if (!routerId) return;
-  mutate(
-    (key: any) => typeof key === 'string' && key.includes(routerId),
-    undefined,
-    { revalidate: true }
-  );
+  if (keys && keys.length > 0) {
+    keys.forEach((k) => mutate(k));
+    return;
+  }
+  // Targeted revalidation to avoid overwhelming the MikroTik router REST API with parallel requests
+  mutate(`batch-list-${routerId}`);
+  mutate(`voucher-profiles-${routerId}`);
+  mutate(`router-profiles-${routerId}`);
 };
 
 export const deleteVouchersAPI = async (routerId: string, ids: string[]): Promise<void> => {

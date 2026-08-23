@@ -19,7 +19,8 @@ import {
   List,
   Filter,
   PackageOpen,
-  Printer
+  Printer,
+  FolderTree
 } from 'lucide-react';
 
 export default function BatchPage() {
@@ -29,6 +30,7 @@ export default function BatchPage() {
 
   const [selectedProfile, setSelectedProfile] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [groupByProfile, setGroupByProfile] = useState<boolean>(false);
 
   // Fetch batches
   const { data: batches, isLoading: batchesLoading } = useSWR(
@@ -81,6 +83,41 @@ export default function BatchPage() {
     });
   }, [batchList, selectedProfile]);
 
+  // Grouped Batches by Profile
+  const groupedBatches = useMemo(() => {
+    const map = new Map<string, {
+      profile: string;
+      batches: VoucherBatch[];
+      totalOriginal: number;
+      totalUnused: number;
+      totalActive: number;
+      totalExpired: number;
+    }>();
+
+    filteredBatches.forEach((b) => {
+      const profKey = b.profile || 'Default';
+      let group = map.get(profKey);
+      if (!group) {
+        group = {
+          profile: profKey,
+          batches: [],
+          totalOriginal: 0,
+          totalUnused: 0,
+          totalActive: 0,
+          totalExpired: 0,
+        };
+        map.set(profKey, group);
+      }
+      group.batches.push(b);
+      group.totalOriginal += b.originalCount || 0;
+      group.totalUnused += b.unusedCount || 0;
+      group.totalActive += b.activeCount || 0;
+      group.totalExpired += b.expiredCount || 0;
+    });
+
+    return Array.from(map.values());
+  }, [filteredBatches]);
+
   // ── Navigation ──
 
   const openBatchDetail = (batch: VoucherBatch) => {
@@ -98,8 +135,6 @@ export default function BatchPage() {
 
   // ── Styles ──
 
-
-
   const btnPrimaryStyle: React.CSSProperties = {
     padding: '7px 13px',
     border: 'none',
@@ -115,18 +150,6 @@ export default function BatchPage() {
     boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
   };
 
-  const inputStyle: React.CSSProperties = {
-    background: 'var(--input-bg, rgba(0, 0, 0, 0.2))',
-    border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-    borderRadius: '8px',
-    padding: '6px 10px 6px 30px',
-    color: 'var(--foreground)',
-    fontSize: '12px',
-    outline: 'none',
-    width: '100%',
-    boxSizing: 'border-box',
-  };
-
   const selectStyle: React.CSSProperties = {
     background: 'var(--card-bg, rgba(0, 0, 0, 0.2))',
     border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
@@ -139,6 +162,268 @@ export default function BatchPage() {
   };
 
   const ChevronIcon = isRtl ? ChevronLeft : ChevronRight;
+
+  const renderBatchList = (batchesToRender: VoucherBatch[]) => {
+    if (viewMode === 'grid') {
+      return (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+            gap: '10px',
+          }}
+        >
+          {batchesToRender.map((batch, idx) => {
+            const unusedPct = batch.originalCount ? (batch.unusedCount / batch.originalCount) * 100 : 0;
+            const activePct = batch.originalCount ? (batch.activeCount / batch.originalCount) * 100 : 0;
+            const expiredPct = batch.originalCount ? (batch.expiredCount / batch.originalCount) * 100 : 0;
+
+            return (
+              <div
+                key={idx}
+                className="responsive-card"
+                onClick={() => openBatchDetail(batch)}
+                style={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  position: 'relative',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--primary, #3b82f6)';
+                  e.currentTarget.style.background = 'var(--card-bg-hover, rgba(255, 255, 255, 0.08))';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--glass-border, rgba(255, 255, 255, 0.1))';
+                  e.currentTarget.style.background = 'var(--card-bg, rgba(255, 255, 255, 0.05))';
+                }}
+              >
+                {/* Header Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h4
+                      style={{
+                        margin: 0,
+                        fontSize: '15px',
+                        fontWeight: 700,
+                        color: 'var(--foreground)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {batch.printLabel || batch.profile}
+                    </h4>
+                    {batch.comment && (
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: '12px',
+                          color: 'var(--text-muted)',
+                          marginTop: '2px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {batch.comment}
+                      </span>
+                    )}
+                  </div>
+                  <ChevronIcon size={16} style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: '2px' }} />
+                </div>
+
+                {/* Profile Chip */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      background: 'rgba(99, 102, 241, 0.12)',
+                      color: '#818cf8',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    {batch.profile}
+                  </span>
+                </div>
+
+                {/* Progress Bar */}
+                <div
+                  style={{
+                    height: '6px',
+                    borderRadius: '4px',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    width: '100%',
+                  }}
+                >
+                  <div style={{ width: `${unusedPct}%`, background: '#22c55e', height: '100%' }} title={`Unused: ${batch.unusedCount}`} />
+                  <div style={{ width: `${activePct}%`, background: '#3b82f6', height: '100%' }} title={`Active: ${batch.activeCount}`} />
+                  <div style={{ width: `${expiredPct}%`, background: 'rgba(255, 255, 255, 0.25)', height: '100%' }} title={`Expired: ${batch.expiredCount}`} />
+                </div>
+
+                {/* Footer Metrics */}
+                <div
+                  className="batch-footer-metrics"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gap: '4px',
+                    paddingTop: '6px',
+                    borderTop: '1px solid var(--glass-border, rgba(255, 255, 255, 0.05))',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>
+                      {t('batch.total')}
+                    </span>
+                    <strong style={{ fontSize: '13px', color: 'var(--foreground)' }}>
+                      {batch.originalCount}
+                    </strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>
+                      {t('batch.statusUnused')}
+                    </span>
+                    <strong style={{ fontSize: '13px', color: '#22c55e' }}>
+                      {batch.unusedCount}
+                    </strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>
+                      {t('batch.statusActive')}
+                    </span>
+                    <strong style={{ fontSize: '13px', color: '#3b82f6' }}>
+                      {batch.activeCount}
+                    </strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>
+                      {t('batch.statusExpired')}
+                    </span>
+                    <strong style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                      {batch.expiredCount}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {batchesToRender.map((batch, idx) => (
+          <div
+            key={idx}
+            className="responsive-card"
+            onClick={() => openBatchDetail(batch)}
+            style={{
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              gap: '12px',
+              flexWrap: 'nowrap',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--primary, #3b82f6)';
+              e.currentTarget.style.background = 'var(--card-bg-hover, rgba(255, 255, 255, 0.08))';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--glass-border, rgba(255, 255, 255, 0.1))';
+              e.currentTarget.style.background = 'var(--card-bg, rgba(255, 255, 255, 0.05))';
+            }}
+          >
+            {/* Left Info */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+                <strong style={{ fontSize: '14px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {batch.printLabel || batch.profile}
+                </strong>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(99, 102, 241, 0.12)',
+                    color: '#818cf8',
+                    flexShrink: 0,
+                  }}
+                >
+                  {batch.profile}
+                </span>
+              </div>
+              {batch.comment && (
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {batch.comment}
+                </div>
+              )}
+            </div>
+
+            {/* Right Metrics */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+              <div
+                className="batch-metrics-grid"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, minmax(52px, 68px))',
+                  gap: '4px',
+                  textAlign: 'center',
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', lineHeight: 1.1 }}>
+                    {t('batch.total')}
+                  </span>
+                  <strong style={{ fontSize: '13px', color: 'var(--foreground)', lineHeight: 1.4 }}>
+                    {batch.originalCount}
+                  </strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', lineHeight: 1.1 }}>
+                    {t('batch.statusUnused')}
+                  </span>
+                  <strong style={{ fontSize: '13px', color: '#22c55e', lineHeight: 1.4 }}>
+                    {batch.unusedCount}
+                  </strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', lineHeight: 1.1 }}>
+                    {t('batch.statusActive')}
+                  </span>
+                  <strong style={{ fontSize: '13px', color: '#3b82f6', lineHeight: 1.4 }}>
+                    {batch.activeCount}
+                  </strong>
+                </div>
+                <div className="hide-on-mobile">
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', lineHeight: 1.1 }}>
+                    {t('batch.statusExpired')}
+                  </span>
+                  <strong style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    {batch.expiredCount}
+                  </strong>
+                </div>
+              </div>
+              <ChevronIcon size={16} style={{ color: 'var(--text-muted)' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -325,36 +610,64 @@ export default function BatchPage() {
           flexWrap: 'wrap',
         }}
       >
-        {/* Profile Filter Dropdown with Embedded Icon */}
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-          <Filter
-            size={14}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Profile Filter Dropdown with Embedded Icon */}
+          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+            <Filter
+              size={14}
+              style={{
+                position: 'absolute',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                [isRtl ? 'right' : 'left']: '10px',
+                color: 'var(--text-muted)',
+                pointerEvents: 'none',
+                zIndex: 1,
+              }}
+            />
+            <select
+              value={selectedProfile}
+              onChange={(e) => setSelectedProfile(e.target.value)}
+              style={{
+                ...selectStyle,
+                paddingLeft: isRtl ? '12px' : '30px',
+                paddingRight: isRtl ? '30px' : '12px',
+              }}
+            >
+              <option value="all">{t('batch.allProfiles')}</option>
+              {uniqueProfiles.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Group by Profile Toggle */}
+          <button
+            onClick={() => setGroupByProfile((prev) => !prev)}
             style={{
-              position: 'absolute',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              [isRtl ? 'right' : 'left']: '10px',
-              color: 'var(--text-muted)',
-              pointerEvents: 'none',
-              zIndex: 1,
-            }}
-          />
-          <select
-            value={selectedProfile}
-            onChange={(e) => setSelectedProfile(e.target.value)}
-            style={{
-              ...selectStyle,
-              paddingLeft: isRtl ? '12px' : '30px',
-              paddingRight: isRtl ? '30px' : '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: groupByProfile
+                ? '1px solid rgba(99, 102, 241, 0.4)'
+                : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+              background: groupByProfile
+                ? 'rgba(99, 102, 241, 0.2)'
+                : 'var(--card-bg, rgba(0, 0, 0, 0.2))',
+              color: groupByProfile ? '#818cf8' : 'var(--text-muted)',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
             }}
           >
-            <option value="all">{t('batch.allProfiles')}</option>
-            {uniqueProfiles.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
+            <FolderTree size={14} />
+            <span>{t('batch.groupByProfile')}</span>
+          </button>
         </div>
 
         {/* View Mode Toggle (Grid vs List) */}
@@ -484,262 +797,62 @@ export default function BatchPage() {
             <span>{t('batch.generateBtn')}</span>
           </button>
         </div>
-      ) : viewMode === 'grid' ? (
-        /* GRID VIEW */
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-            gap: '10px',
-          }}
-        >
-          {filteredBatches.map((batch, idx) => {
-            const unusedPct = batch.originalCount ? (batch.unusedCount / batch.originalCount) * 100 : 0;
-            const activePct = batch.originalCount ? (batch.activeCount / batch.originalCount) * 100 : 0;
-            const expiredPct = batch.originalCount ? (batch.expiredCount / batch.originalCount) * 100 : 0;
-
-            return (
+      ) : groupByProfile ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {groupedBatches.map((group) => (
+            <div key={group.profile} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Profile Group Section Banner */}
               <div
-                key={idx}
-                className="responsive-card"
-                onClick={() => openBatchDetail(batch)}
                 style={{
-                  cursor: 'pointer',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                  position: 'relative',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--primary, #3b82f6)';
-                  e.currentTarget.style.background = 'var(--card-bg-hover, rgba(255, 255, 255, 0.08))';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--glass-border, rgba(255, 255, 255, 0.1))';
-                  e.currentTarget.style.background = 'var(--card-bg, rgba(255, 255, 255, 0.05))';
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(99, 102, 241, 0.08)',
+                  border: '1px solid rgba(99, 102, 241, 0.2)',
+                  flexWrap: 'wrap',
+                  gap: '8px',
                 }}
               >
-                {/* Header Row */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h4
-                      style={{
-                        margin: 0,
-                        fontSize: '15px',
-                        fontWeight: 700,
-                        color: 'var(--foreground)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {batch.printLabel || batch.profile}
-                    </h4>
-                    {batch.comment && (
-                      <span
-                        style={{
-                          display: 'block',
-                          fontSize: '12px',
-                          color: 'var(--text-muted)',
-                          marginTop: '2px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {batch.comment}
-                      </span>
-                    )}
-                  </div>
-                  <ChevronIcon size={16} style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: '2px' }} />
-                </div>
-
-                {/* Profile Chip */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      background: 'rgba(99, 102, 241, 0.12)',
-                      color: '#818cf8',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    {batch.profile}
-                  </span>
-                </div>
-
-                {/* Progress Bar */}
-                <div
-                  style={{
-                    height: '6px',
-                    borderRadius: '4px',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    width: '100%',
-                  }}
-                >
-                  <div style={{ width: `${unusedPct}%`, background: '#22c55e', height: '100%' }} title={`Unused: ${batch.unusedCount}`} />
-                  <div style={{ width: `${activePct}%`, background: '#3b82f6', height: '100%' }} title={`Active: ${batch.activeCount}`} />
-                  <div style={{ width: `${expiredPct}%`, background: 'rgba(255, 255, 255, 0.25)', height: '100%' }} title={`Expired: ${batch.expiredCount}`} />
-                </div>
-
-                {/* Footer Metrics */}
-                <div
-                  className="batch-footer-metrics"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
-                    gap: '4px',
-                    paddingTop: '6px',
-                    borderTop: '1px solid var(--glass-border, rgba(255, 255, 255, 0.05))',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>
-                      {t('batch.total')}
-                    </span>
-                    <strong style={{ fontSize: '13px', color: 'var(--foreground)' }}>
-                      {batch.originalCount}
-                    </strong>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>
-                      {t('batch.statusUnused')}
-                    </span>
-                    <strong style={{ fontSize: '13px', color: '#22c55e' }}>
-                      {batch.unusedCount}
-                    </strong>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>
-                      {t('batch.statusActive')}
-                    </span>
-                    <strong style={{ fontSize: '13px', color: '#3b82f6' }}>
-                      {batch.activeCount}
-                    </strong>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>
-                      {t('batch.statusExpired')}
-                    </span>
-                    <strong style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                      {batch.expiredCount}
-                    </strong>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* LIST VIEW */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {filteredBatches.map((batch, idx) => (
-            <div
-              key={idx}
-              className="responsive-card"
-              onClick={() => openBatchDetail(batch)}
-              style={{
-                padding: '12px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                gap: '12px',
-                flexWrap: 'nowrap',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--primary, #3b82f6)';
-                e.currentTarget.style.background = 'var(--card-bg-hover, rgba(255, 255, 255, 0.08))';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--glass-border, rgba(255, 255, 255, 0.1))';
-                e.currentTarget.style.background = 'var(--card-bg, rgba(255, 255, 255, 0.05))';
-              }}
-            >
-              {/* Left Info */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
-                  <strong style={{ fontSize: '14px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {batch.printLabel || batch.profile}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Layers size={16} style={{ color: '#818cf8' }} />
+                  <strong style={{ fontSize: '14px', color: 'var(--foreground)' }}>
+                    {group.profile}
                   </strong>
                   <span
                     style={{
-                      fontSize: '10px',
+                      fontSize: '11px',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'var(--text-muted)',
                       fontWeight: 600,
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      background: 'rgba(99, 102, 241, 0.12)',
-                      color: '#818cf8',
-                      flexShrink: 0,
                     }}
                   >
-                    {batch.profile}
+                    {group.batches.length} {t('batch.totalBatches')}
                   </span>
                 </div>
-                {batch.comment && (
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {batch.comment}
-                  </div>
-                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>
+                    {t('batch.total')}: <strong style={{ color: 'var(--foreground)' }}>{group.totalOriginal}</strong>
+                  </span>
+                  <span style={{ color: 'var(--text-muted)' }}>
+                    {t('batch.statusUnused')}: <strong style={{ color: '#22c55e' }}>{group.totalUnused}</strong>
+                  </span>
+                  <span style={{ color: 'var(--text-muted)' }}>
+                    {t('batch.statusActive')}: <strong style={{ color: '#3b82f6' }}>{group.totalActive}</strong>
+                  </span>
+                </div>
               </div>
 
-              {/* Right Metrics - Responsive Grid (3 cols on mobile, 4 cols on desktop) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                <div
-                  className="batch-metrics-grid"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(4, minmax(52px, 68px))',
-                    gap: '4px',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', lineHeight: 1.1 }}>
-                      {t('batch.total')}
-                    </span>
-                    <strong style={{ fontSize: '13px', color: 'var(--foreground)', lineHeight: 1.4 }}>
-                      {batch.originalCount}
-                    </strong>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', lineHeight: 1.1 }}>
-                      {t('batch.statusUnused')}
-                    </span>
-                    <strong style={{ fontSize: '13px', color: '#22c55e', lineHeight: 1.4 }}>
-                      {batch.unusedCount}
-                    </strong>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', lineHeight: 1.1 }}>
-                      {t('batch.statusActive')}
-                    </span>
-                    <strong style={{ fontSize: '13px', color: '#3b82f6', lineHeight: 1.4 }}>
-                      {batch.activeCount}
-                    </strong>
-                  </div>
-                  <div className="hide-on-mobile">
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', lineHeight: 1.1 }}>
-                      {t('batch.statusExpired')}
-                    </span>
-                    <strong style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                      {batch.expiredCount}
-                    </strong>
-                  </div>
-                </div>
-                <ChevronIcon size={16} style={{ color: 'var(--text-muted)' }} />
-              </div>
+              {renderBatchList(group.batches)}
             </div>
           ))}
         </div>
+      ) : (
+        renderBatchList(filteredBatches)
       )}
     </div>
   );
