@@ -842,6 +842,24 @@ export default function BatchDetailPage() {
       timePct = Math.min(100, Math.max(0, (remainingSec / totalSec) * 100));
     }
 
+    const rawDevName = (active.deviceName || (voucher as any).hostName || (voucher as any)['host-name'] || '').trim();
+    let cleanDeviceName = '';
+    if (rawDevName) {
+      const lowerDev = rawDevName.toLowerCase();
+      const lowerName = name.toLowerCase();
+      if (
+        lowerDev !== lowerName &&
+        !lowerDev.includes('#metadata:') &&
+        !lowerDev.includes('batch_') &&
+        !lowerDev.includes('login:') &&
+        !lowerDev.includes('exp:') &&
+        lowerDev !== 'active client' &&
+        lowerDev !== 'unnamed client'
+      ) {
+        cleanDeviceName = rawDevName;
+      }
+    }
+
     return (
       <div
         key={name}
@@ -856,7 +874,7 @@ export default function BatchDetailPage() {
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             <strong style={{ fontSize: '12px', fontFamily: 'monospace', color: isExpired ? 'var(--text-muted)' : 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</strong>
             <button
               onClick={() => copySingleCode(name)}
@@ -872,10 +890,29 @@ export default function BatchDetailPage() {
             >
               {copiedCode === name ? <Check size={13} /> : <Copy size={13} />}
             </button>
+            {cleanDeviceName && (
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  color: 'var(--text-muted)',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '4px',
+                  padding: '1px 5px',
+                  maxWidth: '120px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={cleanDeviceName}
+              >
+                {cleanDeviceName}
+              </span>
+            )}
           </div>
-          {(dataLeftStr || timeLeftStr || active.deviceName) && (
+          {(dataLeftStr || timeLeftStr) && (
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              {active.deviceName && <span>{active.deviceName}</span>}
               {dataLeftStr && dataLeftStr !== '—' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '65px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
