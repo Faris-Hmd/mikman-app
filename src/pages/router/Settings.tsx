@@ -1237,69 +1237,56 @@ export default function SettingsPage() {
                 </span>
               </div>
 
-              {/* Simulated Printed Physical Voucher Ticket Card */}
+              {/* Exact System Printable Voucher Ticket Card Template (matches BatchDetail.tsx PDF generator) */}
               <div style={{
-                maxWidth: '280px',
+                width: '240px',
+                height: '92px',
                 margin: '0 auto',
                 background: '#ffffff',
-                border: '2px dashed #94a3b8',
-                borderRadius: '14px',
-                padding: '14px 16px',
-                textAlign: 'center',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.06)',
-                position: 'relative',
-                direction: 'rtl',
-                fontFamily: "'Tajawal', system-ui, sans-serif",
+                border: '1.5px solid #333333',
+                borderRadius: '6px',
+                padding: '8px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
+                color: '#000000',
+                boxSizing: 'border-box',
               }}>
-                {/* Card Header Print Label */}
+                {/* Header: Wifi Icon + Wifi Name */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
+                  <Wifi size={13} style={{ color: '#000000' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#000000', letterSpacing: '-0.2px' }}>
+                    {(useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || 'شبكة الواي فاي')}
+                  </span>
+                </div>
+
+                {/* Center: Voucher PIN Code */}
                 <div style={{
-                  fontSize: '12px',
-                  fontWeight: 800,
-                  color: '#ec4899',
-                  borderBottom: '1px solid #f1f5f9',
-                  paddingBottom: '6px',
-                  marginBottom: '8px',
-                  letterSpacing: '-0.2px',
+                  fontFamily: "'Courier New', monospace, sans-serif",
+                  fontSize: '19px',
+                  fontWeight: 900,
+                  color: '#000000',
+                  letterSpacing: '2px',
+                  lineHeight: 1,
+                  margin: '4px 0',
+                }}>
+                  84920481
+                </div>
+
+                {/* Bottom: Print Ticket Label / Profile Name */}
+                <div style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: '#444444',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  maxWidth: '100%',
+                  marginBottom: '2px',
                 }}>
-                  🏷️ {cardPrintLabel.trim() ? cardPrintLabel.trim() : ((useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || 'ملصق الكرت المخصص'))}
-                </div>
-
-                {/* WiFi Name Sub-header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '10.5px', color: '#64748b', marginBottom: '10px', fontWeight: 600 }}>
-                  <Wifi size={11} style={{ color: '#2563eb' }} />
-                  <span>{(useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || 'شبكة الواي فاي')}</span>
-                </div>
-
-                {/* PIN Code Box */}
-                <div style={{
-                  background: '#f8fafc',
-                  border: '1.5px solid #cbd5e1',
-                  borderRadius: '10px',
-                  padding: '8px 10px',
-                  marginBottom: '10px',
-                }}>
-                  <div style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, marginBottom: '2px' }}>
-                    رمز الكرت (Voucher Code)
-                  </div>
-                  <div style={{
-                    fontFamily: "'Courier New', monospace",
-                    fontSize: '18px',
-                    fontWeight: 900,
-                    color: '#0f172a',
-                    letterSpacing: '3px',
-                    direction: 'ltr',
-                  }}>
-                    84920481
-                  </div>
-                </div>
-
-                {/* Footer Info */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '9.5px', color: '#94a3b8', fontWeight: 600 }}>
-                  <span>صلاحية: 24 ساعة</span>
-                  <span>السعر: 500 SDG</span>
+                  {cardPrintLabel.trim() ? cardPrintLabel.trim() : 'ملصق كرت الطباعة (أو اسم البروفايل)'}
                 </div>
               </div>
             </div>
