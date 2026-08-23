@@ -9,6 +9,7 @@ import {
   getAllVouchersByStatusAPI,
   fetchRouterProfilesAPI,
   fetchSingleRouterStatusAPI,
+  updateRouterProfileAPI,
   revalidateRouterCache,
   type VoucherBatchDetail,
   type VoucherSummary,
@@ -409,6 +410,19 @@ export default function BatchDetailPage() {
       }
 
       setPrintableVouchers(vouchersToPrint);
+
+      // Save printed Wi-Fi name persistently to router config so it shows on Settings page
+      if (wifiInput && wifiInput.trim() !== '') {
+        try {
+          await updateRouterProfileAPI(routerId, {
+            useCustomPrintLabel: true,
+            cardPrintLabel: wifiInput.trim(),
+          });
+          revalidateRouterCache(routerId);
+        } catch (e) {
+          console.error('Failed to auto-save printed wifi name config:', e);
+        }
+      }
 
       const label = profile;
       const batchName = comment ? formatBatchTime(comment) : profile;
