@@ -1215,6 +1215,94 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* ── Live Voucher Print Ticket Card Preview ── */}
+            <div style={{
+              marginTop: '16px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '20px',
+              padding: '16px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
+              color: '#0f172a',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: '#ec4899' }}>
+                  <Tag size={13} />
+                  <span>معاينة حية لكرت الطباعة (Live Printed Ticket Preview)</span>
+                </div>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#22c55e', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
+                  Live Card
+                </span>
+              </div>
+
+              {/* Simulated Printed Physical Voucher Ticket Card */}
+              <div style={{
+                maxWidth: '280px',
+                margin: '0 auto',
+                background: '#ffffff',
+                border: '2px dashed #94a3b8',
+                borderRadius: '14px',
+                padding: '14px 16px',
+                textAlign: 'center',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.06)',
+                position: 'relative',
+                direction: 'rtl',
+                fontFamily: "'Tajawal', system-ui, sans-serif",
+              }}>
+                {/* Card Header Print Label */}
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  color: '#ec4899',
+                  borderBottom: '1px solid #f1f5f9',
+                  paddingBottom: '6px',
+                  marginBottom: '8px',
+                  letterSpacing: '-0.2px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  🏷️ {cardPrintLabel.trim() ? cardPrintLabel.trim() : ((useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || 'ملصق الكرت المخصص'))}
+                </div>
+
+                {/* WiFi Name Sub-header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '10.5px', color: '#64748b', marginBottom: '10px', fontWeight: 600 }}>
+                  <Wifi size={11} style={{ color: '#2563eb' }} />
+                  <span>{(useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || 'شبكة الواي فاي')}</span>
+                </div>
+
+                {/* PIN Code Box */}
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '8px 10px',
+                  marginBottom: '10px',
+                }}>
+                  <div style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, marginBottom: '2px' }}>
+                    رمز الكرت (Voucher Code)
+                  </div>
+                  <div style={{
+                    fontFamily: "'Courier New', monospace",
+                    fontSize: '18px',
+                    fontWeight: 900,
+                    color: '#0f172a',
+                    letterSpacing: '3px',
+                    direction: 'ltr',
+                  }}>
+                    84920481
+                  </div>
+                </div>
+
+                {/* Footer Info */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '9.5px', color: '#94a3b8', fontWeight: 600 }}>
+                  <span>صلاحية: 24 ساعة</span>
+                  <span>السعر: 500 SDG</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
