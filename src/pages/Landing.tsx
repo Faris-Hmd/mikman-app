@@ -447,36 +447,47 @@ export default function LandingPage() {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      gap: '4px',
                       flexWrap: 'wrap',
-                      fontSize: '11px',
+                      marginTop: '3px',
+                      fontSize: '11.5px',
                       color: 'var(--foreground)',
                       opacity: isOnline ? 1 : 0.6,
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="Active Hotspot Users">
-                      <Users size={12} color="var(--primary)" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Active Hotspot Users">
+                      <Users size={13} color="var(--primary)" />
                       <span style={{ fontWeight: '700' }}>{isOnline && status ? (status.activeUsers || 0) : '0'}</span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="CPU Usage">
-                      <Activity size={12} color="var(--primary)" />
+                    <span style={{ opacity: 0.3, color: 'var(--text-muted)', fontSize: '10px' }}>|</span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="CPU Usage">
+                      <Activity size={13} color="var(--primary)" />
                       <span style={{ fontWeight: '700' }}>{isOnline && status ? (status.cpuLoad_display || (status.cpuLoad !== undefined ? `${status.cpuLoad}%` : '—')) : '—'}</span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="RAM Usage">
-                      <Cpu size={12} color="var(--primary)" />
+                    <span style={{ opacity: 0.3, color: 'var(--text-muted)', fontSize: '10px' }}>|</span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="RAM Usage">
+                      <Cpu size={13} color="var(--primary)" />
                       <span style={{ fontWeight: '700' }}>{isOnline && status && typeof status.totalMemory === 'number' ? `${Math.round((status.totalMemory - status.freeMemory) / (1024 * 1024))}M` : '—'}</span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="Router Temperature">
-                      <Thermometer size={12} color="var(--primary)" />
+                    <span style={{ opacity: 0.3, color: 'var(--text-muted)', fontSize: '10px' }}>|</span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Router Temperature">
+                      <Thermometer size={13} color="var(--primary)" />
                       <span style={{ fontWeight: '700' }}>{isOnline && status ? (status.temperature_display || `${getTemperature(status) ?? '—'}°C`) : '—'}</span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="System Uptime">
-                      <Clock size={12} color="var(--primary)" />
-                      <span style={{ fontWeight: '700', fontSize: '10.5px' }}>{isOnline && status ? formatUptimeAPI(status.uptime || status.uptime_display) : '—'}</span>
+                    <span style={{ opacity: 0.3, color: 'var(--text-muted)', fontSize: '10px' }}>|</span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="System Uptime">
+                      <Clock size={13} color="var(--primary)" />
+                      <span style={{ fontWeight: '700', fontSize: '11px' }}>{isOnline && status ? formatUptimeAPI(status.uptime || status.uptime_display) : '—'}</span>
                     </div>
                   </div>
                 </div>
