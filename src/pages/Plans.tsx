@@ -3,7 +3,7 @@ import useSWR from 'swr';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchRouterProfilesWithUserAPI, fetchPlansCatalogAPI, PlanCatalogItem } from '../api';
-import { Zap, LogOut, Globe, Check, MessageCircle, Server, CheckCircle2, Circle, AlertTriangle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Zap, LogOut, Globe, Check, MessageCircle, Server, CheckCircle2, Circle, AlertTriangle, ArrowLeft, ArrowRight, Sparkles, ShieldCheck, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const WHATSAPP_NUMBER = '249966626693';
@@ -121,24 +121,46 @@ export default function PlansPage() {
       style={{
         minHeight: '100dvh',
         backgroundColor: 'var(--background)',
-        padding: '16px 20px',
+        padding: '16px 16px 40px 16px',
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        position: 'relative',
+        overflowX: 'hidden',
       }}
     >
-      <div style={{ maxWidth: '960px', width: '100%' }}>
+      {/* Ambient background glow */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '-100px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '600px',
+          height: '350px',
+          background: 'radial-gradient(ellipse at center, rgba(var(--primary-rgb), 0.15) 0%, rgba(0,0,0,0) 70%)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
+      <div style={{ maxWidth: '960px', width: '100%', position: 'relative', zIndex: 1 }}>
         
-        {/* Compact Standalone Navbar Header */}
+        {/* Sleek Glass Navbar Header */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '18px',
-            flexWrap: 'wrap',
-            gap: '10px',
+            marginBottom: '24px',
+            padding: '10px 14px',
+            borderRadius: '16px',
+            backgroundColor: 'var(--header-bg)',
+            border: '1px solid var(--glass-border)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -150,9 +172,9 @@ export default function PlansPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '10px',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '11px',
                   backgroundColor: 'var(--card-bg)',
                   border: '1px solid var(--glass-border)',
                   color: 'var(--foreground)',
@@ -161,26 +183,26 @@ export default function PlansPage() {
                 }}
                 title="Go Back"
               >
-                {isRtl ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}
+                {isRtl ? <ArrowRight size={17} /> : <ArrowLeft size={17} />}
               </button>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '10px',
-                  backgroundColor: '#3B82F6',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '11px',
+                  background: 'linear-gradient(135deg, var(--primary) 0%, #3B82F6 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 2px 8px rgba(59,130,246,0.4)',
+                  boxShadow: '0 3px 12px rgba(var(--primary-rgb), 0.4)',
                 }}
               >
-                <Zap size={18} color="#fff" strokeWidth={2.5} />
+                <Zap size={19} color="#fff" strokeWidth={2.5} />
               </div>
-              <span style={{ fontSize: '16px', fontWeight: '850', color: 'var(--foreground)', letterSpacing: '0.5px' }}>
+              <span style={{ fontSize: '17px', fontWeight: '900', color: 'var(--foreground)', letterSpacing: '0.6px' }}>
                 MIKMAN
               </span>
             </div>
@@ -199,15 +221,14 @@ export default function PlansPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '6px 12px',
-                borderRadius: '10px',
+                padding: '7px 13px',
+                borderRadius: '11px',
                 backgroundColor: 'var(--card-bg)',
                 border: '1px solid var(--glass-border)',
                 color: 'var(--foreground)',
-                fontSize: '11.5px',
+                fontSize: '12px',
                 fontWeight: '700',
                 cursor: 'pointer',
-                backdropFilter: 'blur(8px)',
                 transition: 'all 0.2s ease',
               }}
             >
@@ -223,13 +244,13 @@ export default function PlansPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '5px',
-                  padding: '6px 12px',
-                  borderRadius: '10px',
-                  backgroundColor: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-muted)',
-                  fontSize: '11.5px',
-                  fontWeight: '650',
+                  padding: '7px 13px',
+                  borderRadius: '11px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  color: '#ef4444',
+                  fontSize: '12px',
+                  fontWeight: '700',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                 }}
@@ -241,19 +262,52 @@ export default function PlansPage() {
           </div>
         </div>
 
-        {/* Compact Hero Title */}
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <h1 style={{ fontSize: '18px', fontWeight: '850', color: 'var(--foreground)', margin: '0 0 4px 0' }}>
+        {/* Hero Title Section */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              borderRadius: '20px',
+              backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+              border: '1px solid rgba(var(--primary-rgb), 0.25)',
+              color: 'var(--primary)',
+              fontSize: '11.5px',
+              fontWeight: '800',
+              marginBottom: '10px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}
+          >
+            <Sparkles size={13} />
+            <span>{isRtl ? 'باقات الاشتراك السحابي' : 'Cloud Subscription Catalog'}</span>
+          </div>
+
+          <h1 style={{ fontSize: '22px', fontWeight: '900', color: 'var(--foreground)', margin: '0 0 6px 0', letterSpacing: '-0.3px' }}>
             {t('plansPage.title') || 'Subscription Plans'}
           </h1>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, maxWidth: '480px', marginInline: 'auto' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, maxWidth: '500px', marginInline: 'auto', lineHeight: 1.5 }}>
             {t('plansPage.subtitle') || 'Select a plan to start or upgrade your cloud router management'}
           </p>
         </div>
 
         {loadingPlans ? (
-          <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)', fontSize: '12px' }}>
-            Loading subscription plans...
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '40px 0',
+              color: 'var(--text-muted)',
+              fontSize: '13px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
+            }}
+          >
+            <Crown size={32} style={{ color: 'var(--primary)', opacity: 0.6, animation: 'pulse 1.5s infinite' }} />
+            <span>Loading subscription plans...</span>
           </div>
         ) : (
           <>
@@ -261,8 +315,8 @@ export default function PlansPage() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-                gap: '12px',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '16px',
                 alignItems: 'stretch',
               }}
             >
@@ -270,6 +324,7 @@ export default function PlansPage() {
                 const isTooSmall = plan.maxRouters < currentRoutersCount;
                 const isSelected = selectedPlanId === plan.id && !isTooSmall;
                 const isCurrent = currentPlanQuota === plan.id.toLowerCase().trim();
+                const isPro = plan.id === 'pro';
                 const displayName = isRtl && plan.nameAr ? plan.nameAr : plan.name;
                 const priceUsd = Math.round(plan.priceUsd ?? (plan.priceSdg ? plan.priceSdg / 6000 : 0));
                 const formattedPrice = `$${priceUsd}`;
@@ -280,7 +335,7 @@ export default function PlansPage() {
                     onClick={() => handleSelectCard(plan)}
                     style={{
                       position: 'relative',
-                      backgroundColor: isTooSmall ? 'rgba(0, 0, 0, 0.15)' : 'var(--card-bg)',
+                      backgroundColor: isTooSmall ? 'rgba(0, 0, 0, 0.2)' : 'var(--card-bg)',
                       border: isSelected
                         ? '2px solid var(--primary)'
                         : isCurrent
@@ -288,42 +343,70 @@ export default function PlansPage() {
                         : isTooSmall
                         ? '1px dashed rgba(239, 68, 68, 0.3)'
                         : '1px solid var(--glass-border)',
-                      borderRadius: '12px',
-                      padding: '16px 14px',
+                      borderRadius: '16px',
+                      padding: '20px 16px 18px 16px',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
-                      gap: '14px',
+                      gap: '16px',
                       cursor: isTooSmall ? 'not-allowed' : 'pointer',
                       opacity: isTooSmall ? 0.55 : 1,
                       boxShadow: isSelected
-                        ? '0 8px 24px rgba(var(--primary-rgb, 99, 102, 241), 0.25)'
+                        ? '0 10px 30px rgba(var(--primary-rgb), 0.25)'
                         : isCurrent
                         ? '0 6px 20px rgba(16,185,129,0.12)'
-                        : 'none',
-                      backdropFilter: 'blur(8px)',
-                      transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
+                        : '0 4px 14px rgba(0,0,0,0.1)',
+                      backdropFilter: 'blur(12px)',
+                      transition: 'all 0.2s ease',
+                      transform: isSelected ? 'translateY(-2px)' : 'none',
                     }}
                   >
-                    {/* Top Status Indicators (Current Plan / Radio Selection / Warning) */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    {/* Pro Recommended Ribbon */}
+                    {isPro && !isCurrent && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '-11px',
+                          left: isRtl ? '16px' : 'auto',
+                          right: isRtl ? 'auto' : '16px',
+                          backgroundColor: 'var(--primary)',
+                          color: '#fff',
+                          fontSize: '10px',
+                          fontWeight: '850',
+                          padding: '3px 10px',
+                          borderRadius: '20px',
+                          boxShadow: '0 3px 10px rgba(var(--primary-rgb), 0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          letterSpacing: '0.4px',
+                        }}
+                      >
+                        <Sparkles size={11} />
+                        <span>{isRtl ? 'الأكثر شيوعاً' : 'POPULAR'}</span>
+                      </div>
+                    )}
+
+                    {/* Top Status Indicators (Current Plan / Selection Checkbox / Server Capacity) */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         {isTooSmall ? (
-                          <AlertTriangle size={18} style={{ color: '#ef4444' }} />
+                          <AlertTriangle size={19} style={{ color: '#ef4444' }} />
                         ) : isSelected ? (
-                          <CheckCircle2 size={18} style={{ color: 'var(--primary)' }} />
+                          <CheckCircle2 size={19} style={{ color: 'var(--primary)' }} />
                         ) : (
-                          <Circle size={18} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                          <Circle size={19} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
                         )}
+
                         {isCurrent && (
                           <span
                             style={{
                               backgroundColor: '#10b981',
                               color: '#fff',
-                              fontSize: '9px',
-                              fontWeight: '800',
-                              padding: '2px 6px',
-                              borderRadius: '6px',
+                              fontSize: '9.5px',
+                              fontWeight: '850',
+                              padding: '3px 7px',
+                              borderRadius: '7px',
                               textTransform: 'uppercase',
                               letterSpacing: '0.4px',
                             }}
@@ -335,55 +418,55 @@ export default function PlansPage() {
 
                       <span
                         style={{
-                          fontSize: '10px',
-                          fontWeight: '750',
+                          fontSize: '11px',
+                          fontWeight: '800',
                           color: isTooSmall ? '#ef4444' : 'var(--primary)',
-                          backgroundColor: isTooSmall ? 'rgba(239, 68, 68, 0.12)' : 'rgba(var(--primary-rgb, 99, 102, 241), 0.12)',
-                          padding: '2px 6px',
-                          borderRadius: '6px',
+                          backgroundColor: isTooSmall ? 'rgba(239, 68, 68, 0.12)' : 'rgba(var(--primary-rgb), 0.12)',
+                          padding: '3px 8px',
+                          borderRadius: '8px',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '3px',
+                          gap: '4px',
                         }}
                       >
-                        <Server size={11} />
+                        <Server size={12} />
                         {`${plan.maxRouters} ${isRtl ? 'راوتر' : 'Router(s)'}`}
                       </span>
                     </div>
 
                     {/* Plan Header & Pricing */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--foreground)', margin: 0 }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: '900', color: 'var(--foreground)', margin: 0 }}>
                         {displayName}
                       </h3>
 
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                        <span style={{ fontSize: '17px', fontWeight: '850', color: 'var(--foreground)' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '2px' }}>
+                        <span style={{ fontSize: '24px', fontWeight: '900', color: 'var(--foreground)', letterSpacing: '-0.5px' }}>
                           {formattedPrice}
                         </span>
-                        <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                        <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: '600' }}>
                           / {plan.days} {isRtl ? 'يوم' : 'Days'}
                         </span>
                       </div>
 
                       {plan.description && (
-                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4, margin: 0 }}>
+                        <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: 1.45, margin: '2px 0 0 0' }}>
                           {plan.description}
                         </p>
                       )}
 
-                      {/* Registered routers warning notice if plan capacity is less than registered routers */}
+                      {/* Capacity limit warning notice */}
                       {isTooSmall && (
                         <div
                           style={{
-                            fontSize: '10px',
-                            fontWeight: '650',
+                            fontSize: '10.5px',
+                            fontWeight: '700',
                             color: '#ef4444',
                             backgroundColor: 'rgba(239, 68, 68, 0.1)',
                             border: '1px solid rgba(239, 68, 68, 0.25)',
-                            borderRadius: '6px',
-                            padding: '4px 6px',
-                            marginTop: '2px',
+                            borderRadius: '8px',
+                            padding: '6px 8px',
+                            marginTop: '4px',
                           }}
                         >
                           {isRtl
@@ -393,25 +476,34 @@ export default function PlansPage() {
                       )}
                     </div>
 
-                    {/* Plan Specs List */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--foreground)' }}>
-                        <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Check size={10} />
+                    {/* Plan Specs Features List */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px dashed var(--glass-border)', paddingTop: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: 'var(--foreground)' }}>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Check size={11} strokeWidth={3} />
                         </div>
-                        <span>{isRtl ? `الحد الأقصى: ${plan.maxRouters} راوتر` : `Up to ${plan.maxRouters} Routers Capacity`}</span>
+                        <span style={{ fontWeight: '600' }}>{isRtl ? `الحد الأقصى: ${plan.maxRouters} راوتر` : `Up to ${plan.maxRouters} Routers Capacity`}</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--foreground)' }}>
-                        <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Check size={10} />
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: 'var(--foreground)' }}>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Check size={11} strokeWidth={3} />
                         </div>
-                        <span>{isRtl ? `مدة الصلاحية: ${plan.days} يوم` : `Access Duration: ${plan.days} Days`}</span>
+                        <span style={{ fontWeight: '600' }}>{isRtl ? `مدة الصلاحية: ${plan.days} يوم` : `Access Duration: ${plan.days} Days`}</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--foreground)' }}>
-                        <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Check size={10} />
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: 'var(--foreground)' }}>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Check size={11} strokeWidth={3} />
                         </div>
-                        <span>{isRtl ? 'إدارة الهوتسبوت والكروت' : 'Full Voucher Telemetry'}</span>
+                        <span style={{ fontWeight: '600' }}>{isRtl ? 'إدارة الهوتسبوت والكروت بالكامل' : 'Full Hotspot & Voucher Control'}</span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: 'var(--foreground)' }}>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <ShieldCheck size={11} strokeWidth={3} />
+                        </div>
+                        <span style={{ fontWeight: '600' }}>{isRtl ? 'مراقبة حية وحماية بالماك' : 'Live Telemetry & MAC Security'}</span>
                       </div>
                     </div>
                   </div>
@@ -419,33 +511,33 @@ export default function PlansPage() {
               })}
             </div>
 
-            {/* Single Action Button for Selected Plan */}
-            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
+            {/* Single Action WhatsApp Subscription Button */}
+            <div style={{ marginTop: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
               <button
                 type="button"
                 onClick={handleWhatsAppSubmit}
                 disabled={!selectedPlan}
                 style={{
                   width: '100%',
-                  maxWidth: '440px',
-                  padding: '12px 20px',
-                  borderRadius: '10px',
-                  backgroundColor: selectedPlan ? '#25d366' : '#9ca3af',
+                  maxWidth: '460px',
+                  padding: '14px 22px',
+                  borderRadius: '14px',
+                  background: selectedPlan ? 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)' : '#9ca3af',
                   color: '#fff',
                   border: 'none',
-                  fontSize: '13.5px',
-                  fontWeight: '800',
+                  fontSize: '14px',
+                  fontWeight: '850',
                   cursor: selectedPlan ? 'pointer' : 'not-allowed',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: selectedPlan ? '0 6px 20px rgba(37,211,102,0.3)' : 'none',
+                  gap: '10px',
+                  boxShadow: selectedPlan ? '0 8px 24px rgba(37, 211, 102, 0.35)' : 'none',
                   transition: 'all 0.2s ease',
                   opacity: selectedPlan ? 1 : 0.6,
                 }}
               >
-                <MessageCircle size={18} />
+                <MessageCircle size={20} />
                 <span>
                   {selectedPlan
                     ? isRtl
@@ -456,6 +548,12 @@ export default function PlansPage() {
                     : 'Select a suitable plan'}
                 </span>
               </button>
+
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                {isRtl
+                  ? 'سيتم توجيهك فوراً إلى الدعم الفني عبر الواتساب لإكمال التفعيل'
+                  : 'You will be redirected directly to WhatsApp support to complete activation'}
+              </span>
             </div>
           </>
         )}
