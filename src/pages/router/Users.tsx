@@ -160,6 +160,39 @@ export default function UsersPage() {
     });
   }, [currentTabList, searchTerm]);
 
+  // Group clients by profile name
+  const groupedClients = useMemo(() => {
+    const groups: { [profileName: string]: NetworkClient[] } = {};
+
+    filteredClients.forEach((client) => {
+      const isSigned = checkIsSignedUser(client);
+      const groupKey = client.profile
+        ? client.profile
+        : isSigned
+        ? (t('users.defaultProfile') || 'افتراضي')
+        : (t('users.waiting') || 'في الانتظار');
+
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(client);
+    });
+
+    const waitingStr = (t('users.waiting') || 'في الانتظار').toLowerCase();
+    const sortedKeys = Object.keys(groups).sort((a, b) => {
+      if (a.toLowerCase() === waitingStr) return 1;
+      if (b.toLowerCase() === waitingStr) return -1;
+      return a.localeCompare(b);
+    });
+
+    const sortedGroups: { [profileName: string]: NetworkClient[] } = {};
+    sortedKeys.forEach((key) => {
+      sortedGroups[key] = groups[key];
+    });
+
+    return sortedGroups;
+  }, [filteredClients, t]);
+
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
@@ -463,277 +496,326 @@ export default function UsersPage() {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {filteredClients.map((client, idx) => {
-            const isSignedUser = checkIsSignedUser(client);
-            const rawUser = (client.user || (client as any).voucherCode || '').trim();
-
-            const deviceNameCandidate = (() => {
-              const rawDevName = (
-                client.name ||
-                (client as any).hostName ||
-                (client as any)['host-name'] ||
-                (client as any).dhcpName ||
-                client.comment ||
-                ''
-              ).trim();
-
-              if (!rawDevName) return '';
-              const lowerDev = rawDevName.toLowerCase();
-              const lowerUser = rawUser.toLowerCase();
-              const lowerMac = (client.mac || '').toLowerCase();
-              const lowerIp = (client.ip || '').toLowerCase();
-
-              if (
-                lowerDev === lowerUser ||
-                lowerDev === lowerMac ||
-                lowerDev === lowerIp ||
-                lowerDev === 'active client' ||
-                lowerDev === 'offline client' ||
-                lowerDev === 'unnamed client'
-              ) {
-                return '';
-              }
-
-              return rawDevName;
-            })();
-
-            const clientName = isSignedUser
-              ? rawUser
-              : (client.name && client.name !== client.mac ? client.name : (client.ip || client.mac || t('users.waiting')));
-
-            const sigStyle = getSignalColor(client.signal);
-            const rx = client.rxBytes || client.bytesIn || 0;
-            const tx = client.txBytes || client.bytesOut || 0;
-            const remainingTime = client.sessionTimeLeft || client.timeLeft || client.remainingTime || client.session_time_left || client.limitUptime || client.uptime;
-
-            return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {Object.entries(groupedClients).map(([profileGroup, clients]) => (
+            <div key={profileGroup} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {/* Profile Group Glass Header */}
               <div
-                key={client.id || idx}
-                onClick={() => setSelectedClient(client)}
                 style={{
-                  border: isSignedUser
-                    ? '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))'
-                    : '1px solid rgba(245, 158, 11, 0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  transition: 'transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  padding: '5px 10px',
+                  background: 'rgba(99, 102, 241, 0.08)',
+                  border: '1px solid rgba(99, 102, 241, 0.2)',
+                  borderRadius: '8px',
+                  backdropFilter: 'blur(8px)'
                 }}
-                className="list-item-card hover-card"
               >
-                {/* Left: Device / User Avatar & Identifiers */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-                  {/* Avatar Icon + Online Pulse Dot */}
-                  <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <div
-                      className="item-icon"
-                      style={{
-                        background: isSignedUser
-                          ? 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.3) 100%)'
-                          : 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(217,119,6,0.3) 100%)',
-                        color: isSignedUser ? 'var(--primary, #3b82f6)' : '#f59e0b',
-                        border: isSignedUser ? '1px solid rgba(59,130,246,0.25)' : '1px solid rgba(245,158,11,0.3)'
-                      }}
-                    >
-                      {isSignedUser ? <Smartphone size={16} /> : <UserX size={16} />}
-                    </div>
-                    <span style={{
-                      position: 'absolute',
-                      bottom: '-1px',
-                      [isRtl ? 'left' : 'right']: '-1px',
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: isSignedUser ? '#10b981' : '#f59e0b',
-                      border: '1.5px solid var(--card-bg, #0f172a)',
-                      boxShadow: isSignedUser ? '0 0 4px rgba(16,185,129,0.8)' : '0 0 4px rgba(245,158,11,0.8)'
-                    }} />
-                  </div>
-
-                  {/* Name, PIN Badge & Profile Badge in Vertically Aligned Column Slots */}
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
-                      {/* Device Name Column Slot */}
-                      <strong
-                        title={isSignedUser && deviceNameCandidate ? deviceNameCandidate : clientName}
-                        className="item-title"
-                        style={{
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          color: 'var(--foreground)',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          width: '105px',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {isSignedUser && deviceNameCandidate ? deviceNameCandidate : clientName}
-                      </strong>
-
-                      {/* PIN / Username Badge Slot */}
-                      <div style={{ width: '70px', flexShrink: 0, display: 'flex' }}>
-                        {isSignedUser && rawUser && (
-                          <span
-                            className="item-badge"
-                            style={{
-                              width: '100%',
-                              background: 'rgba(255, 255, 255, 0.08)',
-                              color: 'var(--text-muted)',
-                              border: '1px solid var(--glass-border)',
-                              fontSize: '10px',
-                              fontWeight: 600,
-                              padding: '0 3px',
-                              borderRadius: '5px',
-                              height: '20px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '2px',
-                              whiteSpace: 'nowrap',
-                              boxSizing: 'border-box',
-                            }}
-                          >
-                            <Shield size={10} style={{ opacity: 0.8, flexShrink: 0 }} />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{rawUser}</span>
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Profile / Status Badge Slot */}
-                      <div style={{ width: '75px', flexShrink: 0, display: 'flex' }}>
-                        {client.profile ? (
-                          <span
-                            className="item-badge"
-                            style={{
-                              width: '100%',
-                              background: 'rgba(99, 102, 241, 0.12)',
-                              color: '#818cf8',
-                              border: '1px solid rgba(99, 102, 241, 0.25)',
-                              fontSize: '10px',
-                              fontWeight: 600,
-                              padding: '0 3px',
-                              borderRadius: '5px',
-                              height: '20px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '2px',
-                              whiteSpace: 'nowrap',
-                              boxSizing: 'border-box',
-                            }}
-                          >
-                            <Layers size={10} style={{ flexShrink: 0 }} />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.profile}</span>
-                          </span>
-                        ) : !isSignedUser ? (
-                          <span
-                            className="item-badge"
-                            style={{
-                              width: '100%',
-                              background: 'rgba(245, 158, 11, 0.12)',
-                              color: '#fbbf24',
-                              border: '1px solid rgba(245, 158, 11, 0.25)',
-                              fontSize: '10px',
-                              fontWeight: 600,
-                              padding: '0 3px',
-                              borderRadius: '5px',
-                              height: '20px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '2px',
-                              whiteSpace: 'nowrap',
-                              boxSizing: 'border-box',
-                            }}
-                          >
-                            <Clock size={10} style={{ flexShrink: 0 }} />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('users.waiting')}</span>
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Layers size={13} style={{ color: '#818cf8' }} />
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
+                    {profileGroup}
+                  </span>
                 </div>
-
-                {/* Right: Uptime, Signal Strength & Traffic */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  flexShrink: 0
-                }}>
-                  {/* Traffic Down / Up (Hidden on sm screens) */}
-                  {(rx > 0 || tx > 0) && (
-                    <div className="hide-sm" style={{ textAlign: 'right', fontSize: '10px', color: 'var(--text-muted)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#10b981' }}>
-                        <ArrowDownRight size={11} />
-                        <span>{formatBytes(rx)}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#6366f1' }}>
-                        <ArrowUpRight size={11} />
-                        <span>{formatBytes(tx)}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Remaining Time Badge */}
-                  {remainingTime && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px',
-                      fontSize: '10px',
-                      color: 'var(--text-muted)',
-                      background: 'rgba(255,255,255,0.04)',
-                      padding: '2px 6px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--glass-border)',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      <Clock size={10} />
-                      <span>{remainingTime}</span>
-                    </div>
-                  )}
-
-                  {/* Signal Strength Badge */}
-                  {client.signal != null && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px',
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      color: sigStyle.text,
-                      background: sigStyle.bg,
-                      padding: '2px 6px',
-                      borderRadius: '6px',
-                      border: `1px solid ${sigStyle.border}`,
-                      whiteSpace: 'nowrap'
-                    }}>
-                      <Wifi size={10} />
-                      <span>{client.signal}%</span>
-                    </div>
-                  )}
-
-                  {/* Info Icon Button */}
-                  <div style={{
-                    color: 'var(--text-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '2px'
-                  }}>
-                    <Info size={14} />
-                  </div>
-                </div>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    color: '#818cf8',
+                    background: 'rgba(99, 102, 241, 0.15)',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(99, 102, 241, 0.25)'
+                  }}
+                >
+                  {clients.length}
+                </span>
               </div>
-            );
-          })}
+
+              {/* Group Users List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {clients.map((client, idx) => {
+                  const isSignedUser = checkIsSignedUser(client);
+                  const rawUser = (client.user || (client as any).voucherCode || '').trim();
+
+                  const deviceNameCandidate = (() => {
+                    const rawDevName = (
+                      client.name ||
+                      (client as any).hostName ||
+                      (client as any)['host-name'] ||
+                      (client as any).dhcpName ||
+                      client.comment ||
+                      ''
+                    ).trim();
+
+                    if (!rawDevName) return '';
+                    const lowerDev = rawDevName.toLowerCase();
+                    const lowerUser = rawUser.toLowerCase();
+                    const lowerMac = (client.mac || '').toLowerCase();
+                    const lowerIp = (client.ip || '').toLowerCase();
+
+                    if (
+                      lowerDev === lowerUser ||
+                      lowerDev === lowerMac ||
+                      lowerDev === lowerIp ||
+                      lowerDev === 'active client' ||
+                      lowerDev === 'offline client' ||
+                      lowerDev === 'unnamed client'
+                    ) {
+                      return '';
+                    }
+
+                    return rawDevName;
+                  })();
+
+                  const clientName = isSignedUser
+                    ? rawUser
+                    : (client.name && client.name !== client.mac ? client.name : (client.ip || client.mac || t('users.waiting')));
+
+                  const sigStyle = getSignalColor(client.signal);
+                  const rx = client.rxBytes || client.bytesIn || 0;
+                  const tx = client.txBytes || client.bytesOut || 0;
+                  const remainingTime = client.sessionTimeLeft || client.timeLeft || client.remainingTime || client.session_time_left || client.limitUptime || client.uptime;
+
+                  return (
+                    <div
+                      key={client.id || idx}
+                      onClick={() => setSelectedClient(client)}
+                      style={{
+                        border: isSignedUser
+                          ? '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))'
+                          : '1px solid rgba(245, 158, 11, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '6px',
+                        padding: '6px 10px',
+                        cursor: 'pointer',
+                        transition: 'transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                      }}
+                      className="list-item-card hover-card"
+                    >
+                      {/* Left: Device / User Avatar & Identifiers */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+                        {/* Avatar Icon + Online Pulse Dot */}
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <div
+                            className="item-icon"
+                            style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '6px',
+                              background: isSignedUser
+                                ? 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.3) 100%)'
+                                : 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(217,119,6,0.3) 100%)',
+                              color: isSignedUser ? 'var(--primary, #3b82f6)' : '#f59e0b',
+                              border: isSignedUser ? '1px solid rgba(59,130,246,0.25)' : '1px solid rgba(245,158,11,0.3)'
+                            }}
+                          >
+                            {isSignedUser ? <Smartphone size={13} /> : <UserX size={13} />}
+                          </div>
+                          <span style={{
+                            position: 'absolute',
+                            bottom: '-1px',
+                            [isRtl ? 'left' : 'right']: '-1px',
+                            width: '7px',
+                            height: '7px',
+                            borderRadius: '50%',
+                            background: isSignedUser ? '#10b981' : '#f59e0b',
+                            border: '1.5px solid var(--card-bg, #0f172a)',
+                            boxShadow: isSignedUser ? '0 0 4px rgba(16,185,129,0.8)' : '0 0 4px rgba(245,158,11,0.8)'
+                          }} />
+                        </div>
+
+                        {/* Name, PIN Badge & Profile Badge in Vertically Aligned Column Slots */}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+                            {/* Device Name Column Slot */}
+                            <strong
+                              title={isSignedUser && deviceNameCandidate ? deviceNameCandidate : clientName}
+                              className="item-title"
+                              style={{
+                                fontSize: '12.5px',
+                                fontWeight: 700,
+                                color: 'var(--foreground)',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                width: '76px',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {isSignedUser && deviceNameCandidate ? deviceNameCandidate : clientName}
+                            </strong>
+
+                            {/* PIN / Username Badge Slot */}
+                            <div style={{ width: '56px', flexShrink: 0, display: 'flex' }}>
+                              {isSignedUser && rawUser && (
+                                <span
+                                  className="item-badge"
+                                  style={{
+                                    width: '100%',
+                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    color: 'var(--text-muted)',
+                                    border: '1px solid var(--glass-border)',
+                                    fontSize: '9.5px',
+                                    fontWeight: 600,
+                                    padding: '0 2px',
+                                    borderRadius: '5px',
+                                    height: '19px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '2px',
+                                    whiteSpace: 'nowrap',
+                                    boxSizing: 'border-box',
+                                  }}
+                                >
+                                  <Shield size={9.5} style={{ opacity: 0.8, flexShrink: 0 }} />
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{rawUser}</span>
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Profile / Status Badge Slot */}
+                            <div style={{ width: '56px', flexShrink: 0, display: 'flex' }}>
+                              {client.profile ? (
+                                <span
+                                  className="item-badge"
+                                  style={{
+                                    width: '100%',
+                                    background: 'rgba(99, 102, 241, 0.12)',
+                                    color: '#818cf8',
+                                    border: '1px solid rgba(99, 102, 241, 0.25)',
+                                    fontSize: '9.5px',
+                                    fontWeight: 600,
+                                    padding: '0 2px',
+                                    borderRadius: '5px',
+                                    height: '19px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '2px',
+                                    whiteSpace: 'nowrap',
+                                    boxSizing: 'border-box',
+                                  }}
+                                >
+                                  <Layers size={9.5} style={{ flexShrink: 0 }} />
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.profile}</span>
+                                </span>
+                              ) : !isSignedUser ? (
+                                <span
+                                  className="item-badge"
+                                  style={{
+                                    width: '100%',
+                                    background: 'rgba(245, 158, 11, 0.12)',
+                                    color: '#fbbf24',
+                                    border: '1px solid rgba(245, 158, 11, 0.25)',
+                                    fontSize: '9.5px',
+                                    fontWeight: 600,
+                                    padding: '0 2px',
+                                    borderRadius: '5px',
+                                    height: '19px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '2px',
+                                    whiteSpace: 'nowrap',
+                                    boxSizing: 'border-box',
+                                  }}
+                                >
+                                  <Clock size={9.5} style={{ flexShrink: 0 }} />
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('users.waiting')}</span>
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Uptime, Signal Strength & Traffic */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        flexShrink: 0
+                      }}>
+                        {/* Traffic Down / Up (Hidden on sm screens) */}
+                        {(rx > 0 || tx > 0) && (
+                          <div className="hide-sm" style={{ textAlign: 'right', fontSize: '9.5px', color: 'var(--text-muted)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#10b981' }}>
+                              <ArrowDownRight size={10} />
+                              <span>{formatBytes(rx)}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#6366f1' }}>
+                              <ArrowUpRight size={10} />
+                              <span>{formatBytes(tx)}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Remaining Time Badge */}
+                        {remainingTime && (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            fontSize: '9.5px',
+                            color: 'var(--text-muted)',
+                            background: 'rgba(255,255,255,0.04)',
+                            padding: '0 4px',
+                            borderRadius: '5px',
+                            border: '1px solid var(--glass-border)',
+                            height: '19px',
+                            whiteSpace: 'nowrap',
+                            boxSizing: 'border-box'
+                          }}>
+                            <Clock size={9.5} style={{ flexShrink: 0 }} />
+                            <span>{remainingTime}</span>
+                          </div>
+                        )}
+
+                        {/* Signal Strength Badge */}
+                        {client.signal != null && (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            fontSize: '9.5px',
+                            fontWeight: 700,
+                            color: sigStyle.text,
+                            background: sigStyle.bg,
+                            padding: '0 4px',
+                            borderRadius: '5px',
+                            border: `1px solid ${sigStyle.border}`,
+                            height: '19px',
+                            whiteSpace: 'nowrap',
+                            boxSizing: 'border-box'
+                          }}>
+                            <Wifi size={9.5} style={{ flexShrink: 0 }} />
+                            <span>{client.signal}%</span>
+                          </div>
+                        )}
+
+                        {/* Info Icon Button */}
+                        <div style={{
+                          color: 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '2px'
+                        }}>
+                          <Info size={13} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -749,7 +831,7 @@ export default function UsersPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '16px',
+            padding: '12px',
           }}
           onClick={() => setSelectedClient(null)}
         >
@@ -757,39 +839,49 @@ export default function UsersPage() {
             onClick={(e) => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: '460px',
+              maxWidth: '380px',
               background: 'var(--card-bg, #0f172a)',
               border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.15))',
-              borderRadius: '20px',
-              padding: '24px',
+              borderRadius: '16px',
+              padding: '16px',
               boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '18px',
+              gap: '12px',
               direction: isRtl ? 'rtl' : 'ltr',
+              boxSizing: 'border-box'
             }}
           >
             {/* Modal Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
                 <div style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
                   background: 'linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.4) 100%)',
                   color: '#3b82f6',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '1px solid rgba(59,130,246,0.3)'
+                  border: '1px solid rgba(59,130,246,0.3)',
+                  flexShrink: 0
                 }}>
-                  <Smartphone size={22} />
+                  <Smartphone size={16} />
                 </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--foreground)' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <h3 style={{
+                    margin: 0,
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    color: 'var(--foreground)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
                     {selectedClient.name || selectedClient.user || 'Unnamed Client'}
                   </h3>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
                     {t('users.clientDetails')}
                   </div>
                 </div>
@@ -799,38 +891,40 @@ export default function UsersPage() {
                 style={{
                   background: 'rgba(255, 255, 255, 0.05)',
                   border: '1px solid var(--glass-border)',
-                  borderRadius: '10px',
+                  borderRadius: '8px',
                   color: 'var(--text-muted)',
                   cursor: 'pointer',
-                  padding: '6px',
+                  padding: '4px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  flexShrink: 0
                 }}
               >
-                <X size={18} />
+                <X size={15} />
               </button>
             </div>
 
             {/* Modal Details Grid */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
               {/* Hotspot User / Voucher Code */}
               {(selectedClient.user || (selectedClient as any).voucherCode) && (
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid var(--glass-border)',
-                  borderRadius: '12px',
-                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  padding: '7px 10px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  gap: '8px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                    <Shield size={15} style={{ color: '#3b82f6' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                    <Shield size={13} style={{ color: '#3b82f6' }} />
                     <span>{t('users.user')}</span>
                   </div>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace' }}>
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {selectedClient.user || (selectedClient as any).voucherCode}
                   </span>
                 </div>
@@ -841,37 +935,39 @@ export default function UsersPage() {
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid var(--glass-border)',
-                  borderRadius: '12px',
-                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  padding: '7px 10px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  gap: '8px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                    <Globe size={15} style={{ color: '#10b981' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                    <Globe size={13} style={{ color: '#10b981' }} />
                     <span>{t('users.ipAddress')}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {selectedClient.ip}
                     </span>
                     <button
                       onClick={() => handleCopy(selectedClient.ip!, 'ip')}
+                      title={copiedField === 'ip' ? t('users.copied') : t('users.copyIp')}
                       style={{
                         background: copiedField === 'ip' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)',
                         border: '1px solid var(--glass-border)',
-                        borderRadius: '6px',
-                        padding: '4px 8px',
+                        borderRadius: '5px',
+                        padding: '3px 6px',
                         color: copiedField === 'ip' ? '#10b981' : 'var(--text-muted)',
-                        fontSize: '11px',
+                        fontSize: '10px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        gap: '3px',
+                        flexShrink: 0
                       }}
                     >
-                      {copiedField === 'ip' ? <Check size={12} /> : <Copy size={12} />}
-                      <span>{copiedField === 'ip' ? t('users.copied') : t('users.copyIp')}</span>
+                      {copiedField === 'ip' ? <Check size={11} /> : <Copy size={11} />}
                     </button>
                   </div>
                 </div>
@@ -882,37 +978,39 @@ export default function UsersPage() {
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid var(--glass-border)',
-                  borderRadius: '12px',
-                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  padding: '7px 10px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  gap: '8px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                    <Activity size={15} style={{ color: '#6366f1' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                    <Activity size={13} style={{ color: '#6366f1' }} />
                     <span>{t('users.macAddress')}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {selectedClient.mac}
                     </span>
                     <button
                       onClick={() => handleCopy(selectedClient.mac!, 'mac')}
+                      title={copiedField === 'mac' ? t('users.copied') : t('users.copyMac')}
                       style={{
                         background: copiedField === 'mac' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)',
                         border: '1px solid var(--glass-border)',
-                        borderRadius: '6px',
-                        padding: '4px 8px',
+                        borderRadius: '5px',
+                        padding: '3px 6px',
                         color: copiedField === 'mac' ? '#10b981' : 'var(--text-muted)',
-                        fontSize: '11px',
+                        fontSize: '10px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        gap: '3px',
+                        flexShrink: 0
                       }}
                     >
-                      {copiedField === 'mac' ? <Check size={12} /> : <Copy size={12} />}
-                      <span>{copiedField === 'mac' ? t('users.copied') : t('users.copyMac')}</span>
+                      {copiedField === 'mac' ? <Check size={11} /> : <Copy size={11} />}
                     </button>
                   </div>
                 </div>
@@ -950,17 +1048,18 @@ export default function UsersPage() {
                   <div style={{
                     background: 'rgba(255, 255, 255, 0.03)',
                     border: '1px solid var(--glass-border)',
-                    borderRadius: '12px',
-                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    padding: '7px 10px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between'
+                    justifyContent: 'space-between',
+                    gap: '8px'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                      <Smartphone size={15} style={{ color: '#3b82f6' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                      <Smartphone size={13} style={{ color: '#3b82f6' }} />
                       <span>{t('users.deviceName')}</span>
                     </div>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {rawDevName}
                     </span>
                   </div>
@@ -972,17 +1071,18 @@ export default function UsersPage() {
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid var(--glass-border)',
-                  borderRadius: '12px',
-                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  padding: '7px 10px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  gap: '8px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                    <Clock size={15} style={{ color: '#f59e0b' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                    <Clock size={13} style={{ color: '#f59e0b' }} />
                     <span>{t('users.remainingTime')}</span>
                   </div>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', whiteSpace: 'nowrap' }}>
                     {selectedClient.sessionTimeLeft || selectedClient.timeLeft || selectedClient.remainingTime || selectedClient.session_time_left || selectedClient.limitUptime || selectedClient.uptime}
                   </span>
                 </div>
@@ -993,17 +1093,18 @@ export default function UsersPage() {
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid var(--glass-border)',
-                  borderRadius: '12px',
-                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  padding: '7px 10px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  gap: '8px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                    <Layers size={15} style={{ color: '#a855f7' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                    <Layers size={13} style={{ color: '#a855f7' }} />
                     <span>{t('users.profile')}</span>
                   </div>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary, #3b82f6)' }}>
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--primary, #3b82f6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {selectedClient.profile}
                   </span>
                 </div>
@@ -1014,17 +1115,18 @@ export default function UsersPage() {
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid var(--glass-border)',
-                  borderRadius: '12px',
-                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  padding: '7px 10px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  gap: '8px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                    <MessageSquare size={15} style={{ color: '#f59e0b' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                    <MessageSquare size={13} style={{ color: '#f59e0b' }} />
                     <span>{t('users.comment')}</span>
                   </div>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--foreground)' }}>
+                  <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {selectedClient.comment}
                   </span>
                 </div>
@@ -1035,21 +1137,21 @@ export default function UsersPage() {
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
-                  gap: '10px'
+                  gap: '8px'
                 }}>
                   <div style={{
                     background: 'rgba(16, 185, 129, 0.08)',
                     border: '1px solid rgba(16, 185, 129, 0.2)',
-                    borderRadius: '12px',
-                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    padding: '7px 9px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: '6px'
                   }}>
-                    <ArrowDownRight size={18} style={{ color: '#10b981' }} />
-                    <div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{t('users.rxBytes')}</div>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
+                    <ArrowDownRight size={15} style={{ color: '#10b981', flexShrink: 0 }} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1 }}>{t('users.rxBytes')}</div>
+                      <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {formatBytes(selectedClient.rxBytes || selectedClient.bytesIn)}
                       </div>
                     </div>
@@ -1058,16 +1160,16 @@ export default function UsersPage() {
                   <div style={{
                     background: 'rgba(99, 102, 241, 0.08)',
                     border: '1px solid rgba(99, 102, 241, 0.2)',
-                    borderRadius: '12px',
-                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    padding: '7px 9px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: '6px'
                   }}>
-                    <ArrowUpRight size={18} style={{ color: '#6366f1' }} />
-                    <div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{t('users.txBytes')}</div>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
+                    <ArrowUpRight size={15} style={{ color: '#6366f1', flexShrink: 0 }} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1 }}>{t('users.txBytes')}</div>
+                      <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {formatBytes(selectedClient.txBytes || selectedClient.bytesOut)}
                       </div>
                     </div>
@@ -1076,24 +1178,24 @@ export default function UsersPage() {
               )}
 
               {/* Disconnect Action Button */}
-              <div style={{ marginTop: '8px', paddingTop: '14px', borderTop: '1px solid var(--glass-border)' }}>
+              <div style={{ marginTop: '4px', paddingTop: '10px', borderTop: '1px solid var(--glass-border)' }}>
                 {showDisconnectConfirm ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#ef4444', textAlign: 'center', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <p style={{ margin: 0, fontSize: '11.5px', color: '#ef4444', textAlign: 'center', fontWeight: 600 }}>
                       {t('users.confirmDisconnect')}
                     </p>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '6px' }}>
                       <button
                         onClick={() => setShowDisconnectConfirm(false)}
                         disabled={isDisconnecting}
                         style={{
                           flex: 1,
-                          padding: '8px',
-                          borderRadius: '10px',
+                          padding: '7px',
+                          borderRadius: '8px',
                           border: '1px solid var(--glass-border)',
                           background: 'rgba(255, 255, 255, 0.05)',
                           color: 'var(--foreground)',
-                          fontSize: '12px',
+                          fontSize: '11.5px',
                           fontWeight: 600,
                           cursor: 'pointer'
                         }}
@@ -1105,28 +1207,28 @@ export default function UsersPage() {
                         disabled={isDisconnecting}
                         style={{
                           flex: 1,
-                          padding: '8px',
-                          borderRadius: '10px',
+                          padding: '7px',
+                          borderRadius: '8px',
                           border: '1px solid rgba(239, 68, 68, 0.4)',
                           background: 'linear-gradient(135deg, rgba(239,68,68,0.8) 0%, rgba(220,38,38,0.9) 100%)',
                           color: '#ffffff',
-                          fontSize: '12px',
+                          fontSize: '11.5px',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '6px'
+                          gap: '4px'
                         }}
                       >
                         {isDisconnecting ? (
                           <>
-                            <RefreshCw size={13} className="spin" />
+                            <RefreshCw size={12} className="spin" />
                             <span>{t('users.disconnecting')}</span>
                           </>
                         ) : (
                           <>
-                            <LogOut size={13} />
+                            <LogOut size={12} />
                             <span>{t('users.disconnectUser')}</span>
                           </>
                         )}
@@ -1138,22 +1240,22 @@ export default function UsersPage() {
                     onClick={() => setShowDisconnectConfirm(true)}
                     style={{
                       width: '100%',
-                      padding: '10px',
-                      borderRadius: '12px',
+                      padding: '8px',
+                      borderRadius: '8px',
                       border: '1px solid rgba(239, 68, 68, 0.3)',
                       background: 'rgba(239, 68, 68, 0.1)',
                       color: '#ef4444',
-                      fontSize: '13px',
+                      fontSize: '12px',
                       fontWeight: 700,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
+                      gap: '5px',
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    <LogOut size={15} />
+                    <LogOut size={14} />
                     <span>{t('users.disconnectUser')}</span>
                   </button>
                 )}
