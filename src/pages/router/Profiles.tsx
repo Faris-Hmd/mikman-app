@@ -655,7 +655,7 @@ export default function ProfilesPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {profileList.map((profile) => {
             const isUnlVal = profile.validity === '0d' || profile.validity === '0' || profile.validity === '0h' || profile.validity?.toLowerCase() === 'unlimited';
-            const displayValidity = isUnlVal ? '∞' : (profile.validity || '1d');
+            const displayValidity = isUnlVal ? '∞' : (profile.validity ? profile.validity.toUpperCase() : '1D');
 
             const revVal = profile.revenue ?? profile.price;
             const numRev = revVal != null && revVal !== '' ? Number(revVal) : NaN;
@@ -665,42 +665,44 @@ export default function ProfilesPage() {
               <div
                 key={profile['.id'] || profile.name}
                 className="list-item-card hover-card"
+                onClick={() => handleOpenEditModal(profile)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '8px',
-                  padding: '8px 12px',
+                  gap: '6px',
+                  padding: '6px 10px',
+                  cursor: 'pointer',
                 }}
               >
                 {/* Left: Icon, Profile Name & Vertically Aligned Badges Row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
                   <div
                     className="item-icon"
                     style={{
                       background: 'var(--secondary)',
                       color: 'var(--foreground)',
                       border: '1px solid var(--glass-border)',
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '7px',
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '6px',
                       flexShrink: 0
                     }}
                   >
-                    <Layers size={14} />
+                    <Layers size={13} />
                   </div>
 
-                  {/* Fixed-width Name so badges start at exact same horizontal position */}
+                  {/* Compact Name width to avoid pushing badges */}
                   <strong
                     className="item-title"
                     style={{
-                      fontSize: '13px',
+                      fontSize: '12.5px',
                       fontWeight: 700,
                       color: 'var(--foreground)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
-                      width: '105px',
+                      width: '82px',
                       flexShrink: 0,
                     }}
                     title={profile.name}
@@ -709,9 +711,9 @@ export default function ProfilesPage() {
                   </strong>
 
                   {/* Single-row Vertically Aligned Badge Slots */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, flex: 1 }}>
                     {/* Price / Revenue Badge Slot */}
-                    <div style={{ width: '50px', flexShrink: 0, display: 'flex' }}>
+                    <div style={{ width: '46px', flexShrink: 0, display: 'flex' }}>
                       {hasPrice && (
                         <span
                           className="item-badge"
@@ -720,11 +722,11 @@ export default function ProfilesPage() {
                             background: 'rgba(255, 255, 255, 0.08)',
                             color: '#22c55e',
                             border: '1px solid var(--glass-border)',
-                            fontSize: '10px',
+                            fontSize: '9.5px',
                             fontWeight: 700,
-                            padding: '0 3px',
+                            padding: '0 2px',
                             borderRadius: '5px',
-                            height: '20px',
+                            height: '19px',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -733,14 +735,14 @@ export default function ProfilesPage() {
                             boxSizing: 'border-box',
                           }}
                         >
-                          <DollarSign size={10} style={{ flexShrink: 0 }} />
+                          <DollarSign size={9.5} style={{ flexShrink: 0 }} />
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatPriceBadge(numRev)}</span>
                         </span>
                       )}
                     </div>
 
                     {/* Time / Validity Badge Slot */}
-                    <div style={{ width: '62px', flexShrink: 0, display: 'flex' }}>
+                    <div style={{ width: '54px', flexShrink: 0, display: 'flex' }}>
                       <span
                         className="item-badge"
                         style={{
@@ -748,11 +750,11 @@ export default function ProfilesPage() {
                           background: 'rgba(255, 255, 255, 0.08)',
                           color: '#38bdf8',
                           border: '1px solid var(--glass-border)',
-                          fontSize: '10px',
+                          fontSize: '9.5px',
                           fontWeight: 700,
-                          padding: '0 3px',
+                          padding: '0 2px',
                           borderRadius: '5px',
-                          height: '20px',
+                          height: '19px',
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -761,13 +763,13 @@ export default function ProfilesPage() {
                           boxSizing: 'border-box',
                         }}
                       >
-                        <Clock size={10} style={{ flexShrink: 0 }} />
+                        <Clock size={9.5} style={{ flexShrink: 0 }} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayValidity}</span>
                       </span>
                     </div>
 
                     {/* Data Limit Badge Slot */}
-                    <div style={{ width: '62px', flexShrink: 0, display: 'flex' }}>
+                    <div style={{ width: '54px', flexShrink: 0, display: 'flex' }}>
                       <span
                         className="item-badge"
                         style={{
@@ -775,11 +777,11 @@ export default function ProfilesPage() {
                           background: 'rgba(255, 255, 255, 0.08)',
                           color: '#c084fc',
                           border: '1px solid var(--glass-border)',
-                          fontSize: '10px',
+                          fontSize: '9.5px',
                           fontWeight: 700,
-                          padding: '0 3px',
+                          padding: '0 2px',
                           borderRadius: '5px',
-                          height: '20px',
+                          height: '19px',
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -788,12 +790,12 @@ export default function ProfilesPage() {
                           boxSizing: 'border-box',
                         }}
                       >
-                        <HardDrive size={10} style={{ flexShrink: 0 }} />
+                        <HardDrive size={9.5} style={{ flexShrink: 0 }} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {profile.isUnlimited || !profile.limitMB || profile.limitMB === 0
                             ? '∞'
-                            : profile.limitMB >= 1024
-                            ? `${(profile.limitMB / 1024).toFixed(1).replace(/\.0$/, '')} GB`
+                            : profile.limitMB >= 500
+                            ? `${(profile.limitMB % 1024 === 0 || profile.limitMB === 512 ? profile.limitMB / 1024 : profile.limitMB / 1000).toFixed(1).replace(/\.0$/, '')} GB`
                             : `${profile.limitMB} MB`}
                         </span>
                       </span>
@@ -801,10 +803,13 @@ export default function ProfilesPage() {
                   </div>
                 </div>
 
-                {/* Right: Actions (Edit & Delete) */}
+                {/* Right: Actions (Edit) */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   <button
-                    onClick={() => handleOpenEditModal(profile)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenEditModal(profile);
+                    }}
                     title="Edit Profile"
                     style={{
                       background: 'var(--secondary)',
@@ -821,31 +826,6 @@ export default function ProfilesPage() {
                     }}
                   >
                     <Pencil size={12} />
-                  </button>
-
-                  <button
-                    onClick={() => handleDeleteProfile(profile)}
-                    disabled={deletingId === profile['.id']}
-                    title="Delete Profile"
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1px solid rgba(239, 68, 68, 0.2)',
-                      borderRadius: '6px',
-                      width: '26px',
-                      height: '26px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#ef4444',
-                      cursor: 'pointer',
-                      transition: 'background 0.15s ease',
-                    }}
-                  >
-                    {deletingId === profile['.id'] ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <Trash2 size={12} />
-                    )}
                   </button>
                 </div>
               </div>
@@ -1182,48 +1162,81 @@ export default function ProfilesPage() {
               </div>
 
               {/* Modal Actions */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '4px' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  style={{
-                    background: 'var(--input-bg, rgba(0, 0, 0, 0.15))',
-                    border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-                    borderRadius: '6px',
-                    padding: '6px 12px',
-                    color: 'var(--foreground)',
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {t('profiles.cancelBtn')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{
-                    background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '6px 14px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  {isSubmitting ? (
-                    <>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                {editingProfile ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      handleDeleteProfile(editingProfile);
+                    }}
+                    disabled={deletingId === editingProfile['.id']}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      color: '#ef4444',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    {deletingId === editingProfile['.id'] ? (
                       <Loader2 size={12} className="animate-spin" />
-                      <span>{t('profiles.saving')}</span>
-                    </>
-                  ) : (
-                    <span>{editingProfile ? t('profiles.updateBtn') : t('profiles.saveBtn')}</span>
-                  )}
-                </button>
+                    ) : (
+                      <Trash2 size={13} />
+                    )}
+                    <span>{t('profiles.deleteBtn') || 'حذف البروفايل'}</span>
+                  </button>
+                ) : <div />}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    style={{
+                      background: 'var(--input-bg, rgba(0, 0, 0, 0.15))',
+                      border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      color: 'var(--foreground)',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {t('profiles.cancelBtn')}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    style={{
+                      background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '6px 14px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={12} className="animate-spin" />
+                        <span>{t('profiles.saving')}</span>
+                      </>
+                    ) : (
+                      <span>{editingProfile ? t('profiles.updateBtn') : t('profiles.saveBtn')}</span>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

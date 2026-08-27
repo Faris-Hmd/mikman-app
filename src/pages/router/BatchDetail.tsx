@@ -138,7 +138,11 @@ export default function BatchDetailPage() {
   const getProfileStatsForBatch = (pName: string) => {
     const found = profileList.find((p: any) => (p.name || p.id) === pName);
     let validity = found?.validity || '';
-    let dataLimit = found?.limitMB ? `${found.limitMB} MB` : (found?.['limit-bytes-total'] ? formatBytes(found['limit-bytes-total']) : '');
+    let dataLimit = found?.limitMB 
+      ? (found.limitMB >= 500 
+          ? `${(found.limitMB % 1024 === 0 || found.limitMB === 512 ? found.limitMB / 1024 : found.limitMB / 1000).toFixed(1).replace(/\.0$/, '')} GB` 
+          : `${found.limitMB} MB`) 
+      : (found?.['limit-bytes-total'] ? formatBytes(found['limit-bytes-total']) : '');
 
     if (!validity && found?.['on-login']) {
       const scriptText = String(found['on-login']);

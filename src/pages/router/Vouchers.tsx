@@ -240,7 +240,9 @@ const getProfileInfoDetails = (pName: string, profilesList: Profile[]) => {
     if (p.limitMB === 0) {
       dataLimit = 'Unlimited';
     } else {
-      dataLimit = p.limitMB >= 1024 ? `${(p.limitMB / 1024).toFixed(1).replace(/\.0$/, '')} GB` : `${p.limitMB} MB`;
+      dataLimit = p.limitMB >= 500
+        ? `${(p.limitMB % 1024 === 0 || p.limitMB === 512 ? p.limitMB / 1024 : p.limitMB / 1000).toFixed(1).replace(/\.0$/, '')} GB`
+        : `${p.limitMB} MB`;
     }
   } else if (p?.['limit-bytes-total'] !== undefined && p?.['limit-bytes-total'] !== null) {
     const b = parseInt(String(p['limit-bytes-total']), 10);
@@ -2212,9 +2214,12 @@ export default function VouchersPage() {
             <div
               style={{
                 display: 'flex',
-                padding: '10px 20px 0 20px',
-                gap: '6px',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 10px 0 10px',
                 borderBottom: '1px solid var(--glass-border, rgba(255, 255, 255, 0.08))',
+                width: '100%',
+                boxSizing: 'border-box',
               }}
             >
               {[
@@ -2229,16 +2234,19 @@ export default function VouchersPage() {
                     key={tab.key}
                     onClick={() => setDetailTab(tab.key as any)}
                     style={{
-                      padding: '8px 12px',
-                      fontSize: '12px',
-                      fontWeight: isActive ? 700 : 500,
+                      flex: 1,
+                      textAlign: 'center',
+                      padding: '6px 2px 8px 2px',
+                      fontSize: '11px',
+                      fontWeight: isActive ? 750 : 500,
                       color: isActive ? tab.color || 'var(--foreground)' : 'var(--text-muted)',
                       border: 'none',
                       borderBottom: isActive
-                        ? `2px solid ${tab.color || 'var(--primary, #3b82f6)'}`
-                        : '2px solid transparent',
+                        ? `2.5px solid ${tab.color || 'var(--primary, #3b82f6)'}`
+                        : '2.5px solid transparent',
                       background: 'transparent',
                       cursor: 'pointer',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {tab.label}
