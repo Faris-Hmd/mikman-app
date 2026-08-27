@@ -16,19 +16,19 @@ const S = {
   card: { background: 'var(--card-bg)', border: '1px solid var(--glass-border)', borderRadius: 14 },
   statCard: { display: 'flex', alignItems: 'center' as const, gap: 10 },
   statIcon: { width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center' as const, justifyContent: 'center', flexShrink: 0, background: 'rgba(var(--primary-rgb), 0.1)' } as React.CSSProperties,
-  label: { fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: 0.4 } as React.CSSProperties,
-  value: { fontSize: 14, fontWeight: 800, color: 'var(--foreground)' } as React.CSSProperties,
-  valueSm: { fontSize: 12, fontWeight: 800, color: 'var(--foreground)' } as React.CSSProperties,
-  valueLg: { fontSize: 20, fontWeight: 800, color: 'var(--foreground)' } as React.CSSProperties,
+  label: { fontSize: 'var(--font-2xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: 0.4 } as React.CSSProperties,
+  value: { fontSize: 'var(--font-md)', fontWeight: 800, color: 'var(--foreground)' } as React.CSSProperties,
+  valueSm: { fontSize: 'var(--font-sm)', fontWeight: 800, color: 'var(--foreground)' } as React.CSSProperties,
+  valueLg: { fontSize: 'var(--font-2xl)', fontWeight: 800, color: 'var(--foreground)' } as React.CSSProperties,
   section: { display: 'flex', alignItems: 'center' as const, gap: 6, marginBottom: 10 },
-  sectionBadge: { fontSize: 10, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' as const, letterSpacing: 0.6 } as React.CSSProperties,
+  sectionBadge: { fontSize: 'var(--font-2xs)', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' as const, letterSpacing: 0.6 } as React.CSSProperties,
   quickLink: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center' as const, gap: 4, padding: '10px 8px', textDecoration: 'none', color: 'var(--foreground)', transition: 'border-color 0.2s, background-color 0.2s' } as React.CSSProperties,
-  pill: (active: boolean) => ({ padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: active ? '#16a34a20' : '#dc262620', color: active ? '#16a34a' : '#dc2626', flexShrink: 0 } as React.CSSProperties),
+  pill: (active: boolean) => ({ padding: '4px 12px', borderRadius: 20, fontSize: 'var(--font-xs)', fontWeight: 700, background: active ? '#16a34a20' : '#dc262620', color: active ? '#16a34a' : '#dc2626', flexShrink: 0 } as React.CSSProperties),
   cpuColor: (val: number | null | undefined) => val != null && val >= 80 ? { color: '#ef4444', fontWeight: 800 } as React.CSSProperties : {} as React.CSSProperties,
   pulseDot: { width: 8, height: 8, borderRadius: '50%', backgroundColor: '#22c55e', animation: 'pulse-dot 2s ease-in-out infinite', flexShrink: 0 } as React.CSSProperties,
   grid: (cols: string) => ({ display: 'grid', gridTemplateColumns: cols, gap: 8 } as React.CSSProperties),
   flexBetween: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' as const },
-  tabBtn: (active: boolean) => ({ padding: '5px 10px', borderRadius: 8, border: 'none', background: active ? 'var(--primary)' : 'var(--secondary)', color: active ? '#fff' : 'var(--text-muted)', fontSize: 10, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' } as React.CSSProperties),
+  tabBtn: (active: boolean) => ({ padding: '5px 10px', borderRadius: 8, border: 'none', background: active ? 'var(--primary)' : 'var(--secondary)', color: active ? '#fff' : 'var(--text-muted)', fontSize: 'var(--font-2xs)', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' } as React.CSSProperties),
 } as const;
 
 export default function RouterDashboardPage() {
@@ -138,10 +138,46 @@ export default function RouterDashboardPage() {
     return <LoadingScreen compact loadingTitle={t('common.loading') || 'Loading router status...'} />;
   }
 
-  const StatRow = ({ icon: Icon, label, value, title, valueStyle }: { icon: any; label: string; value: React.ReactNode; title?: string; valueStyle?: React.CSSProperties }) => (
-    <div className="stat-card-compact" title={title || (typeof value === 'string' ? value : undefined)}>
-      <div className="stat-icon-compact"><Icon size={14} style={{ color: 'var(--primary)' }} /></div>
-      <div style={{ minWidth: 0, flex: 1 }}><div style={S.label}>{label}</div><div style={{ ...S.value, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', ...valueStyle }}>{value}</div></div>
+  const StatRow = ({
+    icon: Icon,
+    label,
+    value,
+    title,
+  }: {
+    icon: any;
+    label: string;
+    value: React.ReactNode;
+    title?: string;
+  }) => (
+    <div
+      className="responsive-card"
+      title={title || (typeof value === 'string' ? value : undefined)}
+      style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}
+    >
+      <div
+        style={{
+          width: '28px',
+          height: '28px',
+          borderRadius: '7px',
+          background: 'var(--secondary)',
+          color: 'var(--foreground)',
+          border: '1px solid var(--glass-border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={14} />
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
+          {label}
+        </span>
+        <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700, marginTop: '2px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {value}
+        </strong>
+      </div>
     </div>
   );
 
@@ -258,35 +294,38 @@ export default function RouterDashboardPage() {
   };
 
   return (
-    <div className="dashboard-page">
-      {/* Status banner + clock */}
-      <div className="responsive-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'nowrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+    <div className="responsive-container">
+      {/* Page Header Card */}
+      <div className="page-header-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
           {routerImg ? (
             <div style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
-              <img src={routerImg} alt="" style={{ width: 30, height: 30, objectFit: 'contain' }} />
-              {isConnected && <div style={{ position: 'absolute', top: -2, right: -2, width: 7, height: 7, borderRadius: '50%', backgroundColor: '#22c55e', border: '1.5px solid var(--card-bg)', boxShadow: '0 0 4px #22c55e', animation: 'pulse-dot 2s ease-in-out infinite' }} />}
+              <img src={routerImg} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} />
             </div>
           ) : (
-            isConnected ? <div style={S.pulseDot} /> : <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
-          )}
-          <div style={{ minWidth: 0 }}>
-            <h2 style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{routerName}</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1, flexWrap: 'wrap' }}>
-              {profileData?.model && <span style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{profileData.model}</span>}
-              <span className="hide-sm" style={S.pill(isConnected)}>{isConnected ? t('common.online') || 'Online' : t('common.offline') || 'Offline'}</span>
-              {status?.timezone && <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{status.timezone}</span>}
-              {!isConnected && lastChecked && <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }).format(lastChecked)}</span>}
-              {lastCheckedDisplay && (
-                <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>· {t('common.updated') || 'Updated'} {lastCheckedDisplay}</span>
-              )}
+            <div
+              className="page-header-icon"
+              style={{
+                background: isConnected ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                color: isConnected ? '#22c55e' : '#ef4444',
+                border: `1px solid ${isConnected ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+              }}
+            >
+              <Radio size={18} />
             </div>
+          )}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h2 className="page-header-title">{routerName}</h2>
+            <p className="page-header-subtitle">
+              {profileData?.model ? profileData.model.toUpperCase() : (status?.timezone || (isConnected ? t('common.online') : t('common.offline')))}
+            </p>
           </div>
         </div>
+
         {isConnected && routerTime && (
-          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums', letterSpacing: 0.3 }}>{routerTime}</div>
-            <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 1 }}>{routerDate}</div>
+          <div style={{ textAlign: 'left', flexShrink: 0 }}>
+            <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>{routerTime}</div>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{routerDate}</div>
           </div>
         )}
       </div>
@@ -294,21 +333,33 @@ export default function RouterDashboardPage() {
       {/* System health */}
       <div>
         <StatLabel><Activity size={12} style={{ color: 'var(--primary)' }} /><span style={S.sectionBadge}>{t('dashboard.systemHealth') || 'System Health'}</span></StatLabel>
-        <div className="system-health-grid">
+        <div className="stat-summary-grid">
           <StatRow icon={Cpu} label={t('header.cpuLoad') || 'CPU'} value={<span style={S.cpuColor(status?.cpuLoad)}>{isConnected && cpuDisp ? cpuDisp : '—'}</span>} />
-          <div className="stat-card-compact">
-            <div className="stat-icon-compact"><Activity size={14} style={{ color: 'var(--primary)' }} /></div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={S.label}>{t('header.ram') || 'RAM'}</div>
+
+          {/* RAM Card */}
+          <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '7px', background: 'var(--secondary)', color: 'var(--foreground)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Activity size={14} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
+                {t('header.ram') || 'RAM'}
+              </span>
               {isConnected && memUsed != null && memTotal != null ? (
-                <div><div style={{ ...S.valueSm, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{memUsed} / {memTotal} MB</div>
-                  <div style={{ height: 3, background: 'var(--secondary)', borderRadius: 2, marginTop: 2, overflow: 'hidden' }}>
+                <div>
+                  <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', marginTop: '2px' }}>
+                    {memUsed} / {memTotal} MB
+                  </strong>
+                  <div style={{ height: 3, background: 'var(--secondary)', borderRadius: 2, marginTop: 3, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${Math.min(100, memPct || 0)}%`, background: (memPct || 0) >= 90 ? '#ef4444' : (memPct || 0) >= 75 ? '#f59e0b' : 'var(--primary)', borderRadius: 2, transition: 'width 0.3s' }} />
                   </div>
                 </div>
-              ) : <div style={S.valueSm}>—</div>}
+              ) : (
+                <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700, marginTop: '2px', display: 'block' }}>—</strong>
+              )}
             </div>
           </div>
+
           <StatRow icon={Thermometer} label={t('header.temp') || 'Temp'} value={isConnected && tmpDisp ? tmpDisp : '—'} />
           <StatRow icon={Clock} label={t('header.uptime') || 'Uptime'} value={isConnected && upDisp ? upDisp : '—'} />
           <StatRow icon={Users} label={t('dashboard.activeSessions') || 'Users'} value={isConnected && status?.activeUsers != null ? status.activeUsers : '—'} />
@@ -316,8 +367,7 @@ export default function RouterDashboardPage() {
             icon={Wifi}
             label={t('header.ssid') || 'SSID'}
             title={status?.wifiName}
-            valueStyle={{ fontSize: 10.5, fontWeight: 700 }}
-            value={isConnected && status?.wifiName ? (status.wifiName.length > 12 ? `${status.wifiName.slice(0, 11)}…` : status.wifiName) : '—'}
+            value={isConnected && status?.wifiName ? status.wifiName : '—'}
           />
         </div>
       </div>
@@ -336,9 +386,34 @@ export default function RouterDashboardPage() {
       {revenue && (
         <div>
           <StatLabel><Ticket size={12} style={{ color: 'var(--primary)' }} /><span style={S.sectionBadge}>{t('dashboard.revenueSummary') || 'Revenue Summary'}</span></StatLabel>
-          <div style={{ ...S.grid('1fr 1fr'), marginBottom: 10 }}>
-            <div style={{ ...S.card, padding: '14px 16px' }}><div style={S.label}>{t('dashboard.totalRevenue') || 'Revenue'}</div><div style={{ ...S.valueLg, marginTop: 2 }}>${Number(revenue.totalRevenue).toFixed(2)}</div></div>
-            <div style={{ ...S.card, padding: '14px 16px' }}><div style={S.label}>{t('common.total') || 'Vouchers'}</div><div style={{ ...S.valueLg, marginTop: 2 }}>{revenue.totalVouchers}</div></div>
+          <div className="stat-summary-grid">
+            <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '7px', background: 'var(--secondary)', color: 'var(--foreground)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <TrendingUp size={14} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
+                  {t('dashboard.totalRevenue') || 'Revenue'}
+                </span>
+                <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700, marginTop: '2px', display: 'block' }}>
+                  ${Number(revenue.totalRevenue).toFixed(2)}
+                </strong>
+              </div>
+            </div>
+
+            <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '7px', background: 'var(--secondary)', color: 'var(--foreground)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Ticket size={14} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
+                  {t('common.total') || 'Vouchers'}
+                </span>
+                <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700, marginTop: '2px', display: 'block' }}>
+                  {revenue.totalVouchers}
+                </strong>
+              </div>
+            </div>
           </div>
           {renderBarChart()}
         </div>

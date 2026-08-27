@@ -616,54 +616,27 @@ export default function SettingsPage() {
   return (
     <div className="responsive-container" style={{ maxWidth: '960px' }}>
       {/* ─── Page Header ─── */}
-      <div className="responsive-card" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'nowrap',
-        gap: '8px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '9px',
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(79,70,229,0.4) 100%)',
-            color: '#6366f1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid rgba(99,102,241,0.3)',
-            flexShrink: 0
-          }}>
-            <SettingsIcon size={16} />
+      <div className="page-header-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div className="page-header-icon">
+            <SettingsIcon />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 className="page-header-title">
               {t('settings.title')}
             </h2>
+            <p className="page-header-subtitle">
+              {t('settings.subtitle') || 'إعدادات الراوتر وتهيئة البوابة والمظهر'}
+            </p>
           </div>
         </div>
 
         <button
           onClick={() => mutateStatus()}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '7px 12px',
-            borderRadius: '10px',
-            border: '1px solid var(--glass-border)',
-            background: 'var(--card-bg)',
-            color: 'var(--foreground)',
-            fontSize: '12px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
+          className="page-header-btn"
         >
-          <RefreshCw size={14} className={isStatusLoading ? 'spin' : ''} />
-          <span>{t('dashboard.refreshGateways') || 'Refresh'}</span>
+          <RefreshCw size={14} className={isStatusLoading ? 'animate-spin' : ''} />
+          <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
         </button>
       </div>
 
@@ -1080,11 +1053,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={isSavingInfo}
-              style={{
-                ...primaryBtnStyle(isSavingInfo),
-                background: isSavingInfo ? 'var(--text-muted)' : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                boxShadow: isSavingInfo ? 'none' : '0 4px 12px rgba(59, 130, 246, 0.25)',
-              }}
+              style={primaryBtnStyle(isSavingInfo)}
             >
               <Save size={13} />
               <span>{isSavingInfo ? t('settings.saving') : t('settings.saveRouterInfoBtn')}</span>
@@ -1362,11 +1331,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={isSavingBranding}
-              style={{
-                ...primaryBtnStyle(isSavingBranding),
-                background: isSavingBranding ? 'var(--text-muted)' : 'linear-gradient(135deg, #ec4899 0%, #d946ef 100%)',
-                boxShadow: isSavingBranding ? 'none' : '0 4px 12px rgba(236, 72, 153, 0.25)',
-              }}
+              style={primaryBtnStyle(isSavingBranding)}
             >
               <Save size={13} />
               <span>{isSavingBranding ? t('settings.saving') : t('common.save')}</span>
@@ -1399,10 +1364,7 @@ export default function SettingsPage() {
               type="button"
               onClick={handleProvisionHotspotServer}
               disabled={isProvisioningServer}
-              style={{
-                ...primaryBtnStyle(isProvisioningServer),
-                background: isProvisioningServer ? 'var(--text-muted)' : '#8b5cf6',
-              }}
+              style={primaryBtnStyle(isProvisioningServer)}
             >
               <Server size={13} />
               <span>{isProvisioningServer ? t('settings.provisioning') : t('settings.provisionHotspotServerBtn')}</span>
@@ -1452,10 +1414,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={isProvisioningFiles}
-              style={{
-                ...primaryBtnStyle(isProvisioningFiles),
-                background: isProvisioningFiles ? 'var(--text-muted)' : '#f59e0b',
-              }}
+              style={primaryBtnStyle(isProvisioningFiles)}
             >
               <UploadCloud size={13} />
               <span>{isProvisioningFiles ? t('settings.sending') : t('settings.sendHotspotFilesBtn')}</span>
@@ -1488,10 +1447,7 @@ export default function SettingsPage() {
               type="button"
               onClick={handleGenerateProvisionScript}
               disabled={isGeneratingScript}
-              style={{
-                ...primaryBtnStyle(isGeneratingScript),
-                background: isGeneratingScript ? 'var(--text-muted)' : '#3b82f6',
-              }}
+              style={primaryBtnStyle(isGeneratingScript)}
             >
               <RefreshCw size={13} className={isGeneratingScript ? 'spin' : ''} />
               <span>{isGeneratingScript ? t('settings.generatingScript') : t('settings.generateScriptBtn')}</span>

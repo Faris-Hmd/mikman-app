@@ -55,6 +55,18 @@ const parseValidity = (str?: string) => {
   return { num: 1, unit: 'd', isUnl: false };
 };
 
+const formatPriceBadge = (val: number): string => {
+  if (val >= 1000) {
+    const kVal = val / 1000;
+    const formatted = kVal % 1 === 0 ? String(kVal) : kVal.toFixed(1).replace(/\.0$/, '');
+    return `${formatted}k`;
+  }
+  if (val % 1 === 0) {
+    return String(val);
+  }
+  return String(Number(val.toFixed(2)));
+};
+
 const generateDefaultProfileName = (
   isUnlimitedTime: boolean,
   validityNum: number,
@@ -494,56 +506,27 @@ export default function ProfilesPage() {
       }}
     >
       {/* ─── Page Header ─── */}
-      <div className="responsive-card" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'nowrap',
-        gap: '8px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '9px',
-            background: 'linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.4) 100%)',
-            color: '#3b82f6',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid rgba(59,130,246,0.3)',
-            flexShrink: 0
-          }}>
-            <Layers size={16} />
+      <div className="page-header-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div className="page-header-icon">
+            <Layers />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 className="page-header-title">
               {t('profiles.title')}
             </h2>
+            <p className="page-header-subtitle">
+              {t('profiles.subtitle') || 'إدارة وتخصيص الباقات والسرعات'}
+            </p>
           </div>
         </div>
 
         <button
           onClick={handleOpenCreateModal}
-          style={{
-            background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '6px 10px',
-            fontSize: '11px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            boxShadow: '0 2px 6px rgba(37, 99, 235, 0.3)',
-            flexShrink: 0,
-            whiteSpace: 'nowrap',
-          }}
+          className="page-header-btn page-header-btn-primary"
         >
-          <Plus size={13} />
-          <span>{t('profiles.addProfileBtn')}</span>
+          <Plus size={14} />
+          <span style={{ whiteSpace: 'nowrap' }}>{t('common.add') || 'إضافة'}</span>
         </button>
       </div>
 
@@ -569,120 +552,97 @@ export default function ProfilesPage() {
 
       {/* Telemetry Strip (2 cols on mobile) */}
       <div className="stat-summary-grid">
-        <div className="responsive-card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'rgba(59, 130, 246, 0.15)',
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
+              background: 'var(--secondary)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--glass-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#3b82f6',
               flexShrink: 0,
             }}
           >
-            <Layers size={18} />
+            <Layers size={14} />
           </div>
           <div>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
               {t('profiles.totalProfiles')}
             </span>
-            <strong style={{ fontSize: '18px', color: 'var(--foreground)', fontWeight: 800 }}>
+            <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700 }}>
               {totalProfiles}
             </strong>
           </div>
         </div>
 
-        <div className="responsive-card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'rgba(34, 197, 94, 0.15)',
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
+              background: 'var(--secondary)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--glass-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#22c55e',
               flexShrink: 0,
             }}
           >
-            <Zap size={18} />
+            <Zap size={14} />
           </div>
           <div>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
               {t('profiles.unlimited')}
             </span>
-            <strong style={{ fontSize: '18px', color: '#22c55e', fontWeight: 800 }}>
+            <strong style={{ fontSize: '14px', color: '#22c55e', fontWeight: 700 }}>
               {unlimitedCount}
             </strong>
           </div>
         </div>
 
-        <div className="responsive-card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'rgba(168, 85, 247, 0.15)',
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
+              background: 'var(--secondary)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--glass-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#a855f7',
               flexShrink: 0,
             }}
           >
-            <HardDrive size={18} />
+            <HardDrive size={14} />
           </div>
           <div>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
               {t('profiles.trafficLimit')}
             </span>
-            <strong style={{ fontSize: '18px', color: '#a855f7', fontWeight: 800 }}>
+            <strong style={{ fontSize: '14px', color: '#a855f7', fontWeight: 700 }}>
               {limitedCount}
             </strong>
           </div>
         </div>
       </div>
 
-      {/* Profiles Cards Grid */}
+      {/* Profiles List */}
       {isLoading ? (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '12px',
-          }}
-        >
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              style={{
-                ...cardGlassStyle,
-                display: 'flex',
-                flexDirection: 'column',
-                padding: '14px 16px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
-                  <div className="skeleton" style={{ width: '34px', height: '34px', borderRadius: '8px', flexShrink: 0 }} />
-                  <div className="skeleton" style={{ width: '50%', height: '14px' }} />
-                </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <div className="skeleton" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
-                  <div className="skeleton" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
-                </div>
-              </div>
-              <div style={{ height: '1px', background: 'var(--glass-border, rgba(255, 255, 255, 0.08))', margin: '12px 0' }} />
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div className="skeleton" style={{ width: '35%', height: '12px' }} />
-                <div className="skeleton" style={{ width: '35%', height: '12px' }} />
-              </div>
-            </div>
+              className="skeleton"
+              style={{ height: '48px', borderRadius: '10px', width: '100%' }}
+            />
           ))}
         </div>
       ) : profileList.length === 0 ? (
@@ -692,138 +652,201 @@ export default function ProfilesPage() {
           <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '11px' }}>{t('profiles.noProfilesDesc')}</p>
         </div>
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '12px',
-          }}
-        >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {profileList.map((profile) => {
             const isUnlVal = profile.validity === '0d' || profile.validity === '0' || profile.validity === '0h' || profile.validity?.toLowerCase() === 'unlimited';
             const displayValidity = isUnlVal ? '∞' : (profile.validity || '1d');
 
+            const revVal = profile.revenue ?? profile.price;
+            const numRev = revVal != null && revVal !== '' ? Number(revVal) : NaN;
+            const hasPrice = !isNaN(numRev) && numRev >= 0;
+
             return (
               <div
                 key={profile['.id'] || profile.name}
+                className="list-item-card hover-card"
                 style={{
-                  ...cardGlassStyle,
                   display: 'flex',
-                  flexDirection: 'column',
-                  padding: '14px 16px',
-                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                  padding: '8px 12px',
                 }}
               >
-                {/* Header Row: Icon, Title & Actions */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-                    <div
-                      style={{
-                        width: '34px',
-                        height: '34px',
-                        borderRadius: '9px',
-                        background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%)',
-                        border: '1px solid rgba(59, 130, 246, 0.25)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#3b82f6',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Layers size={17} />
-                    </div>
-
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <strong style={{ fontSize: '14px', fontWeight: 700, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
-                        {profile.name}
-                      </strong>
-                    </div>
+                {/* Left: Icon, Profile Name & Vertically Aligned Badges Row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                  <div
+                    className="item-icon"
+                    style={{
+                      background: 'var(--secondary)',
+                      color: 'var(--foreground)',
+                      border: '1px solid var(--glass-border)',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '7px',
+                      flexShrink: 0
+                    }}
+                  >
+                    <Layers size={14} />
                   </div>
 
-                  {/* Actions: Edit & Delete Buttons */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                    <button
-                      onClick={() => handleOpenEditModal(profile)}
-                      title="Edit Profile"
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.07)',
-                        border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.12))',
-                        borderRadius: '7px',
-                        width: '28px',
-                        height: '28px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--foreground)',
-                        cursor: 'pointer',
-                        transition: 'background 0.15s ease',
-                      }}
-                    >
-                      <Pencil size={13} />
-                    </button>
+                  {/* Fixed-width Name so badges start at exact same horizontal position */}
+                  <strong
+                    className="item-title"
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      color: 'var(--foreground)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      width: '105px',
+                      flexShrink: 0,
+                    }}
+                    title={profile.name}
+                  >
+                    {profile.name}
+                  </strong>
 
-                    <button
-                      onClick={() => handleDeleteProfile(profile)}
-                      disabled={deletingId === profile['.id']}
-                      title="Delete Profile"
-                      style={{
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                        borderRadius: '7px',
-                        width: '28px',
-                        height: '28px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                        transition: 'background 0.15s ease',
-                      }}
-                    >
-                      {deletingId === profile['.id'] ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : (
-                        <Trash2 size={13} />
+                  {/* Single-row Vertically Aligned Badge Slots */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: 1 }}>
+                    {/* Price / Revenue Badge Slot */}
+                    <div style={{ width: '50px', flexShrink: 0, display: 'flex' }}>
+                      {hasPrice && (
+                        <span
+                          className="item-badge"
+                          style={{
+                            width: '100%',
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            color: '#22c55e',
+                            border: '1px solid var(--glass-border)',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            padding: '0 3px',
+                            borderRadius: '5px',
+                            height: '20px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '2px',
+                            whiteSpace: 'nowrap',
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          <DollarSign size={10} style={{ flexShrink: 0 }} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatPriceBadge(numRev)}</span>
+                        </span>
                       )}
-                    </button>
+                    </div>
+
+                    {/* Time / Validity Badge Slot */}
+                    <div style={{ width: '62px', flexShrink: 0, display: 'flex' }}>
+                      <span
+                        className="item-badge"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          color: '#38bdf8',
+                          border: '1px solid var(--glass-border)',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '0 3px',
+                          borderRadius: '5px',
+                          height: '20px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '2px',
+                          whiteSpace: 'nowrap',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        <Clock size={10} style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayValidity}</span>
+                      </span>
+                    </div>
+
+                    {/* Data Limit Badge Slot */}
+                    <div style={{ width: '62px', flexShrink: 0, display: 'flex' }}>
+                      <span
+                        className="item-badge"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          color: '#c084fc',
+                          border: '1px solid var(--glass-border)',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '0 3px',
+                          borderRadius: '5px',
+                          height: '20px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '2px',
+                          whiteSpace: 'nowrap',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        <HardDrive size={10} style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {profile.isUnlimited || !profile.limitMB || profile.limitMB === 0
+                            ? '∞'
+                            : profile.limitMB >= 1024
+                            ? `${(profile.limitMB / 1024).toFixed(1).replace(/\.0$/, '')} GB`
+                            : `${profile.limitMB} MB`}
+                        </span>
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Divider between Card Header & Detail Items */}
-                <div style={{ height: '1px', background: 'var(--glass-border, rgba(255, 255, 255, 0.08))', margin: '10px 0' }} />
+                {/* Right: Actions (Edit & Delete) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <button
+                    onClick={() => handleOpenEditModal(profile)}
+                    title="Edit Profile"
+                    style={{
+                      background: 'var(--secondary)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '6px',
+                      width: '26px',
+                      height: '26px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--foreground)',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s ease',
+                    }}
+                  >
+                    <Pencil size={12} />
+                  </button>
 
-                {/* Detail Items Row: Rev Badge, Validity Badge, Data Limit Badge (All aligned on same line) */}
-                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                  {(() => {
-                    const revVal = profile.revenue ?? profile.price;
-                    const numRev = revVal != null && revVal !== '' ? Number(revVal) : NaN;
-                    if (!isNaN(numRev) && numRev >= 0) {
-                      return (
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(34, 197, 94, 0.08)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-                          <DollarSign size={12} style={{ color: '#22c55e' }} />
-                          <span style={{ color: '#22c55e', fontWeight: 700 }}>${numRev.toFixed(2)}</span>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(56, 189, 248, 0.08)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.15)' }}>
-                    <Clock size={12} style={{ color: '#38bdf8' }} />
-                    <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>{displayValidity}</span>
-                  </div>
-
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(168, 85, 247, 0.08)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(168, 85, 247, 0.15)' }}>
-                    <HardDrive size={12} style={{ color: '#a855f7' }} />
-                    <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>
-                      {profile.isUnlimited || !profile.limitMB || profile.limitMB === 0
-                        ? '∞'
-                        : profile.limitMB >= 1024
-                        ? `${(profile.limitMB / 1024).toFixed(1).replace(/\.0$/, '')} GB`
-                        : `${profile.limitMB} MB`}
-                    </span>
-                  </div>
+                  <button
+                    onClick={() => handleDeleteProfile(profile)}
+                    disabled={deletingId === profile['.id']}
+                    title="Delete Profile"
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      borderRadius: '6px',
+                      width: '26px',
+                      height: '26px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s ease',
+                    }}
+                  >
+                    {deletingId === profile['.id'] ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Trash2 size={12} />
+                    )}
+                  </button>
                 </div>
               </div>
             );

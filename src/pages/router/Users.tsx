@@ -192,56 +192,27 @@ export default function UsersPage() {
       }}
     >
       {/* ─── 1. Page Header ─── */}
-      <div className="responsive-card" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'nowrap',
-        gap: '8px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '9px',
-            background: 'linear-gradient(135deg, rgba(59,130,246,0.25) 0%, rgba(37,99,235,0.45) 100%)',
-            color: '#3b82f6',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid rgba(59,130,246,0.35)',
-            boxShadow: '0 2px 6px rgba(59,130,246,0.2)',
-            flexShrink: 0
-          }}>
-            <Users size={16} />
+      <div className="page-header-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div className="page-header-icon">
+            <Users />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 className="page-header-title">
               {t('users.title')}
             </h2>
+            <p className="page-header-subtitle">
+              {t('users.subtitle') || 'مراقبة الجلسات المتصلة والأجهزة النشطة'}
+            </p>
           </div>
         </div>
 
         <button
           onClick={() => mutate()}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '6px 10px',
-            borderRadius: '8px',
-            border: '1px solid var(--glass-border)',
-            background: 'var(--card-bg)',
-            color: 'var(--foreground)',
-            fontSize: '11px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            flexShrink: 0,
-            transition: 'all 0.15s ease',
-          }}
+          className="page-header-btn"
         >
-          <RefreshCw size={13} className={isLoading ? 'spin' : ''} />
-          <span className="hide-sm-only">{t('common.refresh') || 'Refresh'}</span>
+          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+          <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
         </button>
       </div>
 
@@ -258,35 +229,35 @@ export default function UsersPage() {
             border: activeTab === 'signedIn'
               ? '1px solid rgba(59, 130, 246, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '12px',
-            padding: '14px 16px',
+            borderRadius: '10px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'signedIn' ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: activeTab === 'signedIn' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(16, 185, 129, 0.15)',
-            color: activeTab === 'signedIn' ? '#60a5fa' : '#10b981',
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'var(--secondary)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(59, 130, 246, 0.25)',
             flexShrink: 0
           }}>
-            <UserCheck size={18} />
+            <UserCheck size={14} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('users.signedIn')}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginTop: '4px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--foreground)', marginTop: '2px' }}>
               {isLoading ? '—' : signedInClients.length}
             </div>
           </div>
@@ -303,35 +274,35 @@ export default function UsersPage() {
             border: activeTab === 'waiting'
               ? '1px solid rgba(245, 158, 11, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '12px',
-            padding: '14px 16px',
+            borderRadius: '10px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'waiting' ? '0 2px 8px rgba(245, 158, 11, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: activeTab === 'waiting' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(245, 158, 11, 0.15)',
-            color: '#f59e0b',
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'var(--secondary)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(245, 158, 11, 0.25)',
             flexShrink: 0
           }}>
-            <Clock size={18} />
+            <Clock size={14} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('users.waiting')}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginTop: '4px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--foreground)', marginTop: '2px' }}>
               {isLoading ? '—' : waitingClients.length}
             </div>
           </div>
@@ -348,35 +319,35 @@ export default function UsersPage() {
             border: activeTab === 'all'
               ? '1px solid rgba(99, 102, 241, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '12px',
-            padding: '14px 16px',
+            borderRadius: '10px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'all' ? '0 2px 8px rgba(99, 102, 241, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: activeTab === 'all' ? 'rgba(99, 102, 241, 0.25)' : 'rgba(99, 102, 241, 0.15)',
-            color: '#818cf8',
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'var(--secondary)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(99, 102, 241, 0.25)',
             flexShrink: 0
           }}>
-            <Users size={18} />
+            <Users size={14} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('users.all')}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginTop: '4px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--foreground)', marginTop: '2px' }}>
               {isLoading ? '—' : rawClientList.length}
             </div>
           </div>
@@ -583,86 +554,109 @@ export default function UsersPage() {
                     }} />
                   </div>
 
-                  {/* Name & Details */}
+                  {/* Name, PIN Badge & Profile Badge in Vertically Aligned Column Slots */}
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    {isSignedUser && deviceNameCandidate ? (
-                      <>
-                        <strong
-                          title={deviceNameCandidate}
-                          className="item-title"
-                          style={{
-                            maxWidth: '140px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            display: 'block'
-                          }}
-                        >
-                          {deviceNameCandidate}
-                        </strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
+                      {/* Device Name Column Slot */}
+                      <strong
+                        title={isSignedUser && deviceNameCandidate ? deviceNameCandidate : clientName}
+                        className="item-title"
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          color: 'var(--foreground)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          width: '105px',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isSignedUser && deviceNameCandidate ? deviceNameCandidate : clientName}
+                      </strong>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '1px', flexWrap: 'wrap' }}>
-                          <span className="item-subtext" style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '2px'
-                          }}>
-                            <Shield size={10} style={{ opacity: 0.7 }} />
-                            {rawUser}
+                      {/* PIN / Username Badge Slot */}
+                      <div style={{ width: '70px', flexShrink: 0, display: 'flex' }}>
+                        {isSignedUser && rawUser && (
+                          <span
+                            className="item-badge"
+                            style={{
+                              width: '100%',
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              color: 'var(--text-muted)',
+                              border: '1px solid var(--glass-border)',
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              padding: '0 3px',
+                              borderRadius: '5px',
+                              height: '20px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '2px',
+                              whiteSpace: 'nowrap',
+                              boxSizing: 'border-box',
+                            }}
+                          >
+                            <Shield size={10} style={{ opacity: 0.8, flexShrink: 0 }} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{rawUser}</span>
                           </span>
+                        )}
+                      </div>
 
-                          {client.profile && (
-                            <span className="item-badge" style={{
+                      {/* Profile / Status Badge Slot */}
+                      <div style={{ width: '75px', flexShrink: 0, display: 'flex' }}>
+                        {client.profile ? (
+                          <span
+                            className="item-badge"
+                            style={{
+                              width: '100%',
                               background: 'rgba(99, 102, 241, 0.12)',
                               color: '#818cf8',
                               border: '1px solid rgba(99, 102, 241, 0.25)',
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              padding: '0 3px',
+                              borderRadius: '5px',
+                              height: '20px',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '2px'
-                            }}>
-                              <Layers size={9} />
-                              {client.profile}
-                            </span>
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                        <strong className="item-title" style={{
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {clientName}
-                        </strong>
-
-                        {!isSignedUser ? (
-                          <span className="item-badge" style={{
-                            background: 'rgba(245, 158, 11, 0.12)',
-                            color: '#fbbf24',
-                            border: '1px solid rgba(245, 158, 11, 0.25)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '2px'
-                          }}>
-                            <Clock size={9} />
-                            {t('users.waiting')}
+                              justifyContent: 'center',
+                              gap: '2px',
+                              whiteSpace: 'nowrap',
+                              boxSizing: 'border-box',
+                            }}
+                          >
+                            <Layers size={10} style={{ flexShrink: 0 }} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.profile}</span>
                           </span>
-                        ) : client.profile ? (
-                          <span className="item-badge" style={{
-                            background: 'rgba(99, 102, 241, 0.12)',
-                            color: '#818cf8',
-                            border: '1px solid rgba(99, 102, 241, 0.25)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '2px'
-                          }}>
-                            <Layers size={9} />
-                            {client.profile}
+                        ) : !isSignedUser ? (
+                          <span
+                            className="item-badge"
+                            style={{
+                              width: '100%',
+                              background: 'rgba(245, 158, 11, 0.12)',
+                              color: '#fbbf24',
+                              border: '1px solid rgba(245, 158, 11, 0.25)',
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              padding: '0 3px',
+                              borderRadius: '5px',
+                              height: '20px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '2px',
+                              whiteSpace: 'nowrap',
+                              boxSizing: 'border-box',
+                            }}
+                          >
+                            <Clock size={10} style={{ flexShrink: 0 }} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('users.waiting')}</span>
                           </span>
                         ) : null}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
 

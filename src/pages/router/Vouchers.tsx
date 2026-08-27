@@ -27,6 +27,7 @@ import {
   Zap,
   Clock,
   HardDrive,
+  DollarSign,
   Calendar,
   ChevronRight,
   ChevronLeft,
@@ -158,6 +159,17 @@ const formatBytes = (bytesVal?: string | number): string => {
   if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
   if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return bytes + ' B';
+};
+
+const formatPriceBadge = (priceVal: string | number | null | undefined): string => {
+  if (priceVal == null || priceVal === '') return '';
+  const price = Number(priceVal);
+  if (isNaN(price)) return String(priceVal);
+  if (price >= 1000) {
+    const kVal = price / 1000;
+    return `${kVal % 1 === 0 ? kVal.toFixed(0) : kVal.toFixed(1).replace(/\.0$/, '')}k`;
+  }
+  return String(price);
 };
 
 const getProfileInfoDetails = (pName: string, profilesList: Profile[]) => {
@@ -961,60 +973,16 @@ export default function VouchersPage() {
       )}
 
       {/* ─── 1. Header Bar ─── */}
-      <div
-        className="responsive-card"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'nowrap',
-          gap: '12px',
-          marginBottom: '20px',
-          padding: '16px 20px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-          <div
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.4) 100%)',
-              color: '#3b82f6',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid rgba(59,130,246,0.3)',
-              flexShrink: 0,
-            }}
-          >
-            <Ticket size={20} />
+      <div className="page-header-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div className="page-header-icon">
+            <Ticket />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: '18px',
-                fontWeight: 800,
-                color: 'var(--foreground)',
-                letterSpacing: '-0.3px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <h2 className="page-header-title">
               {t('vouchers.title') || 'الكروت والدفعات'}
             </h2>
-            <p
-              style={{
-                margin: '2px 0 0 0',
-                fontSize: '12px',
-                color: 'var(--text-muted)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <p className="page-header-subtitle">
               {t('vouchers.subtitle') || 'إدارة وتوليد كروت الهوتسبوت'}
             </p>
           </div>
@@ -1025,22 +993,11 @@ export default function VouchersPage() {
             onClick={handleManualRefresh}
             disabled={isRefreshing || batchesLoading}
             title={t('common.refresh') || 'تحديث'}
-            style={{
-              background: 'var(--card-bg, rgba(0, 0, 0, 0.2))',
-              border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-              color: 'var(--foreground)',
-              borderRadius: '10px',
-              padding: '8px 12px',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: isRefreshing || batchesLoading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
+            className="page-header-btn"
+            style={{ cursor: isRefreshing || batchesLoading ? 'not-allowed' : 'pointer' }}
           >
             <RefreshCw size={14} className={isRefreshing || batchesLoading ? 'animate-spin' : ''} />
-            <span style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
+            <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
           </button>
 
           <button
@@ -1049,23 +1006,10 @@ export default function VouchersPage() {
               setSuccessMsg(null);
               setIsCreateDrawerOpen(true);
             }}
-            style={{
-              background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '10px',
-              padding: '8px 14px',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 4px 12px rgba(59,130,246,0.35)',
-            }}
+            className="page-header-btn page-header-btn-primary"
           >
-            <Plus size={15} />
-            <span style={{ whiteSpace: 'nowrap' }}>{t('batch.createBatch') || 'إنشاء دفعة'}</span>
+            <Plus size={14} />
+            <span style={{ whiteSpace: 'nowrap' }}>{t('common.add') || 'إضافة'}</span>
           </button>
         </div>
       </div>
@@ -1073,108 +1017,112 @@ export default function VouchersPage() {
       {/* ─── 2. Summary Statistics Cards (4 Cards Grid: 2 cols on mobile) ─── */}
       <div className="stat-summary-grid">
         {/* Total Batches Card */}
-        <div className="responsive-card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'rgba(99, 102, 241, 0.12)',
-              color: '#6366f1',
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
+              background: 'var(--secondary)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--glass-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <Layers size={18} />
+            <Layers size={14} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, display: 'block' }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block' }}>
               {t('batch.totalBatches') || 'إجمالي الدفعات'}
             </span>
-            <strong style={{ fontSize: '18px', color: 'var(--foreground)', fontWeight: 800 }}>
+            <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700 }}>
               {stats.totalBatches}
             </strong>
           </div>
         </div>
 
         {/* Total Vouchers Card */}
-        <div className="responsive-card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'rgba(14, 165, 233, 0.12)',
-              color: '#0ea5e9',
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
+              background: 'var(--secondary)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--glass-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <Ticket size={18} />
+            <Ticket size={14} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, display: 'block' }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block' }}>
               {t('batch.totalVouchers') || 'إجمالي الكروت'}
             </span>
-            <strong style={{ fontSize: '18px', color: 'var(--foreground)', fontWeight: 800 }}>
+            <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700 }}>
               {stats.totalVouchers}
             </strong>
           </div>
         </div>
 
         {/* Unused Vouchers Card */}
-        <div className="responsive-card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'rgba(34, 197, 94, 0.12)',
-              color: '#22c55e',
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
+              background: 'var(--secondary)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--glass-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <CheckCircle2 size={18} />
+            <CheckCircle2 size={14} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, display: 'block' }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block' }}>
               {t('batch.unusedVouchers') || 'غير مستخدمة'}
             </span>
-            <strong style={{ fontSize: '18px', color: '#22c55e', fontWeight: 800 }}>
+            <strong style={{ fontSize: '14px', color: '#22c55e', fontWeight: 700 }}>
               {stats.totalUnused}
             </strong>
           </div>
         </div>
 
         {/* Active Vouchers Card */}
-        <div className="responsive-card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'rgba(59, 130, 246, 0.12)',
-              color: '#3b82f6',
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
+              background: 'var(--secondary)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--glass-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <Zap size={18} />
+            <Clock size={14} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, display: 'block' }}>
-              {t('batch.activeVouchers') || 'نشطة'}
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block' }}>
+              {t('batch.activeVouchers') || 'نشطة الآن'}
             </span>
-            <strong style={{ fontSize: '18px', color: '#3b82f6', fontWeight: 800 }}>
+            <strong style={{ fontSize: '14px', color: '#3b82f6', fontWeight: 700 }}>
               {stats.totalActive}
             </strong>
           </div>
@@ -1284,7 +1232,6 @@ export default function VouchersPage() {
                   background: 'var(--card-bg, rgba(255, 255, 255, 0.04))',
                   backdropFilter: 'blur(16px)',
                   border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.12)',
                 }}
               >
                 {/* Profile Section Header */}
@@ -1311,19 +1258,19 @@ export default function VouchersPage() {
                     {/* Time / Validity Badge */}
                     {pInfo.validityBadge && (
                       <span
+                        className="item-badge"
                         style={{
-                          fontSize: '10px',
-                          fontWeight: 800,
+                          fontWeight: 700,
                           padding: '2px 6px',
                           borderRadius: '5px',
-                          background: 'rgba(59, 130, 246, 0.15)',
-                          color: '#3b82f6',
-                          border: '1px solid rgba(59, 130, 246, 0.25)',
-                          letterSpacing: '0.3px',
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          color: '#38bdf8',
+                          border: '1px solid var(--glass-border)',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '3px',
                           whiteSpace: 'nowrap',
+                          textTransform: 'uppercase',
                         }}
                       >
                         <Clock size={10} style={{ opacity: 0.8 }} />
@@ -1333,19 +1280,19 @@ export default function VouchersPage() {
                     {/* Data Limit Badge */}
                     {pInfo.dataBadge && (
                       <span
+                        className="item-badge"
                         style={{
-                          fontSize: '10px',
-                          fontWeight: 800,
+                          fontWeight: 700,
                           padding: '2px 6px',
                           borderRadius: '5px',
-                          background: 'rgba(16, 185, 129, 0.15)',
-                          color: '#10b981',
-                          border: '1px solid rgba(16, 185, 129, 0.25)',
-                          letterSpacing: '0.3px',
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          color: '#c084fc',
+                          border: '1px solid var(--glass-border)',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '3px',
                           whiteSpace: 'nowrap',
+                          textTransform: 'uppercase',
                         }}
                       >
                         <HardDrive size={10} style={{ opacity: 0.8 }} />
@@ -1354,23 +1301,28 @@ export default function VouchersPage() {
                     )}
                     {pInfo.price && (
                       <span
+                        className="item-badge"
                         style={{
-                          fontSize: '10px',
                           fontWeight: 700,
                           padding: '2px 6px',
                           borderRadius: '5px',
-                          background: 'rgba(234, 179, 8, 0.15)',
-                          color: '#eab308',
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          color: '#22c55e',
+                          border: '1px solid var(--glass-border)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        ${pInfo.price}
+                        <DollarSign size={10} style={{ opacity: 0.8 }} />
+                        {formatPriceBadge(pInfo.price)}
                       </span>
                     )}
                     {pInfo.rateLimit && (
                       <span
+                        className="item-badge"
                         style={{
-                          fontSize: '10px',
                           fontWeight: 600,
                           padding: '2px 6px',
                           borderRadius: '5px',
@@ -1383,8 +1335,8 @@ export default function VouchersPage() {
                       </span>
                     )}
                     <span
+                      className="item-badge"
                       style={{
-                        fontSize: '10px',
                         fontWeight: 600,
                         padding: '2px 6px',
                         borderRadius: '5px',
@@ -1416,14 +1368,14 @@ export default function VouchersPage() {
                         className="responsive-card"
                         onClick={() => setSelectedBatchModal(batch)}
                         style={{
-                          padding: '14px 16px',
+                          padding: '10px 12px',
                           cursor: 'pointer',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '10px',
+                          gap: '6px',
                           transition: 'all 0.15s ease',
                           border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-                          borderRadius: '14px',
+                          borderRadius: '10px',
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.borderColor = 'var(--primary, #3b82f6)';
@@ -1436,15 +1388,20 @@ export default function VouchersPage() {
                       >
                         {/* Top Badges Stack & Arrow */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', flex: 1 }}>
                             {/* Total Pill */}
                             <span
+                              className="item-badge"
                               style={{
-                                fontSize: '10.5px',
+                                fontSize: '10px',
                                 fontWeight: 700,
-                                padding: '2px 6px',
+                                padding: '0 5px',
                                 borderRadius: '5px',
+                                height: '20px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
                                 background: 'rgba(255, 255, 255, 0.08)',
+                                border: '1px solid var(--glass-border)',
                                 color: 'var(--foreground)',
                                 whiteSpace: 'nowrap',
                               }}
@@ -1454,12 +1411,17 @@ export default function VouchersPage() {
 
                             {/* Unused Pill */}
                             <span
+                              className="item-badge"
                               style={{
-                                fontSize: '10.5px',
+                                fontSize: '10px',
                                 fontWeight: 700,
-                                padding: '2px 6px',
+                                padding: '0 5px',
                                 borderRadius: '5px',
-                                background: 'rgba(34, 197, 94, 0.15)',
+                                height: '20px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                border: '1px solid var(--glass-border)',
                                 color: '#22c55e',
                                 whiteSpace: 'nowrap',
                               }}
@@ -1469,12 +1431,17 @@ export default function VouchersPage() {
 
                             {/* Active Pill */}
                             <span
+                              className="item-badge"
                               style={{
-                                fontSize: '10.5px',
+                                fontSize: '10px',
                                 fontWeight: 700,
-                                padding: '2px 6px',
+                                padding: '0 5px',
                                 borderRadius: '5px',
-                                background: 'rgba(59, 130, 246, 0.15)',
+                                height: '20px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                border: '1px solid var(--glass-border)',
                                 color: '#3b82f6',
                                 whiteSpace: 'nowrap',
                               }}
@@ -1485,13 +1452,18 @@ export default function VouchersPage() {
                             {/* Expired Pill */}
                             {batch.expiredCount > 0 && (
                               <span
+                                className="item-badge"
                                 style={{
-                                  fontSize: '10.5px',
+                                  fontSize: '10px',
                                   fontWeight: 700,
-                                  padding: '2px 6px',
+                                  padding: '0 5px',
                                   borderRadius: '5px',
-                                  background: 'rgba(255, 255, 255, 0.1)',
-                                  color: 'var(--text-muted)',
+                                  height: '20px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  background: 'rgba(255, 255, 255, 0.08)',
+                                  border: '1px solid var(--glass-border)',
+                                  color: '#ef4444',
                                   whiteSpace: 'nowrap',
                                 }}
                               >
@@ -1500,7 +1472,7 @@ export default function VouchersPage() {
                             )}
                           </div>
 
-                          <ChevronIcon size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                          <ChevronIcon size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                         </div>
 
                         {/* Bottom Metadata (Age + Clean Comment) */}
@@ -2089,9 +2061,79 @@ export default function VouchersPage() {
                   <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
                     {selectedBatchModal.printLabel || selectedBatchModal.profile}
                   </h3>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    {t('batch.profileLabel')}: <strong>{selectedBatchModal.profile}</strong>
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {t('batch.profileLabel')}: <strong>{selectedBatchModal.profile}</strong>
+                    </span>
+                    {(() => {
+                      const pInfo = getProfileInfoDetails(selectedBatchModal.profile, profileList);
+                      return (
+                        <>
+                          {pInfo.validityBadge && (
+                            <span
+                              className="item-badge"
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '5px',
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                color: '#38bdf8',
+                                border: '1px solid var(--glass-border)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                textTransform: 'uppercase',
+                              }}
+                            >
+                              <Clock size={10} style={{ opacity: 0.8 }} />
+                              {pInfo.validityBadge}
+                            </span>
+                          )}
+                          {pInfo.dataBadge && (
+                            <span
+                              className="item-badge"
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '5px',
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                color: '#c084fc',
+                                border: '1px solid var(--glass-border)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                textTransform: 'uppercase',
+                              }}
+                            >
+                              <HardDrive size={10} style={{ opacity: 0.8 }} />
+                              {pInfo.dataBadge}
+                            </span>
+                          )}
+                          {pInfo.price && (
+                            <span
+                              className="item-badge"
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '5px',
+                                background: 'rgba(34, 197, 94, 0.15)',
+                                color: '#22c55e',
+                                border: '1px solid rgba(34, 197, 94, 0.3)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                              }}
+                            >
+                              ${pInfo.price}
+                            </span>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
 
@@ -2257,7 +2299,7 @@ export default function VouchersPage() {
                     gap: '8px',
                   }}
                 >
-                  {modalFilteredVouchers.map((vItem) => {
+                  {modalFilteredVouchers.map((vItem, idx) => {
                     const isCopied = copiedCode === vItem.name;
                     const vAny = vItem as any;
                     const vName = vItem.name || vAny['.id'] || '';
@@ -2281,13 +2323,7 @@ export default function VouchersPage() {
                     let dataPct: number | null = null;
 
                     if (vStatus === 'unused') {
-                      if (limitBytesNum > 0) {
-                        dataLeftStr = formatBytes(limitBytesNum);
-                      } else if (pInfo.dataLimit) {
-                        dataLeftStr = pInfo.dataLimit;
-                      } else {
-                        dataLeftStr = t('profiles.unlimited') || 'غير محدود';
-                      }
+                      dataLeftStr = null;
                     } else if (vStatus === 'active') {
                       const rawRemBytes = vAny.remainingBytes ?? vAny['remaining-bytes'];
                       if (rawRemBytes != null && rawRemBytes !== '') {
@@ -2302,11 +2338,6 @@ export default function VouchersPage() {
                         dataLeftStr = formatBytes(rem);
                         dataPct = Math.min(100, Math.max(0, (rem / limitBytesNum) * 100));
                       }
-                      if (!dataLeftStr && pInfo.dataLimit) {
-                        dataLeftStr = pInfo.dataLimit;
-                      } else if (!dataLeftStr) {
-                        dataLeftStr = t('profiles.unlimited') || 'غير محدود';
-                      }
                     } else {
                       dataLeftStr = '0 MB';
                     }
@@ -2316,14 +2347,7 @@ export default function VouchersPage() {
                     let timePct: number | null = null;
 
                     if (vStatus === 'unused') {
-                      const vLimitUptime = vAny['limit-uptime'] || vAny.limitUptime;
-                      if (vLimitUptime) {
-                        timeLeftStr = String(vLimitUptime);
-                      } else if (pInfo.validity) {
-                        timeLeftStr = pInfo.validity;
-                      } else {
-                        timeLeftStr = '—';
-                      }
+                      timeLeftStr = null;
                     } else if (vStatus === 'active') {
                       timeLeftStr = vAny.timeLeftText || null;
                       const remainingSec = vAny.remainingSeconds != null ? Number(vAny.remainingSeconds) : null;
@@ -2339,15 +2363,24 @@ export default function VouchersPage() {
                       if (remainingSec != null && totalSec != null && totalSec > 0) {
                         timePct = Math.min(100, Math.max(0, (remainingSec / totalSec) * 100));
                       }
-                      if (!timeLeftStr && pInfo.validity) {
-                        timeLeftStr = pInfo.validity;
-                      }
                     } else {
                       timeLeftStr = '0s';
                     }
 
                     // 3. Login Date / Activation Date
-                    const loginDateStr = vAny['first-login'] || vAny.loginDate || vAny.firstLogin || vAny.startTime || vAny.uptime || null;
+                    let loginDateStr: string | null = null;
+                    if (vStatus === 'active' || vStatus === 'expired') {
+                      const rawComment = String(vAny.comment || vAny.remarks || '');
+                      if (rawComment.includes('login:')) {
+                        const match = rawComment.match(/login:\s*([^\s,;]+(?:\s+[^\s,;]+)?)/i);
+                        if (match && match[1]) {
+                          loginDateStr = match[1];
+                        }
+                      }
+                      if (!loginDateStr) {
+                        loginDateStr = vAny['first-login'] || vAny.loginDate || vAny.firstLogin || vAny.startTime || vAny['start-time'] || vAny.uptime || null;
+                      }
+                    }
 
                     // 4. Device Name
                     const rawDevName = (vAny.deviceName || vAny.hostName || vAny['host-name'] || '').trim();
@@ -2368,56 +2401,190 @@ export default function VouchersPage() {
                       }
                     }
 
-                    // Uniform Theme Colors for clean look
                     const cardBg = 'var(--card-bg)';
                     const borderColor = 'var(--glass-border)';
 
+                    const hasMetadataPills = Boolean(timeLeftStr || dataLeftStr || loginDateStr || cleanDeviceName);
+
                     return (
                       <div
-                        key={vAny['.id'] || vName}
+                        key={vItem['.id'] || vName || idx}
                         style={{
-                          width: '100%',
                           boxSizing: 'border-box',
                           background: cardBg,
                           border: `1px solid ${borderColor}`,
-                          borderRadius: '12px',
-                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          padding: '8px 10px',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '8px',
+                          gap: '6px',
                           backdropFilter: 'blur(8px)',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
                         }}
                       >
-                        {/* Header: Voucher Code + Copy + Delete + Status Pill */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
-                            <strong
-                              style={{
-                                fontSize: '13px',
-                                fontWeight: 800,
-                                fontFamily: 'monospace',
-                                color: 'var(--foreground)',
-                                letterSpacing: '0.5px',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {vName}
-                            </strong>
+                        {/* Row 1: Header line with Status, PIN, Copy button */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                          {/* Status Badge */}
+                          <span
+                            className="item-badge"
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '0 6px',
+                              borderRadius: '5px',
+                              height: '20px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              color:
+                                vStatus === 'active'
+                                  ? '#3b82f6'
+                                  : vStatus === 'expired'
+                                  ? '#ef4444'
+                                  : '#22c55e',
+                              border: '1px solid var(--glass-border)',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {vStatus === 'active'
+                              ? t('batch.statusActive') || 'نشط'
+                              : vStatus === 'expired'
+                              ? t('batch.statusExpired') || 'منتهي'
+                              : t('batch.statusUnused') || 'غير مستخدم'}
+                          </span>
 
+                          {/* PIN / Voucher Code */}
+                          <strong
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 800,
+                              fontFamily: 'monospace',
+                              color: 'var(--foreground)',
+                              letterSpacing: '0.5px',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {vName}
+                          </strong>
+
+                          {/* Copy Button */}
+                          <button
+                            onClick={() => handleCopyCode(vName)}
+                            title={t('common.copy') || 'نسخ الكود'}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: isCopied ? '#22c55e' : 'var(--text-muted)',
+                              cursor: 'pointer',
+                              padding: '2px',
+                              flexShrink: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                            }}
+                          >
+                            {isCopied ? <Check size={13} /> : <Copy size={13} />}
+                          </button>
+                        </div>
+
+                        {/* Row 2: Badges stack for active / expired vouchers */}
+                        {hasMetadataPills && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            {/* Time Pill */}
+                            {timeLeftStr && (
+                              <span
+                                className="item-badge"
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: 700,
+                                  padding: '0 6px',
+                                  borderRadius: '5px',
+                                  height: '20px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  background: 'rgba(255, 255, 255, 0.08)',
+                                  border: '1px solid var(--glass-border)',
+                                  color: '#38bdf8',
+                                  whiteSpace: 'nowrap',
+                                  textTransform: 'uppercase',
+                                }}
+                              >
+                                <Clock size={10} style={{ flexShrink: 0 }} />
+                                <span>{timeLeftStr}</span>
+                                {timePct !== null && (
+                                  <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 600 }}>({Math.round(timePct)}%)</span>
+                                )}
+                              </span>
+                            )}
+
+                            {/* Data Pill */}
+                            {dataLeftStr && (
+                              <span
+                                className="item-badge"
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: 700,
+                                  padding: '0 6px',
+                                  borderRadius: '5px',
+                                  height: '20px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  background: 'rgba(255, 255, 255, 0.08)',
+                                  border: '1px solid var(--glass-border)',
+                                  color: '#c084fc',
+                                  whiteSpace: 'nowrap',
+                                  textTransform: 'uppercase',
+                                }}
+                              >
+                                <HardDrive size={10} style={{ flexShrink: 0 }} />
+                                <span>{dataLeftStr}</span>
+                                {dataPct !== null && (
+                                  <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 600 }}>({Math.round(dataPct)}%)</span>
+                                )}
+                              </span>
+                            )}
+
+                            {/* Login Date Badge */}
+                            {loginDateStr && (
+                              <span
+                                className="item-badge"
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: 700,
+                                  padding: '0 6px',
+                                  borderRadius: '5px',
+                                  height: '20px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  background: 'rgba(255, 255, 255, 0.08)',
+                                  border: '1px solid var(--glass-border)',
+                                  color: '#f59e0b',
+                                  whiteSpace: 'nowrap',
+                                }}
+                                title={t('vouchers.loginDate') || 'تاريخ الدخول'}
+                              >
+                                <Calendar size={10} style={{ flexShrink: 0 }} />
+                                <span>{loginDateStr}</span>
+                              </span>
+                            )}
+
+                            {/* Device Name */}
                             {cleanDeviceName && (
                               <span
+                                className="item-badge"
                                 style={{
                                   fontSize: '10px',
                                   fontWeight: 600,
                                   color: '#3b82f6',
-                                  background: 'rgba(59, 130, 246, 0.12)',
-                                  border: '1px solid rgba(59, 130, 246, 0.25)',
-                                  borderRadius: '6px',
-                                  padding: '1px 5px',
-                                  maxWidth: '90px',
+                                  background: 'rgba(255, 255, 255, 0.08)',
+                                  border: '1px solid var(--glass-border)',
+                                  borderRadius: '5px',
+                                  padding: '0 6px',
+                                  height: '20px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  maxWidth: '120px',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
                                   whiteSpace: 'nowrap',
@@ -2427,123 +2594,6 @@ export default function VouchersPage() {
                                 {cleanDeviceName}
                               </span>
                             )}
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                            {/* Status Badge */}
-                            <span
-                              style={{
-                                fontSize: '9px',
-                                fontWeight: 800,
-                                padding: '1px 6px',
-                                borderRadius: '5px',
-                                background:
-                                  vStatus === 'active'
-                                    ? 'rgba(59, 130, 246, 0.18)'
-                                    : vStatus === 'expired'
-                                    ? 'rgba(239, 68, 68, 0.18)'
-                                    : 'rgba(34, 197, 94, 0.18)',
-                                color:
-                                  vStatus === 'active'
-                                    ? '#3b82f6'
-                                    : vStatus === 'expired'
-                                    ? '#ef4444'
-                                    : '#22c55e',
-                                border:
-                                  vStatus === 'active'
-                                    ? '1px solid rgba(59, 130, 246, 0.3)'
-                                    : vStatus === 'expired'
-                                    ? '1px solid rgba(239, 68, 68, 0.3)'
-                                    : '1px solid rgba(34, 197, 94, 0.3)',
-                              }}
-                            >
-                              {vStatus === 'active'
-                                ? t('batch.statusActive') || 'نشط'
-                                : vStatus === 'expired'
-                                ? t('batch.statusExpired') || 'منتهي'
-                                : t('batch.statusUnused') || 'غير مستخدم'}
-                            </span>
-
-                            <button
-                              onClick={() => handleCopyCode(vName)}
-                              title={t('common.copy') || 'نسخ الكود'}
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: isCopied ? '#22c55e' : 'var(--text-muted)',
-                                cursor: 'pointer',
-                                padding: '2px',
-                              }}
-                            >
-                              {isCopied ? <Check size={14} /> : <Copy size={14} />}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Metrics Row: Data & Time Remaining */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                          {dataLeftStr && (
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                background: 'rgba(34, 197, 94, 0.12)',
-                                border: '1px solid rgba(34, 197, 94, 0.25)',
-                                borderRadius: '6px',
-                                padding: '2px 6px',
-                                color: '#22c55e',
-                                fontWeight: 700,
-                                fontSize: '10px',
-                              }}
-                            >
-                              <HardDrive size={11} style={{ flexShrink: 0 }} />
-                              <span>{dataLeftStr}</span>
-                              {dataPct !== null && (
-                                <span style={{ fontSize: '9px', opacity: 0.8 }}>({Math.round(dataPct)}%)</span>
-                              )}
-                            </div>
-                          )}
-
-                          {timeLeftStr && (
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                background: 'rgba(59, 130, 246, 0.12)',
-                                border: '1px solid rgba(59, 130, 246, 0.25)',
-                                borderRadius: '6px',
-                                padding: '2px 6px',
-                                color: '#3b82f6',
-                                fontWeight: 700,
-                                fontSize: '10px',
-                              }}
-                            >
-                              <Clock size={11} style={{ flexShrink: 0 }} />
-                              <span>{timeLeftStr}</span>
-                              {timePct !== null && (
-                                <span style={{ fontSize: '9px', opacity: 0.8 }}>({Math.round(timePct)}%)</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Login Date / Activation Footer */}
-                        {loginDateStr && (
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '10px',
-                              color: 'var(--text-muted)',
-                              marginTop: '2px',
-                            }}
-                          >
-                            <Calendar size={11} style={{ color: 'var(--text-muted)' }} />
-                            <span>{t('vouchers.loginDate') || 'تاريخ الدخول'}: </span>
-                            <strong style={{ color: 'var(--foreground)', fontWeight: 600 }}>{loginDateStr}</strong>
                           </div>
                         )}
                       </div>

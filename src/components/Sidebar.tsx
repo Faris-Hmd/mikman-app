@@ -209,13 +209,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
         {/* Scrollable Navigation Menu */}
         <div className="custom-scroll" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '3px', width: '100%', boxSizing: 'border-box', paddingRight: collapsed ? '0' : '2px', marginTop: '4px' }}>
-          {!collapsed && <div style={{ padding: '4px 10px 2px', fontSize: '10.5px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.mainMenu')}</div>}
+          {!collapsed && <div style={{ padding: '4px 10px 2px', fontSize: 'var(--font-2xs)', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.mainMenu')}</div>}
           {globalItems.map((item, idx) => {
             const Icon = item.icon;
             return (
               <Link key={idx} to={item.href} title={collapsed ? item.label : undefined}
                 onClick={() => { onClose?.(); }}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? '0' : '10px', padding: '6px 10px', borderRadius: '8px', color: item.isActive ? '#fff' : 'var(--text-muted)', backgroundColor: item.isActive ? 'var(--primary)' : 'transparent', textDecoration: 'none', transition: 'all 0.2s ease', fontWeight: item.isActive ? '700' : '500', fontSize: '13px', width: '100%', boxSizing: 'border-box', cursor: 'pointer' }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? '0' : '10px', padding: '6px 10px', borderRadius: '8px', color: item.isActive ? '#fff' : 'var(--text-muted)', backgroundColor: item.isActive ? 'var(--primary)' : 'transparent', textDecoration: 'none', transition: 'all 0.2s ease', fontWeight: item.isActive ? '700' : '500', fontSize: 'var(--font-sm)', width: '100%', boxSizing: 'border-box', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '20px' }}><Icon size={18} color={item.isActive ? '#fff' : 'var(--foreground)'} /></div>
                 <span style={{ opacity: collapsed ? 0 : 1, width: collapsed ? 0 : 'auto', transition: 'opacity 0.2s ease, width 0.2s ease', overflow: 'hidden', whiteSpace: 'nowrap' }}>{item.label}</span>
               </Link>
@@ -224,13 +224,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
           {isRouterConnected && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', borderTop: '1px solid var(--glass-border)', paddingTop: '6px', marginTop: '4px', width: '100%' }}>
-              {!collapsed && <div style={{ padding: '2px 10px 2px', fontSize: '10.5px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.routerMenu')}</div>}
+              {!collapsed && <div style={{ padding: '2px 10px 2px', fontSize: 'var(--font-2xs)', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.routerMenu')}</div>}
               {routerItems.map((item, idx) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || (item.href !== `/${routerId}` && pathname.startsWith(`${item.href}/`));
                 return (
                   <Link key={idx} to={item.href} title={collapsed ? item.label : undefined} onClick={() => onClose?.()}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? '0' : '10px', padding: '6px 10px', borderRadius: '8px', color: isActive ? '#fff' : 'var(--text-muted)', backgroundColor: isActive ? 'var(--primary)' : 'transparent', textDecoration: 'none', transition: 'all 0.2s ease', fontWeight: isActive ? '700' : '500', fontSize: '13px', width: '100%', boxSizing: 'border-box', cursor: 'pointer' }}>
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? '0' : '10px', padding: '6px 10px', borderRadius: '8px', color: isActive ? '#fff' : 'var(--text-muted)', backgroundColor: isActive ? 'var(--primary)' : 'transparent', textDecoration: 'none', transition: 'all 0.2s ease', fontWeight: isActive ? '700' : '500', fontSize: 'var(--font-sm)', width: '100%', boxSizing: 'border-box', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '20px' }}><Icon size={18} color={isActive ? '#fff' : 'var(--foreground)'} /></div>
                     <span style={{ opacity: collapsed ? 0 : 1, width: collapsed ? 0 : 'auto', transition: 'opacity 0.2s ease, width 0.2s ease', overflow: 'hidden', whiteSpace: 'nowrap' }}>{item.label}</span>
                   </Link>

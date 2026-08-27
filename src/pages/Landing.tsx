@@ -6,12 +6,12 @@ import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getRemainingDays, getTemperature, getRouterImage, skeletonStyle, getQuotaName } from '../lib/helpers';
-import { Server, Plus, Users, Activity, Cpu, Clock, RefreshCw, User as UserIcon, Thermometer, ChevronRight, Settings, Crown, KeyRound } from 'lucide-react';
+import { Server, Plus, Users, Activity, Cpu, Clock, RefreshCw, User as UserIcon, Thermometer, ChevronRight, ChevronLeft, Settings, Crown, KeyRound } from 'lucide-react';
 
 export default function LandingPage() {
   const { user: currentUser } = useAuth();
   const { showAlert } = useModal();
-  const { t, language } = useLanguage();
+  const { t, language, isRtl } = useLanguage();
   const [nowTime, setNowTime] = useState<number>(() => Date.now());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -362,71 +362,122 @@ export default function LandingPage() {
                   textDecoration: 'none',
                   background: 'var(--card-bg)',
                   border: '1px solid var(--glass-border)',
-                  borderRadius: '12px',
+                  borderRadius: '14px',
                   padding: '12px 14px',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
+                  alignItems: 'center',
+                  gap: '14px',
                   opacity: isOnline ? 1 : 0.6,
                   filter: isOnline ? 'none' : 'grayscale(0.2)',
                 }}
               >
-                {/* Router Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: '10px', minWidth: 0 }}>
-                    <div style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
-                      {routerImg ? (
-                        <img src={routerImg} style={{ width: '32px', height: '32px', objectFit: 'contain' }} alt="Router" />
-                      ) : (
-                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'rgba(var(--primary-rgb), 0.08)', display: 'flex', justifyContent: 'center', alignItems: 'center', border: '1px solid var(--glass-border)' }}>
-                          <Cpu size={16} color="var(--primary)" />
-                        </div>
-                      )}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '-1px',
-                          right: '-1px',
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          backgroundColor: isOnline ? '#22c55e' : '#94a3b8',
-                          border: '1.5px solid var(--card-bg)'
-                        }}
-                      />
+                {/* Column 1: Vertically Centered Router Image */}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '48px', height: '48px' }}>
+                  {routerImg ? (
+                    <img
+                      src={routerImg}
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        objectFit: 'contain',
+                        filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.3))',
+                      }}
+                      alt="Router"
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '46px',
+                        height: '46px',
+                        borderRadius: '12px',
+                        backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        border: '1px solid var(--glass-border)',
+                      }}
+                    >
+                      <Cpu size={22} color="var(--primary)" />
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <h3 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--foreground)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {router.name || 'MikroTik Router'}
-                      </h3>
-                    </div>
-                  </div>
-                  <ChevronRight size={15} color="var(--text-muted)" />
+                  )}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '-1px',
+                      right: isRtl ? undefined : '-1px',
+                      left: isRtl ? '-1px' : undefined,
+                      width: '9px',
+                      height: '9px',
+                      borderRadius: '50%',
+                      backgroundColor: isOnline ? '#22c55e' : '#94a3b8',
+                      border: '2px solid var(--card-bg)',
+                      boxShadow: isOnline ? '0 0 6px rgba(34, 197, 94, 0.6)' : 'none',
+                    }}
+                  />
                 </div>
 
-                {/* Compact Inline Telemetry Strip */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', paddingTop: '8px', borderTop: '1px solid var(--glass-border)', fontSize: '11px', color: 'var(--foreground)', opacity: isOnline ? 1 : 0.6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="Active Hotspot Users">
-                    <Users size={12} color="var(--primary)" />
-                    <span style={{ fontWeight: '700' }}>{isOnline && status ? (status.activeUsers || 0) : '0'}</span>
+                {/* Column 2: Router Content Div (Name + Chevron top, Telemetry stats bottom) */}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
+                  {/* Top Row: Name & Navigation Chevron */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <h3
+                      style={{
+                        fontSize: '14px',
+                        fontWeight: '800',
+                        color: 'var(--foreground)',
+                        margin: 0,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {router.name || 'MikroTik Router'}
+                    </h3>
+                    {isRtl ? (
+                      <ChevronLeft size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                    ) : (
+                      <ChevronRight size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                    )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="CPU Usage">
-                    <Activity size={12} color="var(--primary)" />
-                    <span style={{ fontWeight: '700' }}>{isOnline && status ? (status.cpuLoad_display || (status.cpuLoad !== undefined ? `${status.cpuLoad}%` : '—')) : '—'}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="RAM Usage">
-                    <Cpu size={12} color="var(--primary)" />
-                    <span style={{ fontWeight: '700' }}>{isOnline && status && typeof status.totalMemory === 'number' ? `${Math.round((status.totalMemory - status.freeMemory) / (1024 * 1024))}M` : '—'}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="Router Temperature">
-                    <Thermometer size={12} color="var(--primary)" />
-                    <span style={{ fontWeight: '700' }}>{isOnline && status ? (status.temperature_display || `${getTemperature(status) ?? '—'}°C`) : '—'}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="System Uptime">
-                    <Clock size={12} color="var(--primary)" />
-                    <span style={{ fontWeight: '700', fontSize: '10.5px' }}>{isOnline && status ? formatUptimeAPI(status.uptime || status.uptime_display) : '—'}</span>
+
+                  {/* Bottom Row: Telemetry Stats Strip */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      flexWrap: 'wrap',
+                      fontSize: '11px',
+                      color: 'var(--foreground)',
+                      opacity: isOnline ? 1 : 0.6,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="Active Hotspot Users">
+                      <Users size={12} color="var(--primary)" />
+                      <span style={{ fontWeight: '700' }}>{isOnline && status ? (status.activeUsers || 0) : '0'}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="CPU Usage">
+                      <Activity size={12} color="var(--primary)" />
+                      <span style={{ fontWeight: '700' }}>{isOnline && status ? (status.cpuLoad_display || (status.cpuLoad !== undefined ? `${status.cpuLoad}%` : '—')) : '—'}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="RAM Usage">
+                      <Cpu size={12} color="var(--primary)" />
+                      <span style={{ fontWeight: '700' }}>{isOnline && status && typeof status.totalMemory === 'number' ? `${Math.round((status.totalMemory - status.freeMemory) / (1024 * 1024))}M` : '—'}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="Router Temperature">
+                      <Thermometer size={12} color="var(--primary)" />
+                      <span style={{ fontWeight: '700' }}>{isOnline && status ? (status.temperature_display || `${getTemperature(status) ?? '—'}°C`) : '—'}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title="System Uptime">
+                      <Clock size={12} color="var(--primary)" />
+                      <span style={{ fontWeight: '700', fontSize: '10.5px' }}>{isOnline && status ? formatUptimeAPI(status.uptime || status.uptime_display) : '—'}</span>
+                    </div>
                   </div>
                 </div>
               </Link>

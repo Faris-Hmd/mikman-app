@@ -403,59 +403,30 @@ export default function ApsPage() {
       }}
     >
       {/* ─── 1. Page Header ─── */}
-      <div className="responsive-card" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'nowrap',
-        gap: '8px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '9px',
-            background: 'linear-gradient(135deg, rgba(16,185,129,0.25) 0%, rgba(5,150,105,0.45) 100%)',
-            color: '#10b981',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid rgba(16,185,129,0.35)',
-            boxShadow: '0 2px 6px rgba(16,185,129,0.2)',
-            flexShrink: 0
-          }}>
-            <Radio size={16} />
+      <div className="page-header-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div className="page-header-icon">
+            <Radio />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 className="page-header-title">
               {t('aps.title')}
             </h2>
+            <p className="page-header-subtitle">
+              {t('aps.subtitle') || 'إدارة أجهزة الشبكة وربط عناوين الماك'}
+            </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '6px 8px',
-              borderRadius: '8px',
-              border: '1px solid var(--glass-border)',
-              background: 'var(--card-bg)',
-              color: 'var(--foreground)',
-              fontSize: '11px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              flexShrink: 0,
-              transition: 'all 0.15s ease',
-            }}
+            className="page-header-btn"
             title="Refresh"
           >
-            <RefreshCw size={13} className={isLoading ? 'spin' : ''} />
-            <span className="hide-sm-only">{t('common.refresh') || 'Refresh'}</span>
+            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+            <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
           </button>
           <button
             onClick={() => {
@@ -467,26 +438,10 @@ export default function ApsPage() {
               setFormError(null);
               setIsAddModalOpen(true);
             }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '6px 10px',
-              borderRadius: '8px',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-              background: 'linear-gradient(135deg, rgba(16,185,129,0.8) 0%, rgba(5,150,105,0.9) 100%)',
-              color: '#ffffff',
-              fontSize: '11.5px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              flexShrink: 0,
-              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
-              whiteSpace: 'nowrap'
-            }}
+            className="page-header-btn page-header-btn-primary"
           >
-            <Plus size={13} />
-            <span className="show-sm-only">{t('common.add') || 'Add'}</span>
-            <span className="hide-sm-only">{t('aps.addDevice')}</span>
+            <Plus size={14} />
+            <span style={{ whiteSpace: 'nowrap' }}>{t('common.add') || 'إضافة'}</span>
           </button>
         </div>
       </div>
@@ -504,35 +459,35 @@ export default function ApsPage() {
             border: selectedFilter === 'all'
               ? '1px solid rgba(16, 185, 129, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '12px',
-            padding: '14px 16px',
+            borderRadius: '10px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: selectedFilter === 'all' ? '0 2px 8px rgba(16, 185, 129, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: selectedFilter === 'all' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.08)',
-            color: selectedFilter === 'all' ? '#10b981' : 'var(--foreground)',
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'var(--secondary)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
             flexShrink: 0
           }}>
-            <Radio size={18} />
+            <Radio size={14} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('aps.totalDevices') || 'Total'}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginTop: '4px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--foreground)', marginTop: '2px' }}>
               {isLoading ? '—' : stats.totalBindings}
             </div>
           </div>
@@ -549,35 +504,35 @@ export default function ApsPage() {
             border: selectedFilter === 'bypassed'
               ? '1px solid rgba(16, 185, 129, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '12px',
-            padding: '14px 16px',
+            borderRadius: '10px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: selectedFilter === 'bypassed' ? '0 2px 8px rgba(16, 185, 129, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: 'rgba(16, 185, 129, 0.2)',
-            color: '#10b981',
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'var(--secondary)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
             flexShrink: 0
           }}>
-            <CheckCircle2 size={18} />
+            <CheckCircle2 size={14} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('aps.bypassed')}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>
               {isLoading ? '—' : stats.bypassed}
             </div>
           </div>
@@ -594,35 +549,35 @@ export default function ApsPage() {
             border: selectedFilter === 'regular'
               ? '1px solid rgba(59, 130, 246, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '12px',
-            padding: '14px 16px',
+            borderRadius: '10px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: selectedFilter === 'regular' ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: 'rgba(59, 130, 246, 0.2)',
-            color: '#3b82f6',
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'var(--secondary)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
             flexShrink: 0
           }}>
-            <Shield size={18} />
+            <Shield size={14} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('aps.regular') || 'Regular'}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#3b82f6', marginTop: '4px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#3b82f6', marginTop: '2px' }}>
               {isLoading ? '—' : stats.regular}
             </div>
           </div>
@@ -664,10 +619,10 @@ export default function ApsPage() {
             <Zap size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('aps.unboundCount') || 'Unbound'}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>
+            <div style={{ fontSize: 'var(--font-xl)', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>
               {isLoading ? '—' : stats.unbound}
             </div>
           </div>

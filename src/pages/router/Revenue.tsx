@@ -279,32 +279,18 @@ export default function RevenuePage() {
   return (
     <div className="responsive-container">
       {/* ─── Page Header ─── */}
-      <div className="responsive-card" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'nowrap',
-        gap: '8px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '9px',
-            background: 'linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.4) 100%)',
-            color: '#3b82f6',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid rgba(59,130,246,0.3)',
-            flexShrink: 0
-          }}>
-            <TrendingUp size={16} />
+      <div className="page-header-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div className="page-header-icon">
+            <TrendingUp />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 className="page-header-title">
               {t('revenue.title')}
             </h2>
+            <p className="page-header-subtitle">
+              {t('revenue.subtitle') || 'تقرير وتحليلات الأرباح والمبيعات'}
+            </p>
           </div>
         </div>
 
@@ -315,7 +301,7 @@ export default function RevenuePage() {
           gap: '4px',
           background: 'var(--secondary)',
           border: '1px solid var(--glass-border)',
-          padding: '4px 8px',
+          padding: '6px 10px',
           borderRadius: '8px',
           flexShrink: 0
         }}>
@@ -398,30 +384,31 @@ export default function RevenuePage() {
           <div className="stat-summary-grid">
             {/* KPI 1: Total Revenue */}
             <div className="responsive-card" style={{
-              padding: '14px 16px',
+              padding: '10px 12px',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
+              gap: '10px',
               minWidth: 0
             }}>
               <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'rgba(59, 130, 246, 0.12)',
-                color: '#3b82f6',
+                width: '28px',
+                height: '28px',
+                borderRadius: '7px',
+                background: 'var(--secondary)',
+                color: 'var(--foreground)',
+                border: '1px solid var(--glass-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <DollarSign size={18} />
+                <DollarSign size={14} />
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {language === 'ar' ? 'إجمالي الإيرادات' : 'Total Revenue'}
                 </div>
-                <div style={{ fontSize: '18px', fontWeight: 800, marginTop: '4px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, marginTop: '2px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {formatCurrency(totalRev)}
                 </div>
                 <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '2px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
@@ -433,30 +420,31 @@ export default function RevenuePage() {
 
             {/* KPI 2: Total Vouchers */}
             <div className="responsive-card" style={{
-              padding: '14px 16px',
+              padding: '10px 12px',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
+              gap: '10px',
               minWidth: 0
             }}>
               <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'rgba(16, 185, 129, 0.12)',
-                color: '#10b981',
+                width: '28px',
+                height: '28px',
+                borderRadius: '7px',
+                background: 'var(--secondary)',
+                color: 'var(--foreground)',
+                border: '1px solid var(--glass-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <Ticket size={18} />
+                <Ticket size={14} />
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {language === 'ar' ? 'الكروت المباعة' : 'Total Vouchers'}
                 </div>
-                <div style={{ fontSize: '18px', fontWeight: 800, marginTop: '4px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, marginTop: '2px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {totalVouchers}
                 </div>
                 <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

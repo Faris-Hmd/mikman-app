@@ -16,6 +16,16 @@
   --font-family-mono: 'Courier New', Courier, monospace;
   --danger: #ef4444;
 
+  /* ─── Standardized Typography Tokens (Single Source of Truth) ─── */
+  --font-2xs: 10px;
+  --font-xs: 11px;
+  --font-sm: 12px;
+  --font-base: 13px;
+  --font-md: 14px;
+  --font-lg: 16px;
+  --font-xl: 18px;
+  --font-2xl: 22px;
+
   --scrollbar-thumb: rgba(59, 130, 246, 0.35);
   --scrollbar-thumb-hover: rgba(59, 130, 246, 0.6);
 
@@ -346,12 +356,13 @@ input, textarea { font-family: inherit; }
 
 .router-card {
   background-color: var(--card-bg);
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1.2px solid var(--glass-border);
-  padding: 10px;
+  padding: 12px 14px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
   position: relative;
   cursor: pointer;
   transition: border-color 0.2s ease, background-color 0.2s ease;
@@ -482,33 +493,32 @@ input, textarea { font-family: inherit; }
 .batch-stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 8px;
 }
 
 @media (max-width: 640px) {
   .batch-stat-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
   }
 }
 
 .batch-stat-card {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
+  border-radius: 10px !important;
 }
 
 @media (max-width: 640px) {
   .batch-stat-card {
-    padding: 8px 10px !important;
-    gap: 8px;
-    border-radius: 8px !important;
+    padding: 6px 6px !important;
+    gap: 4px;
   }
   .batch-stat-card-icon {
-    width: 28px !important;
-    height: 28px !important;
-    border-radius: 7px !important;
+    width: 22px !important;
+    height: 22px !important;
   }
   .batch-stat-card-icon svg {
     width: 14px !important;

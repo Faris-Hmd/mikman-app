@@ -98,7 +98,7 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
               {user.user_metadata?.avatar_url ? (
                 <img src={user.user_metadata.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8.5px' }} referrerPolicy="no-referrer" />
               ) : (
-                <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                <span style={{ fontSize: 'var(--font-base)', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
                   {user.user_metadata?.full_name ? user.user_metadata.full_name.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
                 </span>
               )}

@@ -1,5 +1,5 @@
 import { useLocation, Link, useParams } from 'react-router-dom';
-import { LayoutDashboard, Ticket, Layers, TrendingUp, Users, Settings, Home, User } from 'lucide-react';
+import { LayoutDashboard, Ticket, Layers, TrendingUp, Users, Settings, Home, User, PlusCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function BottomNavBar() {
@@ -54,6 +54,12 @@ export default function BottomNavBar() {
       label: t('sidebar.mainMenu') || 'الرئيسية',
       icon: Home,
       isActive: pathname === '/'
+    },
+    {
+      href: '/register-router',
+      label: t('dashboard.addRouterLong') || 'إضافة راوتر',
+      icon: PlusCircle,
+      isActive: pathname === '/register-router'
     },
     {
       href: '/account',
@@ -127,7 +133,7 @@ export default function BottomNavBar() {
               <Icon size={18} color={item.isActive ? 'var(--primary)' : 'var(--text-muted)'} />
             </div>
             <span style={{
-              fontSize: '10px',
+              fontSize: 'var(--font-2xs)',
               fontWeight: item.isActive ? '700' : '500',
               lineHeight: 1.15,
               whiteSpace: 'nowrap',

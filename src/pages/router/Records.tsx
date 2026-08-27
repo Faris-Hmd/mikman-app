@@ -339,58 +339,16 @@ export default function RecordsPage() {
   return (
     <div className="responsive-container" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
       {/* ─── Page Header ─── */}
-      <div
-        className="responsive-card"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'nowrap',
-          gap: '8px'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '9px',
-              background: 'linear-gradient(135deg, rgba(168,85,247,0.2) 0%, rgba(147,51,234,0.4) 100%)',
-              color: '#a855f7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid rgba(168,85,247,0.3)',
-              flexShrink: 0
-            }}
-          >
-            <FileText size={16} />
+      <div className="page-header-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div className="page-header-icon">
+            <FileText />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: '14px',
-                fontWeight: 800,
-                color: 'var(--foreground)',
-                letterSpacing: '-0.2px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}
-            >
+            <h2 className="page-header-title">
               {t('records.title')}
             </h2>
-            <p
-              style={{
-                margin: 0,
-                fontSize: '11px',
-                color: 'var(--text-muted)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}
-            >
+            <p className="page-header-subtitle">
               {t('records.subtitle')}
             </p>
           </div>
@@ -398,22 +356,10 @@ export default function RecordsPage() {
 
         <button
           onClick={() => mutate()}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            borderRadius: '10px',
-            border: '1px solid var(--glass-border)',
-            background: 'var(--card-bg)',
-            color: 'var(--foreground)',
-            fontSize: '12px',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}
+          className="page-header-btn"
         >
-          <RefreshCw size={14} className={isLoading ? 'spin' : ''} />
-          <span>{t('common.refresh') || 'Refresh'}</span>
+          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+          <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
         </button>
       </div>
 
@@ -430,35 +376,35 @@ export default function RecordsPage() {
             border: activeTab === 'all'
               ? '1px solid rgba(168, 85, 247, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '12px',
-            padding: '14px 16px',
+            borderRadius: '10px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'all' ? '0 2px 8px rgba(168, 85, 247, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: activeTab === 'all' ? 'rgba(168, 85, 247, 0.25)' : 'rgba(168, 85, 247, 0.15)',
-            color: '#c084fc',
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'var(--secondary)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(168, 85, 247, 0.25)',
             flexShrink: 0
           }}>
-            <Layers size={18} />
+            <Layers size={14} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('records.totalRecords')}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginTop: '4px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--foreground)', marginTop: '2px' }}>
               {isLoading ? '—' : stats.totalRecords}
             </div>
           </div>
@@ -475,35 +421,35 @@ export default function RecordsPage() {
             border: activeTab === 'create'
               ? '1px solid rgba(16, 185, 129, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '12px',
-            padding: '14px 16px',
+            borderRadius: '10px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'create' ? '0 2px 8px rgba(16, 185, 129, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: activeTab === 'create' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.15)',
-            color: '#10b981',
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'var(--secondary)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
             flexShrink: 0
           }}>
-            <PlusCircle size={18} />
+            <PlusCircle size={14} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('records.creations')}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>
               {isLoading ? '—' : stats.creationsCount}
             </div>
           </div>
@@ -520,35 +466,35 @@ export default function RecordsPage() {
             border: activeTab === 'delete'
               ? '1px solid rgba(239, 68, 68, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '12px',
-            padding: '14px 16px',
+            borderRadius: '10px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'delete' ? '0 2px 8px rgba(239, 68, 68, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: activeTab === 'delete' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.15)',
-            color: '#ef4444',
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'var(--secondary)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
             flexShrink: 0
           }}>
-            <Trash2 size={18} />
+            <Trash2 size={14} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('records.deletions')}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#ef4444', marginTop: '4px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#ef4444', marginTop: '2px' }}>
               {isLoading ? '—' : stats.deletionsCount}
             </div>
           </div>
@@ -590,10 +536,10 @@ export default function RecordsPage() {
             <Edit3 size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('records.filterOther') || 'Other'}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#60a5fa', marginTop: '4px' }}>
+            <div style={{ fontSize: 'var(--font-xl)', fontWeight: 800, color: '#60a5fa', marginTop: '4px' }}>
               {isLoading ? '—' : stats.otherCount}
             </div>
           </div>

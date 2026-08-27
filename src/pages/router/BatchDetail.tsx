@@ -40,7 +40,8 @@ import {
   Wifi,
   Tag,
   MessageSquare,
-  RefreshCw
+  RefreshCw,
+  Calendar,
 } from 'lucide-react';
 
 type StatusFilter = 'all' | 'unused' | 'active' | 'expired';
@@ -874,13 +875,7 @@ export default function BatchDetailPage() {
     let dataPct: number | null = null;
 
     if (status === 'unused') {
-      if (limitBytesNum > 0) {
-        dataLeftStr = formatBytes(limitBytesNum);
-      } else if (pStats.dataLimit) {
-        dataLeftStr = pStats.dataLimit;
-      } else {
-        dataLeftStr = t('profiles.unlimited') || 'غير محدود';
-      }
+      dataLeftStr = null;
     } else if (status === 'active') {
       const rawRemBytes = (voucher as any).remainingBytes ?? (voucher as any)['remaining-bytes'];
       if (rawRemBytes != null && rawRemBytes !== '') {
@@ -895,11 +890,6 @@ export default function BatchDetailPage() {
         dataLeftStr = formatBytes(rem);
         dataPct = Math.min(100, Math.max(0, (rem / limitBytesNum) * 100));
       }
-      if (!dataLeftStr && pStats.dataLimit) {
-        dataLeftStr = pStats.dataLimit;
-      } else if (!dataLeftStr) {
-        dataLeftStr = t('profiles.unlimited') || 'غير محدود';
-      }
     } else {
       // Expired
       dataLeftStr = '0 MB';
@@ -910,14 +900,7 @@ export default function BatchDetailPage() {
     let timePct: number | null = null;
 
     if (status === 'unused') {
-      const vLimitUptime = (voucher as any)['limit-uptime'] || (voucher as any).limitUptime;
-      if (vLimitUptime) {
-        timeLeftStr = String(vLimitUptime);
-      } else if (pStats.validity) {
-        timeLeftStr = pStats.validity;
-      } else {
-        timeLeftStr = '—';
-      }
+      timeLeftStr = null;
     } else if (status === 'active') {
       timeLeftStr = active.timeLeftText || null;
       const remainingSec = (voucher as any).remainingSeconds != null ? Number((voucher as any).remainingSeconds) : null;
@@ -932,9 +915,6 @@ export default function BatchDetailPage() {
       }
       if (remainingSec != null && totalSec != null && totalSec > 0) {
         timePct = Math.min(100, Math.max(0, (remainingSec / totalSec) * 100));
-      }
-      if (!timeLeftStr && pStats.validity) {
-        timeLeftStr = pStats.validity;
       }
     } else {
       // Expired
@@ -959,6 +939,20 @@ export default function BatchDetailPage() {
       }
     }
 
+    let loginDateStr: string | null = null;
+    if (status === 'active' || status === 'expired') {
+      const rawComment = String((voucher as any).comment || (voucher as any).remarks || '');
+      if (rawComment.includes('login:')) {
+        const match = rawComment.match(/login:\s*([^\s,;]+(?:\s+[^\s,;]+)?)/i);
+        if (match && match[1]) {
+          loginDateStr = match[1];
+        }
+      }
+      if (!loginDateStr) {
+        loginDateStr = (voucher as any)['first-login'] || (voucher as any).loginDate || (voucher as any).firstLogin || (voucher as any).startTime || (voucher as any)['start-time'] || (active as any).loginTime || (active as any).startTime || null;
+      }
+    }
+
     const cardBg =
       status === 'active'
         ? 'rgba(59, 130, 246, 0.08)'
@@ -973,28 +967,61 @@ export default function BatchDetailPage() {
         ? 'rgba(239, 68, 68, 0.3)'
         : 'var(--glass-border, rgba(255, 255, 255, 0.12))';
 
+    const hasMetadataPills = Boolean(timeLeftStr || dataLeftStr || loginDateStr || cleanDeviceName);
+
     return (
       <div
         key={name}
         style={{
-          padding: '8px 12px',
+          boxSizing: 'border-box',
+          padding: '8px 10px',
           display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          borderRadius: '10px',
+          flexDirection: 'column',
+          gap: '6px',
+          borderRadius: '8px',
           border: `1px solid ${borderColor}`,
           background: cardBg,
           backdropFilter: 'blur(8px)',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
         }}
       >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Top row: Code + Copy + Device name + Status Badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <strong style={{ fontSize: '13px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--foreground)', letterSpacing: '0.5px' }}>
+        {/* Main Row: Status, PIN, Copy button & Details action */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+            {/* Status Pill Badge */}
+            <span
+              className="item-badge"
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                padding: '0 6px',
+                borderRadius: '5px',
+                height: '20px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                background: 'rgba(255, 255, 255, 0.08)',
+                color:
+                  status === 'active'
+                    ? '#3b82f6'
+                    : status === 'expired'
+                    ? '#ef4444'
+                    : '#22c55e',
+                border: '1px solid var(--glass-border)',
+                flexShrink: 0,
+              }}
+            >
+              {status === 'active'
+                ? t('batch.statusActive') || 'نشط'
+                : status === 'expired'
+                ? t('batch.statusExpired') || 'منتهي'
+                : t('batch.statusUnused') || 'غير مستخدم'}
+            </span>
+
+            {/* PIN / Code */}
+            <strong style={{ fontSize: '13px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--foreground)', letterSpacing: '0.5px', flexShrink: 0 }}>
               {name}
             </strong>
 
+            {/* Copy Button */}
             <button
               onClick={() => copySingleCode(name)}
               style={{
@@ -1009,20 +1036,134 @@ export default function BatchDetailPage() {
               }}
               title={t('common.copy') || 'نسخ'}
             >
-              {copiedCode === name ? <Check size={14} /> : <Copy size={14} />}
+              {copiedCode === name ? <Check size={13} /> : <Copy size={13} />}
             </button>
+          </div>
 
+          {/* Action Buttons */}
+          <button
+            onClick={() => {
+              setInfoVoucher(voucher as any);
+              setInfoStatus(status);
+            }}
+            style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+              cursor: 'pointer',
+              padding: '4px 6px',
+              color: 'var(--foreground)',
+              borderRadius: '6px',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            title={t('common.details') || 'التفاصيل'}
+          >
+            <Info size={14} />
+          </button>
+        </div>
+
+        {/* Second Row: Metadata Pills for active / expired vouchers */}
+        {hasMetadataPills && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            {/* Time Pill */}
+            {timeLeftStr && (
+              <span
+                className="item-badge"
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  padding: '0 6px',
+                  borderRadius: '5px',
+                  height: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--glass-border)',
+                  color: '#38bdf8',
+                  whiteSpace: 'nowrap',
+                  textTransform: 'uppercase',
+                }}
+              >
+                <Clock size={10} style={{ flexShrink: 0 }} />
+                <span>{timeLeftStr}</span>
+                {timePct !== null && (
+                  <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 600 }}>({Math.round(timePct)}%)</span>
+                )}
+              </span>
+            )}
+
+            {/* Data Pill */}
+            {dataLeftStr && (
+              <span
+                className="item-badge"
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  padding: '0 6px',
+                  borderRadius: '5px',
+                  height: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--glass-border)',
+                  color: '#c084fc',
+                  whiteSpace: 'nowrap',
+                  textTransform: 'uppercase',
+                }}
+              >
+                <HardDrive size={10} style={{ flexShrink: 0 }} />
+                <span>{dataLeftStr}</span>
+                {dataPct !== null && (
+                  <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 600 }}>({Math.round(dataPct)}%)</span>
+                )}
+              </span>
+            )}
+
+            {/* Login Date Badge */}
+            {loginDateStr && (
+              <span
+                className="item-badge"
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  padding: '0 6px',
+                  borderRadius: '5px',
+                  height: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--glass-border)',
+                  color: '#f59e0b',
+                  whiteSpace: 'nowrap',
+                }}
+                title={t('vouchers.loginDate') || 'تاريخ الدخول'}
+              >
+                <Calendar size={10} style={{ flexShrink: 0 }} />
+                <span>{loginDateStr}</span>
+              </span>
+            )}
+
+            {/* Device Name */}
             {cleanDeviceName && (
               <span
+                className="item-badge"
                 style={{
                   fontSize: '10px',
                   fontWeight: 600,
                   color: '#3b82f6',
-                  background: 'rgba(59, 130, 246, 0.12)',
-                  border: '1px solid rgba(59, 130, 246, 0.25)',
-                  borderRadius: '6px',
-                  padding: '1px 6px',
-                  maxWidth: '130px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '5px',
+                  padding: '0 6px',
+                  height: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  maxWidth: '120px',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -1032,117 +1173,8 @@ export default function BatchDetailPage() {
                 {cleanDeviceName}
               </span>
             )}
-
-            {/* Status Pill Badge */}
-            <span
-              style={{
-                fontSize: '10px',
-                fontWeight: 800,
-                padding: '2px 7px',
-                borderRadius: '6px',
-                background:
-                  status === 'active'
-                    ? 'rgba(59, 130, 246, 0.18)'
-                    : status === 'expired'
-                    ? 'rgba(239, 68, 68, 0.18)'
-                    : 'rgba(34, 197, 94, 0.18)',
-                color:
-                  status === 'active'
-                    ? '#3b82f6'
-                    : status === 'expired'
-                    ? '#ef4444'
-                    : '#22c55e',
-                border:
-                  status === 'active'
-                    ? '1px solid rgba(59, 130, 246, 0.3)'
-                    : status === 'expired'
-                    ? '1px solid rgba(239, 68, 68, 0.3)'
-                    : '1px solid rgba(34, 197, 94, 0.3)',
-                [isRtl ? 'marginRight' : 'marginLeft']: 'auto',
-              }}
-            >
-              {status === 'active'
-                ? t('batch.statusActive') || 'نشط'
-                : status === 'expired'
-                ? t('batch.statusExpired') || 'منتهي'
-                : t('batch.statusUnused') || 'غير مستخدم'}
-            </span>
           </div>
-
-          {/* Bottom row: Data & Time Remaining Pills */}
-          <div style={{ fontSize: '11px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {/* Data Pill */}
-            {dataLeftStr && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: 'rgba(34, 197, 94, 0.12)',
-                  border: '1px solid rgba(34, 197, 94, 0.25)',
-                  borderRadius: '6px',
-                  padding: '2px 7px',
-                  color: '#22c55e',
-                  fontWeight: 700,
-                  fontSize: '11px',
-                }}
-              >
-                <HardDrive size={12} style={{ flexShrink: 0 }} />
-                <span>{dataLeftStr}</span>
-                {dataPct !== null && (
-                  <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 600 }}>({Math.round(dataPct)}%)</span>
-                )}
-              </div>
-            )}
-
-            {/* Time Pill */}
-            {timeLeftStr && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: 'rgba(59, 130, 246, 0.12)',
-                  border: '1px solid rgba(59, 130, 246, 0.25)',
-                  borderRadius: '6px',
-                  padding: '2px 7px',
-                  color: '#3b82f6',
-                  fontWeight: 700,
-                  fontSize: '11px',
-                }}
-              >
-                <Clock size={12} style={{ flexShrink: 0 }} />
-                <span>{timeLeftStr}</span>
-                {timePct !== null && (
-                  <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 600 }}>({Math.round(timePct)}%)</span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <button
-          onClick={() => {
-            setInfoVoucher(voucher as any);
-            setInfoStatus(status);
-          }}
-          style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            cursor: 'pointer',
-            padding: '6px',
-            color: 'var(--foreground)',
-            borderRadius: '6px',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          title={t('common.details') || 'التفاصيل'}
-        >
-          <Info size={14} />
-        </button>
+        )}
       </div>
     );
   };
@@ -1652,155 +1684,80 @@ export default function BatchDetailPage() {
         }}
       >
         {/* Page Header Card */}
-        <div className="responsive-card" style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'nowrap',
-          gap: '8px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-            <button
-              onClick={backToList}
-              style={{
-                ...btnSecondary,
-                width: '32px',
-                height: '32px',
-                borderRadius: '9px',
-                padding: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-              title={t('batch.backToBatches')}
-            >
-              {isRtl ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            </button>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '9px',
+        <div className="page-header-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+          <button
+            onClick={backToList}
+            className="page-header-btn"
+            style={{ width: '32px', height: '32px', padding: 0, justifyContent: 'center' }}
+            title={t('batch.backToBatches')}
+          >
+            {isRtl ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
+          <div
+            className="page-header-icon"
+            style={{
               background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(79,70,229,0.4) 100%)',
               color: '#6366f1',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
               border: '1px solid rgba(99,102,241,0.3)',
-              flexShrink: 0
-            }}>
-              <Printer size={16} />
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: '14px',
-                fontWeight: 800,
-                color: 'var(--foreground)',
-                letterSpacing: '-0.2px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
+            }}
+          >
+            <Printer size={18} />
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h2 className="page-header-title">
+              {profile}
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+              <span className="hide-sm-only" style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '1px 5px',
+                borderRadius: '5px',
+                fontSize: '10px',
+                fontWeight: 700,
+                background: 'rgba(255, 255, 255, 0.06)',
+                color: 'var(--text-muted)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}>
-                {profile}
-              </h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                <span style={{
+                <Wifi size={10} />
+                {wifiName}
+              </span>
+              {(detail?.createdAt || comment) && (
+                <span className="hide-sm-only" style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '3px',
                   padding: '1px 5px',
                   borderRadius: '5px',
                   fontSize: '10px',
-                  fontWeight: 700,
-                  background: 'rgba(var(--primary-rgb), 0.12)',
-                  color: 'var(--primary)',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}>
-                  <Tag size={10} />
-                  {profile}
-                </span>
-                <span className="hide-sm" style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  padding: '1px 5px',
-                  borderRadius: '5px',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  background: 'rgba(255, 255, 255, 0.06)',
+                  fontWeight: 600,
+                  background: 'rgba(255, 255, 255, 0.05)',
                   color: 'var(--text-muted)',
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
                 }}>
-                  <Wifi size={10} />
-                  {wifiName}
+                  <Clock size={10} />
+                  {detail?.createdAt ? formatDate(detail.createdAt) : formatBatchTime(comment)}
                 </span>
-                {comment && (
-                  <span className="hide-sm" style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                    padding: '1px 5px',
-                    borderRadius: '5px',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    color: 'var(--text-muted)',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}>
-                    <MessageSquare size={10} />
-                    {comment}
-                  </span>
-                )}
-                {(detail?.createdAt || comment) && (
-                  <span className="hide-sm" style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                    padding: '1px 5px',
-                    borderRadius: '5px',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    color: 'var(--text-muted)',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}>
-                    <Clock size={10} />
-                    {detail?.createdAt ? formatDate(detail.createdAt) : formatBatchTime(comment)}
-                  </span>
-                )}
-              </div>
+              )}
             </div>
           </div>
+        </div>
 
-          {/* Header Actions: Refresh, Print & Delete Batch */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-            <button
-              onClick={handleManualRefresh}
-              disabled={isRefreshing || detailLoading}
-              title={t('common.refresh') || 'تحديث'}
-              style={{
-                background: 'var(--card-bg, rgba(0, 0, 0, 0.2))',
-                border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-                color: 'var(--foreground)',
-                borderRadius: '8px',
-                padding: '6px 10px',
-                fontSize: '11px',
-                fontWeight: 700,
-                cursor: (isRefreshing || detailLoading) ? 'not-allowed' : 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                flexShrink: 0
-              }}
-            >
-              <RefreshCw size={13} className={isRefreshing || detailLoading ? 'spin' : ''} />
-              <span className="hide-sm">{t('common.refresh') || 'تحديث'}</span>
-            </button>
+        {/* Header Actions: Refresh, Print & Delete Batch */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <button
+            onClick={handleManualRefresh}
+            disabled={isRefreshing || detailLoading}
+            title={t('common.refresh') || 'تحديث'}
+            className="page-header-btn"
+          >
+            <RefreshCw size={14} className={isRefreshing || detailLoading ? 'animate-spin' : ''} />
+            <span className="hide-sm-only">{t('common.refresh') || 'تحديث'}</span>
+          </button>
 
             <button
               onClick={() => {
@@ -1866,32 +1823,31 @@ export default function BatchDetailPage() {
               style={{
                 ...cardStyle,
                 cursor: 'pointer',
-                border: statusFilter === 'all' ? '1.5px solid var(--primary)' : cardStyle.border,
-                background: statusFilter === 'all' ? 'rgba(var(--primary-rgb), 0.12)' : cardStyle.background,
+                border: statusFilter === 'all' ? '1.5px solid var(--primary)' : '1px solid var(--glass-border)',
+                background: statusFilter === 'all' ? 'rgba(255, 255, 255, 0.12)' : cardStyle.background,
                 transition: 'all 0.15s ease',
               }}
             >
               <div
                 className="batch-stat-card-icon"
                 style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '7px',
-                  background: 'rgba(99, 102, 241, 0.12)',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--glass-border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#6366f1',
+                  color: 'var(--primary)',
                   flexShrink: 0,
                 }}
               >
-                <Layers size={14} />
+                <Layers size={13} />
               </div>
-              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <span className="batch-stat-card-label" style={{ fontSize: '10px', color: statusFilter === 'all' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span className="batch-stat-card-label" style={{ fontSize: '10px', color: statusFilter === 'all' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t('batch.totalVouchers')}
                 </span>
-                <strong className="batch-stat-card-val" style={{ color: statusFilter === 'all' ? 'var(--primary)' : 'var(--foreground)' }}>
+                <strong className="batch-stat-card-val" style={{ fontSize: '13px', color: statusFilter === 'all' ? 'var(--primary)' : 'var(--foreground)' }}>
                   {detail.originalCount}
                 </strong>
               </div>
@@ -1904,18 +1860,17 @@ export default function BatchDetailPage() {
               style={{
                 ...cardStyle,
                 cursor: 'pointer',
-                border: statusFilter === 'unused' ? '1.5px solid #22c55e' : cardStyle.border,
-                background: statusFilter === 'unused' ? 'rgba(34, 197, 94, 0.12)' : cardStyle.background,
+                border: statusFilter === 'unused' ? '1.5px solid #22c55e' : '1px solid var(--glass-border)',
+                background: statusFilter === 'unused' ? 'rgba(255, 255, 255, 0.12)' : cardStyle.background,
                 transition: 'all 0.15s ease',
               }}
             >
               <div
                 className="batch-stat-card-icon"
                 style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '7px',
-                  background: 'rgba(34, 197, 94, 0.12)',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--glass-border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1923,13 +1878,13 @@ export default function BatchDetailPage() {
                   flexShrink: 0,
                 }}
               >
-                <CheckCircle2 size={14} />
+                <CheckCircle2 size={13} />
               </div>
-              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <span className="batch-stat-card-label" style={{ fontSize: '10px', color: '#22c55e', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span className="batch-stat-card-label" style={{ fontSize: '10px', color: '#22c55e', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t('batch.unusedVouchers')}
                 </span>
-                <strong className="batch-stat-card-val" style={{ color: '#22c55e' }}>
+                <strong className="batch-stat-card-val" style={{ fontSize: '13px', color: '#22c55e' }}>
                   {detail.unusedCount}
                 </strong>
               </div>
@@ -1942,18 +1897,17 @@ export default function BatchDetailPage() {
               style={{
                 ...cardStyle,
                 cursor: 'pointer',
-                border: statusFilter === 'active' ? '1.5px solid #3b82f6' : cardStyle.border,
-                background: statusFilter === 'active' ? 'rgba(59, 130, 246, 0.12)' : cardStyle.background,
+                border: statusFilter === 'active' ? '1.5px solid #3b82f6' : '1px solid var(--glass-border)',
+                background: statusFilter === 'active' ? 'rgba(255, 255, 255, 0.12)' : cardStyle.background,
                 transition: 'all 0.15s ease',
               }}
             >
               <div
                 className="batch-stat-card-icon"
                 style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '7px',
-                  background: 'rgba(59, 130, 246, 0.12)',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--glass-border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1961,13 +1915,13 @@ export default function BatchDetailPage() {
                   flexShrink: 0,
                 }}
               >
-                <Zap size={14} />
+                <Zap size={13} />
               </div>
-              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <span className="batch-stat-card-label" style={{ fontSize: '10px', color: '#3b82f6', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span className="batch-stat-card-label" style={{ fontSize: '10px', color: '#3b82f6', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t('batch.activeVouchers')}
                 </span>
-                <strong className="batch-stat-card-val" style={{ color: '#3b82f6' }}>
+                <strong className="batch-stat-card-val" style={{ fontSize: '13px', color: '#3b82f6' }}>
                   {detail.activeCount}
                 </strong>
               </div>
@@ -1980,18 +1934,17 @@ export default function BatchDetailPage() {
               style={{
                 ...cardStyle,
                 cursor: 'pointer',
-                border: statusFilter === 'expired' ? '1.5px solid #ef4444' : cardStyle.border,
-                background: statusFilter === 'expired' ? 'rgba(239, 68, 68, 0.12)' : cardStyle.background,
+                border: statusFilter === 'expired' ? '1.5px solid #ef4444' : '1px solid var(--glass-border)',
+                background: statusFilter === 'expired' ? 'rgba(255, 255, 255, 0.12)' : cardStyle.background,
                 transition: 'all 0.15s ease',
               }}
             >
               <div
                 className="batch-stat-card-icon"
                 style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '7px',
-                  background: 'rgba(239, 68, 68, 0.12)',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--glass-border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1999,13 +1952,13 @@ export default function BatchDetailPage() {
                   flexShrink: 0,
                 }}
               >
-                <Clock size={14} />
+                <Clock size={13} />
               </div>
-              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <span className="batch-stat-card-label" style={{ fontSize: '10px', color: '#ef4444', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span className="batch-stat-card-label" style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t('batch.expiredVouchers')}
                 </span>
-                <strong className="batch-stat-card-val" style={{ color: '#ef4444' }}>
+                <strong className="batch-stat-card-val" style={{ fontSize: '13px', color: '#ef4444' }}>
                   {detail.expiredCount}
                 </strong>
               </div>
