@@ -39,6 +39,7 @@ import {
   Check,
   Tag,
   Smartphone,
+  Laptop,
   Settings as SettingsIcon,
 } from 'lucide-react';
 
@@ -55,6 +56,7 @@ const HARDWARE_MODELS: { value: string; label: string }[] = [
 ];
 
 import { TIMEZONES } from '../../constants/timezones';
+import { getRouterImage } from '../../lib/helpers';
 
 export default function SettingsPage() {
   const { routerId } = useParams<{ routerId: string }>();
@@ -612,6 +614,15 @@ export default function SettingsPage() {
   });
 
   const isOnline = status?.online || status?.status === 'online';
+  const currentConfig = profilesData?.profiles?.find(
+    (p: any) => String(p.id) === String(routerId) || p.name === routerId
+  );
+  const routerImg = getRouterImage(
+    currentConfig || {
+      name: infoForm.name || routerId,
+      model: infoForm.model || (status as any)?.model || (status as any)?.boardName || (status as any)?.['board-name'],
+    }
+  );
 
   return (
     <div className="responsive-container" style={{ maxWidth: '960px' }}>
@@ -641,7 +652,6 @@ export default function SettingsPage() {
       </div>
 
       {/* ── System Telemetry & Connection Status Banner ── */}
-      {/* ── System Telemetry & Connection Status Banner ── */}
       <div style={{
         ...cardStyle,
         position: 'relative',
@@ -652,18 +662,18 @@ export default function SettingsPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '12px',
-              background: isOnline ? 'rgba(22, 163, 74, 0.15)' : 'rgba(220, 38, 38, 0.15)',
-              color: isOnline ? '#16a34a' : '#dc2626',
+              width: '42px',
+              height: '42px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: `1px solid ${isOnline ? 'rgba(22, 163, 74, 0.3)' : 'rgba(220, 38, 38, 0.3)'}`,
-              flexShrink: 0
+              flexShrink: 0,
             }}>
-              <Router size={18} />
+              <img
+                src={routerImg}
+                alt="Router Model"
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              />
             </div>
             <div>
               <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.3px' }}>
@@ -880,7 +890,7 @@ export default function SettingsPage() {
             }}>
               <div>
                 <label htmlFor="info-name" style={labelStyle}>
-                  <Router size={11} style={{ color: '#3b82f6' }} /> {t('dashboard.deviceLabelProfileName')}
+                  <Laptop size={11} style={{ color: '#3b82f6' }} /> {t('dashboard.deviceLabelProfileName')}
                 </label>
                 <input
                   id="info-name"

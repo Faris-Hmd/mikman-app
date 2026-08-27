@@ -46,9 +46,16 @@ export const formatSpeedCompact = (bps: number | undefined | null, speedUnit: 'b
   }
 };
 
-export const getRouterImage = (router: RouterConfig): string | null => {
-  const nameLower = (router.name || '').toLowerCase();
-  const modelLower = (router.model || '').toLowerCase();
+export const getRouterImage = (router?: RouterConfig | { name?: string; model?: string; boardName?: string } | string | null): string => {
+  if (!router) return 'https://zekstvj1hdm1c6qt.public.blob.vercel-storage.com/hap-ax3.png';
+  let nameLower = '';
+  let modelLower = '';
+  if (typeof router === 'string') {
+    modelLower = router.toLowerCase();
+  } else {
+    nameLower = (router.name || '').toLowerCase();
+    modelLower = (router.model || (router as any).boardName || (router as any)['board-name'] || '').toLowerCase();
+  }
   const imgMap: Record<string, string> = {
     'hap-ax3': 'https://zekstvj1hdm1c6qt.public.blob.vercel-storage.com/hap-ax3.png',
     'hap-ac3': 'https://zekstvj1hdm1c6qt.public.blob.vercel-storage.com/hap-ac3.png',
@@ -62,7 +69,7 @@ export const getRouterImage = (router: RouterConfig): string | null => {
   for (const [key, url] of Object.entries(imgMap)) {
     if (nameLower.includes(key) || modelLower.includes(key)) return url;
   }
-  return null;
+  return 'https://zekstvj1hdm1c6qt.public.blob.vercel-storage.com/hap-ax3.png';
 };
 
 export const getWinboxAddress = (router: RouterConfig): string => {

@@ -143,24 +143,26 @@ export default function RouterDashboardPage() {
     label,
     value,
     title,
+    accentColor = 'var(--accent)'
   }: {
     icon: any;
     label: string;
     value: React.ReactNode;
     title?: string;
+    accentColor?: string;
   }) => (
     <div
       className="responsive-card"
       title={title || (typeof value === 'string' ? value : undefined)}
-      style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}
+      style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}
     >
       <div
         style={{
-          width: '28px',
-          height: '28px',
-          borderRadius: '7px',
+          width: '26px',
+          height: '26px',
+          borderRadius: '6px',
           background: 'var(--secondary)',
-          color: 'var(--foreground)',
+          color: accentColor,
           border: '1px solid var(--glass-border)',
           display: 'flex',
           alignItems: 'center',
@@ -168,33 +170,40 @@ export default function RouterDashboardPage() {
           flexShrink: 0,
         }}
       >
-        <Icon size={14} />
+        <Icon size={13} />
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
+        <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {label}
         </span>
-        <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700, marginTop: '2px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <strong style={{ fontSize: '13.5px', color: 'var(--foreground)', fontWeight: 800, marginTop: '2px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {value}
         </strong>
       </div>
     </div>
   );
 
-  const StatLabel = ({ children }: { children: React.ReactNode }) => <div style={S.section}>{children}</div>;
+  const StatLabel = ({ icon: Icon, title }: { icon: any; title: string }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+      <Icon size={13} style={{ color: 'var(--primary)' }} />
+      <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        {title}
+      </span>
+    </div>
+  );
 
   const renderBarChart = () => {
     if (!chartDaily.length) return null;
     return (
-      <div className="responsive-card" style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <BarChart2 size={16} style={{ color: 'var(--primary)' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
+            <BarChart2 size={15} style={{ color: 'var(--primary)' }} />
+            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
               {t('dashboard.revenueSummary') || 'Monthly Revenue Chart'}
             </span>
           </div>
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+          <span style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'var(--secondary)', padding: '2px 8px', borderRadius: '10px', border: '1px solid var(--glass-border)', fontWeight: 600 }}>
             {chartDaily.length} {language === 'ar' ? 'أيام' : 'days'}
           </span>
         </div>
@@ -204,33 +213,39 @@ export default function RouterDashboardPage() {
           {activeTooltip && (
             <div style={{
               position: 'absolute',
-              top: '-28px',
+              top: '-12px',
               left: '50%',
               transform: 'translateX(-50%)',
               background: 'rgba(15, 23, 42, 0.95)',
-              border: '1px solid var(--primary)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
               color: '#fff',
-              padding: '3px 8px',
-              borderRadius: '6px',
+              padding: '4px 8px',
+              borderRadius: '8px',
               fontSize: '10px',
-              fontWeight: 600,
+              fontWeight: 700,
               whiteSpace: 'nowrap',
               zIndex: 10,
               pointerEvents: 'none',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              boxShadow: '0 6px 16px rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
             }}>
-              {activeTooltip.date}: ${activeTooltip.revenue.toFixed(2)} ({activeTooltip.count} {language === 'ar' ? 'كرت' : 'vouchers'})
+              <span>{activeTooltip.date}:</span>
+              <span style={{ color: '#60a5fa', fontWeight: 900 }}>${activeTooltip.revenue.toFixed(2)}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '9px' }}>({activeTooltip.count} {language === 'ar' ? 'كرت' : 'vouchers'})</span>
             </div>
           )}
 
-          {/* Flexbox bar container matching Revenue page */}
+          {/* Flexbox bar container */}
           <div style={{
             display: 'flex',
             alignItems: 'flex-end',
-            gap: '2px',
+            gap: chartDaily.length > 25 ? '1px' : '2px',
             height: '110px',
             width: '100%',
-            paddingTop: '16px',
+            paddingTop: '12px',
             borderBottom: '1px solid var(--glass-border)',
             boxSizing: 'border-box'
           }}>
@@ -264,10 +279,10 @@ export default function RouterDashboardPage() {
                         ? isHovered
                           ? 'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)'
                           : 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)'
-                        : 'var(--glass-border)',
+                        : 'rgba(255, 255, 255, 0.05)',
                       borderRadius: '3px 3px 0 0',
-                      transition: 'all 0.2s ease',
-                      boxShadow: isHovered ? '0 0 8px rgba(59,130,246,0.6)' : 'none'
+                      transition: 'all 0.15s ease',
+                      boxShadow: isHovered ? '0 0 8px rgba(59,130,246,0.7)' : 'none'
                     }}
                   />
                 </div>
@@ -282,7 +297,7 @@ export default function RouterDashboardPage() {
               const showLabel = idx === 0 || idx === totalBars - 1 || idx % Math.ceil(totalBars / 6) === 0;
               const dayNum = item.date ? parseInt(item.date.split('-')[2], 10) : idx + 1;
               return (
-                <span key={idx} style={{ flex: 1, textAlign: 'center', opacity: showLabel ? 1 : 0 }}>
+                <span key={idx} style={{ flex: 1, textAlign: 'center', opacity: showLabel ? 1 : 0, fontWeight: 600 }}>
                   {dayNum}
                 </span>
               );
@@ -294,90 +309,81 @@ export default function RouterDashboardPage() {
   };
 
   return (
-    <div className="responsive-container">
+    <div className="responsive-container" style={{ gap: '12px' }}>
       {/* Page Header Card */}
-      <div className="page-header-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-          {routerImg ? (
-            <div style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
-              <img src={routerImg} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} />
-            </div>
-          ) : (
-            <div
-              className="page-header-icon"
-              style={{
-                background: isConnected ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                color: isConnected ? '#22c55e' : '#ef4444',
-                border: `1px solid ${isConnected ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-              }}
-            >
-              <Radio size={18} />
-            </div>
-          )}
+      <div className="page-header-card" style={{ padding: '8px 12px', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+          <div style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+            <img src={routerImg || ''} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+          </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 className="page-header-title">{routerName}</h2>
-            <p className="page-header-subtitle">
+            <h2 className="page-header-title" style={{ fontSize: '15px' }}>{routerName}</h2>
+            <p className="page-header-subtitle" style={{ fontSize: '10.5px' }}>
               {profileData?.model ? profileData.model.toUpperCase() : (status?.timezone || (isConnected ? t('common.online') : t('common.offline')))}
             </p>
           </div>
         </div>
 
         {isConnected && routerTime && (
-          <div style={{ textAlign: 'left', flexShrink: 0 }}>
-            <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>{routerTime}</div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{routerDate}</div>
+          <div style={{ textAlign: language === 'ar' ? 'left' : 'right', flexShrink: 0 }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>{routerTime}</div>
+            <div style={{ fontSize: '9.5px', color: 'var(--text-muted)' }}>{routerDate}</div>
           </div>
         )}
       </div>
 
       {/* System health */}
       <div>
-        <StatLabel><Activity size={12} style={{ color: 'var(--primary)' }} /><span style={S.sectionBadge}>{t('dashboard.systemHealth') || 'System Health'}</span></StatLabel>
+        <StatLabel icon={Activity} title={t('dashboard.systemHealth') || 'System Health'} />
         <div className="stat-summary-grid">
-          <StatRow icon={Cpu} label={t('header.cpuLoad') || 'CPU'} value={<span style={S.cpuColor(status?.cpuLoad)}>{isConnected && cpuDisp ? cpuDisp : '—'}</span>} />
+          <StatRow icon={Cpu} label={t('header.cpuLoad') || 'CPU'} value={<span style={S.cpuColor(status?.cpuLoad)}>{isConnected && cpuDisp ? cpuDisp : '—'}</span>} accentColor="#3b82f6" />
 
           {/* RAM Card */}
-          <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '7px', background: 'var(--secondary)', color: 'var(--foreground)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Activity size={14} />
+          <div className="responsive-card" style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'var(--secondary)', color: '#3b82f6', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Activity size={13} />
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
+              <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {t('header.ram') || 'RAM'}
               </span>
               {isConnected && memUsed != null && memTotal != null ? (
                 <div>
-                  <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', marginTop: '2px' }}>
+                  <strong style={{ fontSize: '13.5px', color: 'var(--foreground)', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', marginTop: '2px' }}>
                     {memUsed} / {memTotal} MB
                   </strong>
                   <div style={{ height: 3, background: 'var(--secondary)', borderRadius: 2, marginTop: 3, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${Math.min(100, memPct || 0)}%`, background: (memPct || 0) >= 90 ? '#ef4444' : (memPct || 0) >= 75 ? '#f59e0b' : 'var(--primary)', borderRadius: 2, transition: 'width 0.3s' }} />
+                    <div style={{ height: '100%', width: `${Math.min(100, memPct || 0)}%`, background: (memPct || 0) >= 90 ? '#ef4444' : (memPct || 0) >= 75 ? '#f59e0b' : '#3b82f6', borderRadius: 2, transition: 'width 0.3s' }} />
                   </div>
                 </div>
               ) : (
-                <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700, marginTop: '2px', display: 'block' }}>—</strong>
+                <strong style={{ fontSize: '13.5px', color: 'var(--foreground)', fontWeight: 800, marginTop: '2px', display: 'block' }}>—</strong>
               )}
             </div>
           </div>
 
-          <StatRow icon={Thermometer} label={t('header.temp') || 'Temp'} value={isConnected && tmpDisp ? tmpDisp : '—'} />
-          <StatRow icon={Clock} label={t('header.uptime') || 'Uptime'} value={isConnected && upDisp ? upDisp : '—'} />
-          <StatRow icon={Users} label={t('dashboard.activeSessions') || 'Users'} value={isConnected && status?.activeUsers != null ? status.activeUsers : '—'} />
+          <StatRow icon={Thermometer} label={t('header.temp') || 'Temp'} value={isConnected && tmpDisp ? tmpDisp : '—'} accentColor="#f59e0b" />
+          <StatRow icon={Clock} label={t('header.uptime') || 'Uptime'} value={isConnected && upDisp ? upDisp : '—'} accentColor="#a855f7" />
+          <StatRow icon={Users} label={t('dashboard.activeSessions') || 'Users'} value={isConnected && status?.activeUsers != null ? status.activeUsers : '—'} accentColor="#06b6d4" />
           <StatRow
             icon={Wifi}
             label={t('header.ssid') || 'SSID'}
             title={status?.wifiName}
             value={isConnected && status?.wifiName ? status.wifiName : '—'}
+            accentColor="#ec4899"
           />
         </div>
       </div>
 
       {/* Quick actions */}
       <div>
-        <StatLabel><Ticket size={12} style={{ color: 'var(--primary)' }} /><span style={S.sectionBadge}>{t('dashboard.quickActions') || 'Quick Actions'}</span></StatLabel>
+        <StatLabel icon={Ticket} title={t('dashboard.quickActions') || 'Quick Actions'} />
         <div className="quick-actions-grid">
           {([ { Icon: Ticket, tk: 'vouchers', slug: 'vouchers' }, { Icon: Layers, tk: 'profiles', slug: 'profiles' }, { Icon: Printer, tk: 'batchPrint', slug: 'batch' }, { Icon: TrendingUp, tk: 'revenue', slug: 'revenue' }, { Icon: Settings, tk: 'settings', slug: 'settings' } ] as const).map(({ Icon, tk, slug }) => (
-            <Link key={slug} to={`/${routerId}/${slug}`} style={{ ...S.card, ...S.quickLink }}><Icon size={16} style={{ color: 'var(--primary)' }} /><span style={{ fontSize: 10, fontWeight: 700 }}>{t(`sidebar.${tk}`) || tk}</span></Link>
+            <Link key={slug} to={`/${routerId}/${slug}`} className="responsive-card hover-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '8px 6px', textDecoration: 'none', color: 'var(--foreground)' }}>
+              <Icon size={16} style={{ color: 'var(--primary)' }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, textAlign: 'center' }}>{t(`sidebar.${tk}`) || tk}</span>
+            </Link>
           ))}
         </div>
       </div>
@@ -385,31 +391,31 @@ export default function RouterDashboardPage() {
       {/* Revenue summary */}
       {revenue && (
         <div>
-          <StatLabel><Ticket size={12} style={{ color: 'var(--primary)' }} /><span style={S.sectionBadge}>{t('dashboard.revenueSummary') || 'Revenue Summary'}</span></StatLabel>
-          <div className="stat-summary-grid">
-            <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '7px', background: 'var(--secondary)', color: 'var(--foreground)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <TrendingUp size={14} />
+          <StatLabel icon={TrendingUp} title={t('dashboard.revenueSummary') || 'Revenue Summary'} />
+          <div className="stat-summary-grid" style={{ marginBottom: '8px' }}>
+            <div className="responsive-card" style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.3) 100%)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <TrendingUp size={13} />
               </div>
-              <div style={{ minWidth: 0 }}>
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t('dashboard.totalRevenue') || 'Revenue'}
                 </span>
-                <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700, marginTop: '2px', display: 'block' }}>
+                <strong style={{ fontSize: '13.5px', color: 'var(--foreground)', fontWeight: 800, marginTop: '2px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   ${Number(revenue.totalRevenue).toFixed(2)}
                 </strong>
               </div>
             </div>
 
-            <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '7px', background: 'var(--secondary)', color: 'var(--foreground)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Ticket size={14} />
+            <div className="responsive-card" style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(79,70,229,0.3) 100%)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Ticket size={13} />
               </div>
-              <div style={{ minWidth: 0 }}>
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t('common.total') || 'Vouchers'}
                 </span>
-                <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700, marginTop: '2px', display: 'block' }}>
+                <strong style={{ fontSize: '13.5px', color: 'var(--foreground)', fontWeight: 800, marginTop: '2px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {revenue.totalVouchers}
                 </strong>
               </div>

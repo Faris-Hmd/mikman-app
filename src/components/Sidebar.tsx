@@ -81,7 +81,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     { href: `/${routerId}/profiles`, label: t('sidebar.profiles'), icon: Layers },
     { href: `/${routerId}/users`, label: t('sidebar.users'), icon: Users },
     { href: `/${routerId}/aps`, label: t('sidebar.devices'), icon: Laptop },
-    { href: `/${routerId}/records`, label: t('sidebar.audit'), icon: Server },
+    // { href: `/${routerId}/records`, label: t('sidebar.audit'), icon: Server },
     { href: `/${routerId}/settings`, label: t('sidebar.settings'), icon: Settings },
   ] : [];
 

@@ -3,7 +3,7 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import { fetchSingleRouterStatusAPI, fetchRouterProfilesWithUserAPI, fetchAllRoutersStatusAPI, formatUptimeAPI } from '../api';
 import { useLanguage } from '../context/LanguageContext';
-import { cleanDisplayName } from '../lib/helpers';
+import { cleanDisplayName, getRouterImage } from '../lib/helpers';
 import { Router, Cpu, Clock, Users, Thermometer, ChevronDown, Check, LayoutGrid } from 'lucide-react';
 
 export default function RouterStatusHeader() {
@@ -86,6 +86,7 @@ export default function RouterStatusHeader() {
   const isOnline = !!(status?.online || status?.status === 'online');
   const rawDisplayName = currentProfile?.name || (status as any)?.name || currentProfile?.wifiName || status?.wifiName;
   const routerDisplayName = cleanDisplayName(rawDisplayName, routerId && !routerId.startsWith('cloud_') ? routerId : 'MikroTik');
+  const currentRouterImg = getRouterImage(currentProfile);
 
   // Handle switching to target router while preserving current sub-route
   const handleSwitchRouter = (targetRouterId: string) => {
@@ -142,7 +143,7 @@ export default function RouterStatusHeader() {
             }}
             title={t('sidebar.switchRouter') || 'Switch Router'}
           >
-            <Router size={13} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+            <img src={currentRouterImg} alt="" style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
               {routerDisplayName}
             </span>
@@ -216,6 +217,7 @@ export default function RouterStatusHeader() {
                     const pStatus = p.id === routerId ? status : statusMap[p.id];
                     const pOnline = p.id === routerId ? isOnline : !!(pStatus?.online || pStatus?.status === 'online');
                     const displayName = cleanDisplayName(p.name || p.wifiName, p.id);
+                    const pImg = getRouterImage(p);
 
                     return (
                       <button
@@ -247,6 +249,7 @@ export default function RouterStatusHeader() {
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                          <img src={pImg} alt="" style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0 }} />
                           <span
                             style={{
                               width: '6px',

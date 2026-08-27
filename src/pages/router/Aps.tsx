@@ -403,29 +403,43 @@ export default function ApsPage() {
       }}
     >
       {/* ─── 1. Page Header ─── */}
-      <div className="page-header-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-          <div className="page-header-icon">
-            <Radio />
+      <div className="page-header-card" style={{ padding: '8px 12px', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+          <div
+            className="page-header-icon"
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
+              background: 'rgba(59, 130, 246, 0.15)',
+              color: '#3b82f6',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Laptop size={15} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 className="page-header-title">
+            <h2 className="page-header-title" style={{ fontSize: '15px' }}>
               {t('aps.title')}
             </h2>
-            <p className="page-header-subtitle">
+            <p className="page-header-subtitle" style={{ fontSize: '10.5px' }}>
               {t('aps.subtitle') || 'إدارة أجهزة الشبكة وربط عناوين الماك'}
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <button
             onClick={handleRefresh}
             disabled={isLoading}
             className="page-header-btn"
+            style={{ padding: '4px 8px', fontSize: '11px', height: '28px' }}
             title="Refresh"
           >
-            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+            <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
             <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
           </button>
           <button
@@ -439,8 +453,9 @@ export default function ApsPage() {
               setIsAddModalOpen(true);
             }}
             className="page-header-btn page-header-btn-primary"
+            style={{ padding: '4px 10px', fontSize: '11px', height: '28px' }}
           >
-            <Plus size={14} />
+            <Plus size={13} />
             <span style={{ whiteSpace: 'nowrap' }}>{t('common.add') || 'إضافة'}</span>
           </button>
         </div>
@@ -451,180 +466,156 @@ export default function ApsPage() {
         {/* Total Bindings */}
         <div
           onClick={() => setSelectedFilter('all')}
+          className="responsive-card hover-card"
           style={{
-            background: selectedFilter === 'all'
-              ? 'rgba(16, 185, 129, 0.12)'
-              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-            backdropFilter: 'blur(12px)',
-            border: selectedFilter === 'all'
-              ? '1px solid rgba(16, 185, 129, 0.4)'
-              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '10px 12px',
+            padding: '6px 10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '8px',
+            minWidth: 0,
             cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: selectedFilter === 'all' ? '0 2px 8px rgba(16, 185, 129, 0.15)' : 'none'
+            border: selectedFilter === 'all' ? '1px solid #3b82f6' : '1px solid var(--glass-border)',
+            background: selectedFilter === 'all' ? 'rgba(59, 130, 246, 0.12)' : undefined,
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '26px',
+            height: '26px',
+            borderRadius: '6px',
             background: 'var(--secondary)',
-            color: 'var(--foreground)',
+            color: '#3b82f6',
             border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0
           }}>
-            <Radio size={14} />
+            <Laptop size={13} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('aps.totalDevices') || 'Total'}
-            </div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--foreground)', marginTop: '2px' }}>
+            </span>
+            <strong style={{ fontSize: '13.5px', color: 'var(--foreground)', fontWeight: 800, marginTop: '2px', display: 'block' }}>
               {isLoading ? '—' : stats.totalBindings}
-            </div>
+            </strong>
           </div>
         </div>
 
         {/* Bypassed */}
         <div
           onClick={() => setSelectedFilter('bypassed')}
+          className="responsive-card hover-card"
           style={{
-            background: selectedFilter === 'bypassed'
-              ? 'rgba(16, 185, 129, 0.12)'
-              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-            backdropFilter: 'blur(12px)',
-            border: selectedFilter === 'bypassed'
-              ? '1px solid rgba(16, 185, 129, 0.4)'
-              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '10px 12px',
+            padding: '6px 10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '8px',
+            minWidth: 0,
             cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: selectedFilter === 'bypassed' ? '0 2px 8px rgba(16, 185, 129, 0.15)' : 'none'
+            border: selectedFilter === 'bypassed' ? '1px solid #10b981' : '1px solid var(--glass-border)',
+            background: selectedFilter === 'bypassed' ? 'rgba(16, 185, 129, 0.12)' : undefined,
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '26px',
+            height: '26px',
+            borderRadius: '6px',
             background: 'var(--secondary)',
-            color: 'var(--foreground)',
+            color: '#10b981',
             border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0
           }}>
-            <CheckCircle2 size={14} />
+            <CheckCircle2 size={13} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('aps.bypassed')}
-            </div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>
+            </span>
+            <strong style={{ fontSize: '13.5px', color: '#10b981', fontWeight: 800, marginTop: '2px', display: 'block' }}>
               {isLoading ? '—' : stats.bypassed}
-            </div>
+            </strong>
           </div>
         </div>
 
         {/* Regular */}
         <div
           onClick={() => setSelectedFilter('regular')}
+          className="responsive-card hover-card"
           style={{
-            background: selectedFilter === 'regular'
-              ? 'rgba(59, 130, 246, 0.12)'
-              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-            backdropFilter: 'blur(12px)',
-            border: selectedFilter === 'regular'
-              ? '1px solid rgba(59, 130, 246, 0.4)'
-              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '10px 12px',
+            padding: '6px 10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '8px',
+            minWidth: 0,
             cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: selectedFilter === 'regular' ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none'
+            border: selectedFilter === 'regular' ? '1px solid #8b5cf6' : '1px solid var(--glass-border)',
+            background: selectedFilter === 'regular' ? 'rgba(139, 92, 246, 0.12)' : undefined,
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '26px',
+            height: '26px',
+            borderRadius: '6px',
             background: 'var(--secondary)',
-            color: 'var(--foreground)',
+            color: '#8b5cf6',
             border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0
           }}>
-            <Shield size={14} />
+            <Shield size={13} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('aps.regular') || 'Regular'}
-            </div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#3b82f6', marginTop: '2px' }}>
+            </span>
+            <strong style={{ fontSize: '13.5px', color: '#8b5cf6', fontWeight: 800, marginTop: '2px', display: 'block' }}>
               {isLoading ? '—' : stats.regular}
-            </div>
+            </strong>
           </div>
         </div>
 
         {/* Active Unbound */}
         <div
           onClick={() => setSelectedFilter('unbound')}
+          className="responsive-card hover-card"
           style={{
-            background: selectedFilter === 'unbound'
-              ? 'rgba(245, 158, 11, 0.12)'
-              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-            backdropFilter: 'blur(12px)',
-            border: selectedFilter === 'unbound'
-              ? '1px solid rgba(245, 158, 11, 0.4)'
-              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '12px',
-            padding: '14px 16px',
+            padding: '6px 10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '8px',
+            minWidth: 0,
             cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: selectedFilter === 'unbound' ? '0 2px 8px rgba(245, 158, 11, 0.15)' : 'none'
+            border: selectedFilter === 'unbound' ? '1px solid #f59e0b' : '1px solid var(--glass-border)',
+            background: selectedFilter === 'unbound' ? 'rgba(245, 158, 11, 0.12)' : undefined,
           }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: 'rgba(245, 158, 11, 0.2)',
+            width: '26px',
+            height: '26px',
+            borderRadius: '6px',
+            background: 'rgba(245, 158, 11, 0.15)',
             color: '#f59e0b',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
             flexShrink: 0
           }}>
-            <Zap size={18} />
+            <Zap size={13} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+            <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {t('aps.unboundCount') || 'Unbound'}
-            </div>
-            <div style={{ fontSize: 'var(--font-xl)', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>
+            </span>
+            <strong style={{ fontSize: '13.5px', color: '#f59e0b', fontWeight: 800, marginTop: '2px', display: 'block' }}>
               {isLoading ? '—' : stats.unbound}
-            </div>
+            </strong>
           </div>
         </div>
       </div>
@@ -632,7 +623,7 @@ export default function ApsPage() {
       {/* Search Input Filter Bar */}
       <div style={{ position: 'relative', width: '100%' }}>
         <Search
-          size={14}
+          size={13}
           style={{
             position: 'absolute',
             top: '50%',
@@ -649,13 +640,13 @@ export default function ApsPage() {
           placeholder={t('aps.searchPlaceholder') || 'Search by MAC, IP, category, comment...'}
           style={{
             width: '100%',
-            padding: `8px ${isRtl ? '30px' : '30px'} 8px ${isRtl ? '30px' : '30px'}`,
+            padding: `6px ${isRtl ? '28px' : '28px'} 6px ${isRtl ? '28px' : '28px'}`,
             background: 'var(--card-bg, rgba(255, 255, 255, 0.05))',
             backdropFilter: 'blur(12px)',
             border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
             borderRadius: '8px',
             color: 'var(--foreground)',
-            fontSize: '12px',
+            fontSize: '11px',
             outline: 'none',
             boxSizing: 'border-box',
             transition: 'border-color 0.2s ease',
@@ -679,7 +670,7 @@ export default function ApsPage() {
               padding: '2px',
             }}
           >
-            <X size={13} />
+            <X size={12} />
           </button>
         )}
       </div>
@@ -747,6 +738,7 @@ export default function ApsPage() {
                 onClick={() => setSelectedDevice(device)}
                 className="list-item-card hover-card"
                 style={{
+                  padding: '6px 10px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -756,25 +748,31 @@ export default function ApsPage() {
                 }}
               >
                 {/* Left: Category Icon & Details */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
                   {/* Avatar Icon + Online Pulse Dot */}
                   <div style={{ position: 'relative', flexShrink: 0 }}>
                     <div
                       className="item-icon"
                       style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '6px',
                         background: catConfig.bg,
                         color: catConfig.color,
-                        border: `1px solid ${catConfig.border}`
+                        border: `1px solid ${catConfig.border}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}
                     >
-                      <CategoryIcon size={16} />
+                      <CategoryIcon size={13} />
                     </div>
                     <span style={{
                       position: 'absolute',
                       bottom: '-1px',
                       [isRtl ? 'left' : 'right']: '-1px',
-                      width: '8px',
-                      height: '8px',
+                      width: '7px',
+                      height: '7px',
                       borderRadius: '50%',
                       background: device.isOnline ? '#10b981' : '#6b7280',
                       border: '1.5px solid var(--card-bg, #0f172a)',
@@ -784,8 +782,9 @@ export default function ApsPage() {
 
                   {/* Name & Identifiers */}
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <strong className="item-title" style={{
+                        fontSize: '12.5px',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap'
@@ -794,15 +793,15 @@ export default function ApsPage() {
                       </strong>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
-                      <span className="item-subtext" style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', flexWrap: 'wrap' }}>
+                      <span className="item-subtext" style={{ fontSize: '10px', fontFamily: 'monospace', fontWeight: 600 }}>
                         {device.mac}
                       </span>
 
                       {device.ip && (
                         <>
-                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>•</span>
-                          <span className="item-subtext" style={{ color: '#3b82f6', fontFamily: 'monospace' }}>
+                          <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>•</span>
+                          <span className="item-subtext" style={{ fontSize: '10px', color: '#3b82f6', fontFamily: 'monospace' }}>
                             {device.ip}
                           </span>
                         </>
@@ -812,7 +811,7 @@ export default function ApsPage() {
                 </div>
 
                 {/* Right: Status Badge & Info Button */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                   {device.type === 'unbound' ? (
                     <button
                       onClick={(e) => {
@@ -820,9 +819,9 @@ export default function ApsPage() {
                         handleOpenAddModalForUnbound(device);
                       }}
                       style={{
-                        padding: '4px 10px',
+                        padding: '3px 8px',
                         borderRadius: '6px',
-                        fontSize: '11px',
+                        fontSize: '10px',
                         fontWeight: 700,
                         border: '1px solid rgba(16, 185, 129, 0.4)',
                         background: 'linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.3) 100%)',
@@ -830,14 +829,18 @@ export default function ApsPage() {
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        gap: '3px'
                       }}
                     >
-                      <Plus size={12} />
+                      <Plus size={11} />
                       <span>{t('aps.bypassNow')}</span>
                     </button>
                   ) : (
                     <span className="item-badge" style={{
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '9.5px',
+                      fontWeight: 700,
                       background: badgeStyle.background,
                       border: badgeStyle.border,
                       color: badgeStyle.color,
@@ -855,7 +858,7 @@ export default function ApsPage() {
                     justifyContent: 'center',
                     padding: '2px'
                   }}>
-                    <Info size={14} />
+                    <Info size={13} />
                   </div>
                 </div>
               </div>
