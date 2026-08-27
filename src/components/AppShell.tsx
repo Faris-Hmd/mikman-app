@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import RouterStatusHeader from './RouterStatusHeader';
+import BottomNavBar from './BottomNavBar';
 
 export default function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -23,6 +24,7 @@ export default function AppShell() {
             </div>
           </div>
         </main>
+        <BottomNavBar />
       </div>
 
       {isMobileMenuOpen && (

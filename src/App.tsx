@@ -36,7 +36,7 @@ function AppRoutes() {
         <Route path="/:routerId" element={<RouterDashboardPage />} />
         <Route path="/:routerId/vouchers" element={<VouchersPage />} />
         <Route path="/:routerId/profiles" element={<ProfilesPage />} />
-        <Route path="/:routerId/batch" element={<BatchPage />} />
+        <Route path="/:routerId/batch" element={<Navigate to="../vouchers" replace />} />
         <Route path="/:routerId/batch/detail" element={<BatchDetailPage />} />
         <Route path="/:routerId/users" element={<UsersPage />} />
         <Route path="/:routerId/aps" element={<ApsPage />} />

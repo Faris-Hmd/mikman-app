@@ -263,6 +263,7 @@ export interface VoucherBatch {
   profile: string;
   printLabel: string;
   comment: string;
+  createdAt?: string;
   originalCount: number;
   unusedCount: number;
   activeCount: number;
@@ -308,6 +309,7 @@ export interface VoucherBatchDetail {
   profile: string;
   printLabel: string;
   comment: string;
+  createdAt?: string;
   originalCount: number;
   unusedCount: number;
   activeCount: number;
@@ -425,8 +427,50 @@ export const fetchProfilesAPI = async (routerId: string): Promise<unknown> => {
         if (match) rev = parseFloat(match[1]);
       }
       const numRev = rev !== undefined && rev !== null && rev !== '' ? Number(rev) : null;
+
+      // Extract validity if missing
+      let val = p.validity;
+      if (!val) {
+        const onLogin = (p['on-login'] || p.onlogin || p.comment || '') as string;
+        const matchVal = onLogin.match(/(?:validity|rem|time)\s*[:=]?\s*["']?(\d+\s*[a-zA-Z]+)["']?/i);
+        if (matchVal) {
+          val = matchVal[1];
+        } else if (p['session-timeout']) {
+          val = String(p['session-timeout']).split(' ')[0];
+        } else if (p.name) {
+          const matchNameVal = String(p.name).match(/\b(\d+\s*[dhmwDHMW])\b/);
+          if (matchNameVal) val = matchNameVal[1];
+        }
+      }
+
+      // Extract limitMB if missing
+      let mb = p.limitMB;
+      if (mb === undefined || mb === null) {
+        const onLogin = (p['on-login'] || p.onlogin || p.comment || '') as string;
+        const matchMb = onLogin.match(/(?:limitMB|limit|data)\s*[:=]?\s*["']?(\d+(?:\.\d+)?)\s*(MB|GB|mb|gb|M|G)?["']?/i);
+        if (matchMb) {
+          const num = parseFloat(matchMb[1]);
+          const unit = (matchMb[2] || 'M').toUpperCase();
+          mb = unit.startsWith('G') ? Math.round(num * 1024) : Math.round(num);
+        } else if (p['limit-bytes-total']) {
+          const bytes = parseInt(String(p['limit-bytes-total']), 10);
+          if (!isNaN(bytes) && bytes > 0) {
+            mb = Math.round(bytes / 1048576);
+          }
+        } else if (p.name) {
+          const matchNameMb = String(p.name).match(/\b(\d+(?:\.\d+)?)\s*(MB|GB|mb|gb)\b/i);
+          if (matchNameMb) {
+            const num = parseFloat(matchNameMb[1]);
+            const unit = matchNameMb[2].toUpperCase();
+            mb = unit === 'GB' ? Math.round(num * 1024) : Math.round(num);
+          }
+        }
+      }
+
       return {
         ...p,
+        validity: val || p.validity,
+        limitMB: mb !== undefined && mb !== null ? mb : p.limitMB,
         revenue: numRev !== null && !isNaN(numRev) ? numRev : p.revenue ?? p.price,
         price: numRev !== null && !isNaN(numRev) ? numRev : p.price ?? p.revenue,
       };
@@ -442,6 +486,19 @@ export const deleteProfileAPI = async (routerId: string, id: string): Promise<vo
     method: 'POST',
     body: { id },
     routerId,
+  });
+};
+
+export const syncAllProfilesAPI = async (routerId: string): Promise<{ success: boolean; count: number }> => {
+  return await apiCall<{ success: boolean; count: number }>('/profiles/sync-all', {
+    method: 'POST',
+    routerId,
+  });
+};
+
+export const syncAllRoutersProfilesAPI = async (): Promise<{ success: boolean; totalUpdated: number; results: Record<string, number> }> => {
+  return await apiCall<{ success: boolean; totalUpdated: number; results: Record<string, number> }>('/sync-all-profiles', {
+    method: 'POST',
   });
 };
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
+import { generateHotspotAssets } from '../../lib/hotspotTemplate';
 import {
   fetchSingleRouterStatusAPI,
   fetchRouterProfilesWithUserAPI,
@@ -96,6 +97,10 @@ export default function SettingsPage() {
   const useCustomHotspotName = !!hotspotWifiName.trim();
   const useCustomPrintLabel = !!cardPrintLabel.trim();
 
+  // Preview states
+  const [previewTab, setPreviewTab] = useState<'login' | 'card'>('login');
+  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>('light');
+
   // Provisioning Terminal Script State
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [generatedScript, setGeneratedScript] = useState<string | null>(null);
@@ -109,45 +114,47 @@ export default function SettingsPage() {
   );
 
   // Fetch current router profile config
+  const { data: profilesData, mutate: mutateProfiles } = useSWR(
+    'router-profiles-with-user',
+    fetchRouterProfilesWithUserAPI
+  );
+
   useEffect(() => {
-    if (!routerId) return;
-    let isMounted = true;
+    if (!routerId || !profilesData?.profiles) return;
+    const currentConfig = profilesData.profiles.find(
+      (p: any) => String(p.id) === String(routerId) || p.name === routerId
+    );
+    if (currentConfig) {
+      const pOwner = currentConfig.owner ? currentConfig.owner.toLowerCase().trim() : '';
+      setPrimaryOwner(pOwner);
 
-    fetchRouterProfilesWithUserAPI().then(({ profiles }) => {
-      if (!isMounted) return;
-      const currentConfig = profiles.find((p) => p.id === routerId);
-      if (currentConfig) {
-        const pOwner = currentConfig.owner ? currentConfig.owner.toLowerCase().trim() : '';
-        setPrimaryOwner(pOwner);
-
-        let ownersList: string[] = [];
-        if (Array.isArray(currentConfig.owners) && currentConfig.owners.length > 0) {
-          ownersList = currentConfig.owners;
-        } else if (currentConfig.owner) {
-          ownersList = [currentConfig.owner];
-        } else {
-          ownersList = [''];
-        }
-
-        setInfoForm({
-          name: currentConfig.name || routerId,
-          model: currentConfig.model || 'hap-ax3',
-          timezone: currentConfig.timezone || status?.timezone || 'UTC',
-          owners: ownersList,
-        });
-
-        const savedHotspot = currentConfig.hotspotWifiName || (currentConfig as any).hotspot_wifi_name || '';
-        const savedLabel = currentConfig.cardPrintLabel || (currentConfig as any).card_print_label || '';
-
-        setHotspotWifiName(savedHotspot);
-        setCardPrintLabel(savedLabel);
+      let ownersList: string[] = [];
+      if (Array.isArray(currentConfig.owners) && currentConfig.owners.length > 0) {
+        ownersList = currentConfig.owners;
+      } else if (currentConfig.owner) {
+        ownersList = [currentConfig.owner];
+      } else {
+        ownersList = [''];
       }
-    });
 
-    return () => {
-      isMounted = false;
-    };
-  }, [routerId]);
+      setInfoForm({
+        name: currentConfig.name || routerId,
+        model: currentConfig.model || 'hap-ax3',
+        timezone: currentConfig.timezone || status?.timezone || 'UTC',
+        owners: ownersList,
+      });
+
+      const savedHotspot = currentConfig.hotspotWifiName || (currentConfig as any).hotspot_wifi_name || '';
+      const savedLabel = currentConfig.cardPrintLabel || (currentConfig as any).card_print_label || '';
+      const savedWifiName = currentConfig.wifiName || (currentConfig as any).wifi_name || '';
+
+      setHotspotWifiName(savedHotspot);
+      setCardPrintLabel(savedLabel);
+      if (savedWifiName) {
+        setWifiSsid(savedWifiName);
+      }
+    }
+  }, [routerId, profilesData]);
 
   // Populate Wi-Fi SSID and Timezone strictly from router status API (live router settings)
   useEffect(() => {
@@ -234,10 +241,12 @@ export default function SettingsPage() {
         hotspotWifiName: hotspotWifiName.trim(),
         useCustomPrintLabel: !!cardPrintLabel.trim(),
         cardPrintLabel: cardPrintLabel.trim(),
+        wifiName: wifiSsid.trim() || undefined,
       });
 
       showAlert(t('common.success'), t('settings.infoSavedSuccess'), 'success');
       mutateStatus();
+      mutateProfiles();
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       showAlert(t('common.error'), errMsg, 'error');
@@ -251,22 +260,100 @@ export default function SettingsPage() {
     e.preventDefault();
     if (!routerId) return;
 
-    if (!wifiSsid.trim()) {
+    const trimmedWifi = wifiSsid.trim();
+    if (!trimmedWifi) {
       showAlert(t('common.error'), t('dashboard.deviceNameWifiSsidRequired'), 'error');
       return;
     }
 
     try {
       setIsProvisioningWifi(true);
-      await provisionWifiSSIDAPI(routerId, wifiSsid.trim());
+      await provisionWifiSSIDAPI(routerId, trimmedWifi);
+      await updateRouterProfileAPI(routerId, { wifiName: trimmedWifi });
       showAlert(t('common.success'), t('settings.wifiSavedSuccess'), 'success');
       mutateStatus();
+      mutate('router-profiles-with-user');
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       showAlert(t('common.error'), errMsg, 'error');
     } finally {
       setIsProvisioningWifi(false);
     }
+  };
+
+  const buildHotspotPreviewDoc = (
+    brand: string,
+    page: 'login' | 'status' = 'login',
+    theme: 'light' | 'dark' = 'light'
+  ): string => {
+    const brandName = brand.trim() || (isRtl ? 'شبكة الواي فاي' : 'Wi-Fi Network');
+    const assets = generateHotspotAssets(brandName);
+
+    const css = assets.find((a: any) => a.fileName === 'hotspot/css/style.css')?.content || '';
+    const config = assets.find((a: any) => a.fileName === 'hotspot/js/config.js')?.content || '';
+    const targetFile = page === 'status' ? 'hotspot/status.html' : 'hotspot/login.html';
+    let html = assets.find((a: any) => a.fileName === targetFile)?.content || '';
+
+    html = html
+      .replace(/\$\(if chap-id\)[\s\S]*?\$\(endif\)/gi, '')
+      .replace(/\$\(if chap-id == ""\)[\s\S]*?\$\(endif\)/gi, '')
+      .replace(/\$\(username\)/g, '84920481')
+      .replace(/\$\(ip\)/g, '192.168.88.254')
+      .replace(/\$\(bytes-in-nice\)/g, '150 MB')
+      .replace(/\$\(bytes-out-nice\)/g, '450 MB')
+      .replace(/\$\(session-time-left\)/g, '5 Hours')
+      .replace(/\$\(uptime\)/g, '1h 30m')
+      .replace(/\$\(link-login\)/g, '#')
+      .replace(/\$\(link-logout\)/g, '#')
+      .replace(/\$\(link-login-only\)/g, '#')
+      .replace(/\$\(link-orig\)/g, '#')
+      .replace(/\$\(if error\)[\s\S]*?\$\(endif\)/gi, '');
+
+    return `<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="${theme}-theme">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    ${css}
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      width: 100% !important;
+      height: 100% !important;
+      touch-action: none !important;
+    }
+    body {
+      padding: 12px 10px !important;
+      background: ${theme === 'dark' ? '#141414' : '#f0f6ff'} !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .main {
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 auto !important;
+    }
+    .wrap {
+      width: 100% !important;
+      padding: 16px 14px !important;
+    }
+  </style>
+  <script>
+    ${config}
+  </script>
+</head>
+<body class="${theme}-theme">
+  ${html.replace(/^[\s\S]*?<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '')}
+  <script>
+    if (typeof applyTheme === 'function') {
+      applyTheme("${theme}");
+    }
+  </script>
+</body>
+</html>`;
   };
 
   // 3. Provision Hotspot Server ("Separate Hotspot Server")
@@ -1091,7 +1178,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            {/* ── Live Hotspot Captive Portal Sign-in Preview ── */}
+            {/* ── Live Hotspot Captive Portal Sign-in & Ticket Preview ── */}
             <div style={{
               marginTop: '16px',
               background: '#f8fafc',
@@ -1101,196 +1188,171 @@ export default function SettingsPage() {
               boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
               color: '#0f172a',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: '#2563eb' }}>
-                  <Smartphone size={13} />
+              {/* Header with Live Status & Mode Switches */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: '#2563eb' }}>
+                  <Smartphone size={14} />
                   <span>{t('settings.livePortalPreview')}</span>
                 </div>
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#22c55e', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
-                  Live
-                </span>
-              </div>
-
-              {/* Phone Frame Rendering hotspot/login.html */}
-              <div style={{
-                maxWidth: '280px',
-                margin: '0 auto',
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '20px',
-                padding: '24px 20px 20px',
-                textAlign: 'center',
-                boxShadow: '0 15px 35px -10px rgba(15, 23, 42, 0.1)',
-                direction: isRtl ? 'rtl' : 'ltr',
-                fontFamily: "'Tajawal', system-ui, sans-serif",
-              }}>
-                {/* WiFi Brand Icon */}
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    borderRadius: '14px',
-                    background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-                    border: '1px solid #bfdbfe',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#2563eb',
-                  }}>
-                    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                    </svg>
-                  </div>
-                </div>
-
-                {/* Live Wifi Brand Title */}
-                <h1 style={{
-                  margin: '0 0 4px 0',
-                  fontSize: '17px',
-                  fontWeight: 800,
-                  color: '#0f172a',
-                  wordBreak: 'break-word',
-                }}>
-                  {(useCustomHotspotName && hotspotWifiName.trim())
-                    ? hotspotWifiName.trim()
-                    : (wifiSsid.trim() || status?.wifiName || (isRtl ? 'شبكة الواي فاي' : 'Wi-Fi Network'))}
-                </h1>
-
-                <p style={{ margin: '0 0 16px 0', fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
-                  {t('settings.enterVoucherCode')}
-                </p>
-
-                {/* Form Simulation */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{
-                    width: '100%',
-                    height: '42px',
-                    background: '#ffffff',
-                    border: '1.5px solid #cbd5e1',
-                    borderRadius: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#94a3b8',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    direction: isRtl ? 'rtl' : 'ltr',
-                  }}>
-                    {t('settings.enterVoucherCode')}
-                  </div>
-
-                  <div style={{
-                    width: '100%',
-                    height: '42px',
-                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                    color: '#ffffff',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
-                  }}>
-                    {t('settings.connectToNetwork')}
-                  </div>
-
-                  <div style={{
-                    background: '#f0f9ff',
-                    border: '1px solid #e0f2fe',
-                    color: '#0369a1',
-                    borderRadius: '8px',
-                    fontSize: '10px',
-                    fontWeight: 500,
-                    padding: '8px 10px',
-                    marginTop: '2px',
-                    textAlign: 'center',
-                  }}>
-                    {t('settings.keepVoucherNotice')}
-                  </div>
-                </div>
-
-                <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px dashed #f1f5f9', fontSize: '10px', color: '#94a3b8' }}>
-                  <span>{t('settings.devCredits')}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Live Voucher Print Ticket Card Preview ── */}
-            <div style={{
-              marginTop: '16px',
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '20px',
-              padding: '16px',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
-              color: '#0f172a',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: '#ec4899' }}>
-                  <Tag size={13} />
-                  <span>{t('settings.liveTicketPreview')}</span>
-                </div>
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#22c55e', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
-                  Live Card
-                </span>
-              </div>
-
-              {/* Exact System Printable Voucher Ticket Card Template (matches BatchDetail.tsx PDF generator) */}
-              <div style={{
-                width: '240px',
-                height: '92px',
-                margin: '0 auto',
-                background: '#ffffff',
-                border: '1.5px solid #333333',
-                borderRadius: '6px',
-                padding: '8px 12px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
-                color: '#000000',
-                boxSizing: 'border-box',
-                direction: isRtl ? 'rtl' : 'ltr',
-              }}>
-                {/* Header: Wifi Icon + Printed Wifi Name / Print Label */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px', maxWidth: '100%', overflow: 'hidden' }}>
-                  <Wifi size={13} style={{ color: '#000000', flexShrink: 0 }} />
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#000000', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {cardPrintLabel.trim() ? cardPrintLabel.trim() : ((useCustomHotspotName && hotspotWifiName.trim()) ? hotspotWifiName.trim() : (wifiSsid.trim() || status?.wifiName || (isRtl ? 'شبكة الواي فاي' : 'Wi-Fi Network')))}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {/* Theme Switcher for Login/Status Pages */}
+                  {previewTab !== 'card' && (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        padding: '3px 8px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        color: '#475569',
+                      }}
+                    >
+                      {previewTheme === 'light' ? '☀️ Light' : '🌙 Dark'}
+                    </button>
+                  )}
+                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#22c55e', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
+                    Live
                   </span>
                 </div>
-
-                {/* Center: Voucher PIN Code */}
-                <div style={{
-                  fontFamily: "'Courier New', monospace, sans-serif",
-                  fontSize: '19px',
-                  fontWeight: 900,
-                  color: '#000000',
-                  letterSpacing: '2px',
-                  lineHeight: 1,
-                  margin: '4px 0',
-                }}>
-                  84920481
-                </div>
-
-                {/* Bottom: Profile Name */}
-                <div style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: '#444444',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  maxWidth: '100%',
-                  marginBottom: '2px',
-                }}>
-                  {t('settings.profileNameLabel')}
-                </div>
               </div>
+
+              {/* Preview Mode Tabs */}
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', background: '#e2e8f0', padding: '3px', borderRadius: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPreviewTab('login')}
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: previewTab === 'login' ? '#ffffff' : 'transparent',
+                    color: previewTab === 'login' ? '#2563eb' : '#64748b',
+                    boxShadow: previewTab === 'login' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  🔑 login.html
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewTab('card')}
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: previewTab === 'card' ? '#ffffff' : 'transparent',
+                    color: previewTab === 'card' ? '#ec4899' : '#64748b',
+                    boxShadow: previewTab === 'card' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  🏷️ Voucher Ticket
+                </button>
+              </div>
+
+              {/* Preview Content */}
+              {previewTab === 'card' ? (
+                /* Voucher Ticket Printable Card Template */
+                <div style={{
+                  width: '240px',
+                  height: '92px',
+                  margin: '12px auto',
+                  background: '#ffffff',
+                  border: '1.5px solid #333333',
+                  borderRadius: '6px',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
+                  color: '#000000',
+                  boxSizing: 'border-box',
+                  direction: isRtl ? 'rtl' : 'ltr',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px', maxWidth: '100%', overflow: 'hidden' }}>
+                    <Wifi size={13} style={{ color: '#000000', flexShrink: 0 }} />
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#000000', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {cardPrintLabel.trim() ? cardPrintLabel.trim() : (hotspotWifiName.trim() || wifiSsid.trim() || status?.wifiName || (isRtl ? 'شبكة الواي فاي' : 'Wi-Fi Network'))}
+                    </span>
+                  </div>
+                  <div style={{
+                    fontFamily: "'Courier New', monospace, sans-serif",
+                    fontSize: '19px',
+                    fontWeight: 900,
+                    color: '#000000',
+                    letterSpacing: '2px',
+                    lineHeight: 1,
+                    margin: '4px 0',
+                  }}>
+                    84920481
+                  </div>
+                  <div style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#444444',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '100%',
+                    marginBottom: '2px',
+                  }}>
+                    {t('settings.profileNameLabel')}
+                  </div>
+                </div>
+              ) : (
+                /* Mobile Device Shell rendering real hotspot/login.html or status.html assets */
+                <div style={{
+                  width: '255px',
+                  height: '380px',
+                  margin: '0 auto',
+                  background: previewTheme === 'dark' ? '#141414' : '#ffffff',
+                  border: '5px solid #0f172a',
+                  borderRadius: '24px',
+                  overflow: 'hidden',
+                  boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.25)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'flex-start',
+                }}>
+                  <iframe
+                    key={`${previewTab}-${previewTheme}`}
+                    title="Hotspot Portal Live Preview"
+                    scrolling="no"
+                    srcDoc={buildHotspotPreviewDoc(
+                      hotspotWifiName.trim() || wifiSsid.trim() || status?.wifiName || (isRtl ? 'شبكة الواي فاي' : 'Wi-Fi Network'),
+                      previewTab,
+                      previewTheme
+                    )}
+                    style={{
+                      width: '320px',
+                      height: '480px',
+                      border: 'none',
+                      overflow: 'hidden',
+                      pointerEvents: 'none',
+                      transform: 'scale(0.79)',
+                      transformOrigin: 'top center',
+                      flexShrink: 0,
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </div>
 

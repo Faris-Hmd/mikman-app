@@ -8,6 +8,8 @@ import {
   getVoucherCodesAPI,
   getAllVouchersByStatusAPI,
   fetchRouterProfilesAPI,
+  fetchRouterProfilesWithUserAPI,
+  fetchProfilesAPI,
   fetchSingleRouterStatusAPI,
   updateRouterProfileAPI,
   revalidateRouterCache,
@@ -113,12 +115,49 @@ export default function BatchDetailPage() {
   const batchId = searchParams.get('batchId') || undefined;
 
   // Router profile info & live status for Wi-Fi SSID
-  const { data: routerProfilesData } = useSWR('router-profiles', fetchRouterProfilesAPI);
+  const { data: routerProfilesData } = useSWR('router-profiles-with-user', fetchRouterProfilesWithUserAPI);
   const { data: routerStatus } = useSWR(
     routerId ? `router-status-${routerId}` : null,
     () => fetchSingleRouterStatusAPI(routerId!),
     { refreshInterval: 30000, revalidateOnFocus: true, dedupingInterval: 5000 }
   );
+
+  // Hotspot User Profiles data for validity & limit fallbacks
+  const { data: hotspotProfilesData } = useSWR(
+    routerId ? `profiles-${routerId}` : null,
+    () => fetchProfilesAPI(routerId!)
+  );
+
+  const profileList = Array.isArray(hotspotProfilesData)
+    ? (hotspotProfilesData as any[])
+    : Array.isArray((hotspotProfilesData as any)?.profiles)
+    ? ((hotspotProfilesData as any).profiles as any[])
+    : [];
+
+  const getProfileStatsForBatch = (pName: string) => {
+    const found = profileList.find((p: any) => (p.name || p.id) === pName);
+    let validity = found?.validity || '';
+    let dataLimit = found?.limitMB ? `${found.limitMB} MB` : (found?.['limit-bytes-total'] ? formatBytes(found['limit-bytes-total']) : '');
+
+    if (!validity && found?.['on-login']) {
+      const scriptText = String(found['on-login']);
+      const valMatch = scriptText.match(/validity[=:\s]+(["']?)([^"'\s;,]+)\1/i);
+      if (valMatch) validity = valMatch[2];
+    }
+    if (!validity && pName) {
+      const valMatch = pName.match(/\b(\d+)\s*([dhms]|days?|hours?)\b/i);
+      if (valMatch) validity = `${valMatch[1]}${valMatch[2][0].toLowerCase()}`;
+    }
+    if (!dataLimit && pName) {
+      const dataMatch = pName.match(/\b(\d+(?:\.\d+)?)\s*(MB|GB|mb|gb|M|G)\b/i);
+      if (dataMatch) {
+        const num = parseFloat(dataMatch[1]);
+        const unit = dataMatch[2].toUpperCase();
+        dataLimit = (unit === 'GB' || unit === 'G') ? `${num} GB` : `${num} MB`;
+      }
+    }
+    return { validity: validity.toUpperCase(), dataLimit: dataLimit.toUpperCase() };
+  };
 
   const routersList = Array.isArray(routerProfilesData)
     ? routerProfilesData
@@ -133,6 +172,11 @@ export default function BatchDetailPage() {
   const cardPrintLabelFromRouter =
     activeRouter?.cardPrintLabel?.trim() ||
     (activeRouter as any)?.card_print_label?.trim() ||
+    '';
+
+  const hotspotWifiNameFromRouter =
+    activeRouter?.hotspotWifiName?.trim() ||
+    (activeRouter as any)?.hotspot_wifi_name?.trim() ||
     '';
 
   const useCustomPrintLabelFromRouter =
@@ -201,13 +245,12 @@ export default function BatchDetailPage() {
     activeRouter?.wifiName ||
     (activeRouter as any)?.wifi_name ||
     routerStatus?.wifiName ||
-    activeRouter?.name ||
-    'Mikrotik wifi';
+    'MikroTik Wi-Fi';
 
   const defaultWifiName =
-    (useCustomPrintLabelFromRouter && cardPrintLabelFromRouter)
-      ? cardPrintLabelFromRouter
-      : routerSavedSSID;
+    cardPrintLabelFromRouter ||
+    hotspotWifiNameFromRouter ||
+    routerSavedSSID;
 
   const wifiName = (wifiInput !== null && wifiInput.trim() !== '') ? wifiInput.trim() : defaultWifiName;
 
@@ -484,10 +527,10 @@ export default function BatchDetailPage() {
         ctx.textBaseline = 'top';
 
         ctx.textAlign = 'left';
-        ctx.fillText(`WiFi: ${wifiName} | Profile: ${label} | Batch: ${batchName}`, 8.6 * scale, 9.5 * scale);
+        ctx.fillText(`WiFi: ${wifiName} | Profile: ${label} | Vouchers: ${count}`, 8.6 * scale, 9.5 * scale);
 
         ctx.textAlign = 'right';
-        ctx.fillText(`Total Vouchers: ${count} | Printed: ${formattedDate}`, (210 - 8.6) * scale, 9.5 * scale);
+        ctx.fillText(`Batch: ${batchName} | Printed: ${formattedDate}`, (210 - 8.6) * scale, 9.5 * scale);
 
         ctx.strokeStyle = '#d5d5d5';
         ctx.lineWidth = 0.2 * scale;
@@ -571,7 +614,7 @@ export default function BatchDetailPage() {
       const pdfBlob = doc.output('blob');
       const safeWifiName = wifiName.replace(/[\s|/\\:*?"<>|]/g, '_');
       const safeLabel = label.replace(/[\s|/\\:*?"<>|]/g, '_');
-      const cleanFileName = `${safeWifiName}-${count}-${safeLabel}.pdf`;
+      const cleanFileName = `${safeWifiName}_${safeLabel}_${count}_vouchers.pdf`;
 
       if (mode === 'share') {
         const file = new File([pdfBlob], cleanFileName, { type: 'application/pdf' });
@@ -815,45 +858,87 @@ export default function BatchDetailPage() {
     status: 'unused' | 'active' | 'expired'
   ) => {
     const name = voucher.name || (voucher as any)['.id'] || '';
-
     const active = voucher as ActiveVoucher;
-    const isExpired = status === 'expired';
 
+    // Profile Fallback metadata
+    const vProfileName = (voucher as any).profile || profile || '';
+    const pStats = getProfileStatsForBatch(vProfileName);
+
+    // Bytes / Data limit & remaining
     const limitBytesNum = Number(((voucher as any).limitBytesTotal ?? (voucher as any)['limit-bytes-total']) || 0);
     const bIn = Number(((voucher as any).bytesIn ?? (voucher as any)['bytes-in']) || 0);
     const bOut = Number(((voucher as any).bytesOut ?? (voucher as any)['bytes-out']) || 0);
     const usedBytes = bIn + bOut;
-    let dataPct: number | null = null;
+
     let dataLeftStr: string | null = null;
+    let dataPct: number | null = null;
 
-    const rawRemBytes = (voucher as any).remainingBytes ?? (voucher as any)['remaining-bytes'];
-    if (rawRemBytes != null && rawRemBytes !== '') {
-      const num = Number(rawRemBytes);
-      if (!isNaN(num)) dataLeftStr = formatBytes(num);
-      if (limitBytesNum > 0 && !isNaN(num)) {
-        dataPct = Math.min(100, Math.max(0, (num / limitBytesNum) * 100));
+    if (status === 'unused') {
+      if (limitBytesNum > 0) {
+        dataLeftStr = formatBytes(limitBytesNum);
+      } else if (pStats.dataLimit) {
+        dataLeftStr = pStats.dataLimit;
+      } else {
+        dataLeftStr = t('profiles.unlimited') || 'غير محدود';
       }
-    }
-    if (!dataLeftStr && limitBytesNum > 0) {
-      const rem = Math.max(0, limitBytesNum - usedBytes);
-      dataLeftStr = formatBytes(rem);
-      dataPct = Math.min(100, Math.max(0, (rem / limitBytesNum) * 100));
+    } else if (status === 'active') {
+      const rawRemBytes = (voucher as any).remainingBytes ?? (voucher as any)['remaining-bytes'];
+      if (rawRemBytes != null && rawRemBytes !== '') {
+        const num = Number(rawRemBytes);
+        if (!isNaN(num)) dataLeftStr = formatBytes(num);
+        if (limitBytesNum > 0 && !isNaN(num)) {
+          dataPct = Math.min(100, Math.max(0, (num / limitBytesNum) * 100));
+        }
+      }
+      if (!dataLeftStr && limitBytesNum > 0) {
+        const rem = Math.max(0, limitBytesNum - usedBytes);
+        dataLeftStr = formatBytes(rem);
+        dataPct = Math.min(100, Math.max(0, (rem / limitBytesNum) * 100));
+      }
+      if (!dataLeftStr && pStats.dataLimit) {
+        dataLeftStr = pStats.dataLimit;
+      } else if (!dataLeftStr) {
+        dataLeftStr = t('profiles.unlimited') || 'غير محدود';
+      }
+    } else {
+      // Expired
+      dataLeftStr = '0 MB';
     }
 
-    let timeLeftStr: string | null = active.timeLeftText || null;
+    // Time / Uptime limit & remaining
+    let timeLeftStr: string | null = null;
     let timePct: number | null = null;
-    const remainingSec = (voucher as any).remainingSeconds != null ? Number((voucher as any).remainingSeconds) : null;
-    const totalSec = (voucher as any).limitUptimeSeconds != null ? Number((voucher as any).limitUptimeSeconds) : null;
 
-    if (!timeLeftStr && remainingSec != null) {
-      if (!isNaN(remainingSec) && remainingSec >= 0) {
-        const hrs = Math.floor(remainingSec / 3600);
-        const mins = Math.floor((remainingSec % 3600) / 60);
-        timeLeftStr = `${hrs}h ${mins}m`;
+    if (status === 'unused') {
+      const vLimitUptime = (voucher as any)['limit-uptime'] || (voucher as any).limitUptime;
+      if (vLimitUptime) {
+        timeLeftStr = String(vLimitUptime);
+      } else if (pStats.validity) {
+        timeLeftStr = pStats.validity;
+      } else {
+        timeLeftStr = '—';
       }
-    }
-    if (remainingSec != null && totalSec != null && totalSec > 0) {
-      timePct = Math.min(100, Math.max(0, (remainingSec / totalSec) * 100));
+    } else if (status === 'active') {
+      timeLeftStr = active.timeLeftText || null;
+      const remainingSec = (voucher as any).remainingSeconds != null ? Number((voucher as any).remainingSeconds) : null;
+      const totalSec = (voucher as any).limitUptimeSeconds != null ? Number((voucher as any).limitUptimeSeconds) : null;
+
+      if (!timeLeftStr && remainingSec != null) {
+        if (!isNaN(remainingSec) && remainingSec >= 0) {
+          const hrs = Math.floor(remainingSec / 3600);
+          const mins = Math.floor((remainingSec % 3600) / 60);
+          timeLeftStr = `${hrs}h ${mins}m`;
+        }
+      }
+      if (remainingSec != null && totalSec != null && totalSec > 0) {
+        timePct = Math.min(100, Math.max(0, (remainingSec / totalSec) * 100));
+      }
+      if (!timeLeftStr && pStats.validity) {
+        timeLeftStr = pStats.validity;
+      }
+    } else {
+      // Expired
+      timeLeftStr = '0s';
     }
 
     const rawDevName = (active.deviceName || (voucher as any).hostName || (voucher as any)['host-name'] || '').trim();
@@ -874,22 +959,42 @@ export default function BatchDetailPage() {
       }
     }
 
+    const cardBg =
+      status === 'active'
+        ? 'rgba(59, 130, 246, 0.08)'
+        : status === 'expired'
+        ? 'rgba(239, 68, 68, 0.08)'
+        : 'var(--card-bg, rgba(15, 23, 42, 0.55))';
+
+    const borderColor =
+      status === 'active'
+        ? 'rgba(59, 130, 246, 0.3)'
+        : status === 'expired'
+        ? 'rgba(239, 68, 68, 0.3)'
+        : 'var(--glass-border, rgba(255, 255, 255, 0.12))';
+
     return (
       <div
         key={name}
         style={{
-          ...cardStyle,
-          padding: '6px 10px',
+          padding: '8px 12px',
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
-          borderColor: isExpired ? 'rgba(239, 68, 68, 0.25)' : 'var(--glass-border)',
-          background: isExpired ? 'rgba(239, 68, 68, 0.06)' : 'var(--card-bg)',
+          gap: '8px',
+          borderRadius: '10px',
+          border: `1px solid ${borderColor}`,
+          background: cardBg,
+          backdropFilter: 'blur(8px)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <strong style={{ fontSize: '12px', fontFamily: 'monospace', color: isExpired ? 'var(--text-muted)' : 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</strong>
+          {/* Top row: Code + Copy + Device name + Status Badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <strong style={{ fontSize: '13px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--foreground)', letterSpacing: '0.5px' }}>
+              {name}
+            </strong>
+
             <button
               onClick={() => copySingleCode(name)}
               style={{
@@ -897,24 +1002,27 @@ export default function BatchDetailPage() {
                 border: 'none',
                 cursor: 'pointer',
                 padding: '2px',
-                color: copiedCode === name ? 'var(--success)' : 'var(--text-muted)',
+                color: copiedCode === name ? '#22c55e' : 'var(--text-muted)',
                 flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
               }}
-              title="Copy code"
+              title={t('common.copy') || 'نسخ'}
             >
-              {copiedCode === name ? <Check size={13} /> : <Copy size={13} />}
+              {copiedCode === name ? <Check size={14} /> : <Copy size={14} />}
             </button>
+
             {cleanDeviceName && (
               <span
                 style={{
                   fontSize: '10px',
-                  fontWeight: 500,
-                  color: 'var(--text-muted)',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '4px',
-                  padding: '1px 5px',
-                  maxWidth: '120px',
+                  fontWeight: 600,
+                  color: '#3b82f6',
+                  background: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  borderRadius: '6px',
+                  padding: '1px 6px',
+                  maxWidth: '130px',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -924,84 +1032,116 @@ export default function BatchDetailPage() {
                 {cleanDeviceName}
               </span>
             )}
+
+            {/* Status Pill Badge */}
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 800,
+                padding: '2px 7px',
+                borderRadius: '6px',
+                background:
+                  status === 'active'
+                    ? 'rgba(59, 130, 246, 0.18)'
+                    : status === 'expired'
+                    ? 'rgba(239, 68, 68, 0.18)'
+                    : 'rgba(34, 197, 94, 0.18)',
+                color:
+                  status === 'active'
+                    ? '#3b82f6'
+                    : status === 'expired'
+                    ? '#ef4444'
+                    : '#22c55e',
+                border:
+                  status === 'active'
+                    ? '1px solid rgba(59, 130, 246, 0.3)'
+                    : status === 'expired'
+                    ? '1px solid rgba(239, 68, 68, 0.3)'
+                    : '1px solid rgba(34, 197, 94, 0.3)',
+                [isRtl ? 'marginRight' : 'marginLeft']: 'auto',
+              }}
+            >
+              {status === 'active'
+                ? t('batch.statusActive') || 'نشط'
+                : status === 'expired'
+                ? t('batch.statusExpired') || 'منتهي'
+                : t('batch.statusUnused') || 'غير مستخدم'}
+            </span>
           </div>
-          {(dataLeftStr || timeLeftStr) && (
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              {dataLeftStr && dataLeftStr !== '—' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '65px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <HardDrive size={11} style={{ color: '#22c55e' }} />
-                    <span style={{ color: '#22c55e', fontWeight: 600, fontSize: '10px' }}>{dataLeftStr}</span>
-                  </div>
-                  {dataPct !== null && (
-                    <div style={{ width: '100%', height: '3px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          width: `${dataPct}%`,
-                          height: '100%',
-                          background: dataPct > 20 ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #ef4444, #dc2626)',
-                          borderRadius: '2px',
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-              {timeLeftStr && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '65px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <Clock size={11} style={{ color: 'var(--accent, #3b82f6)' }} />
-                    <span style={{ color: 'var(--accent, #3b82f6)', fontWeight: 600, fontSize: '10px' }}>{timeLeftStr}</span>
-                  </div>
-                  {timePct !== null && (
-                    <div style={{ width: '100%', height: '3px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          width: `${timePct}%`,
-                          height: '100%',
-                          background: timePct > 20 ? 'linear-gradient(90deg, #3b82f6, #2563eb)' : 'linear-gradient(90deg, #ef4444, #dc2626)',
-                          borderRadius: '2px',
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+
+          {/* Bottom row: Data & Time Remaining Pills */}
+          <div style={{ fontSize: '11px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Data Pill */}
+            {dataLeftStr && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'rgba(34, 197, 94, 0.12)',
+                  border: '1px solid rgba(34, 197, 94, 0.25)',
+                  borderRadius: '6px',
+                  padding: '2px 7px',
+                  color: '#22c55e',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                }}
+              >
+                <HardDrive size={12} style={{ flexShrink: 0 }} />
+                <span>{dataLeftStr}</span>
+                {dataPct !== null && (
+                  <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 600 }}>({Math.round(dataPct)}%)</span>
+                )}
+              </div>
+            )}
+
+            {/* Time Pill */}
+            {timeLeftStr && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  borderRadius: '6px',
+                  padding: '2px 7px',
+                  color: '#3b82f6',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                }}
+              >
+                <Clock size={12} style={{ flexShrink: 0 }} />
+                <span>{timeLeftStr}</span>
+                {timePct !== null && (
+                  <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 600 }}>({Math.round(timePct)}%)</span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Action Buttons */}
         <button
           onClick={() => {
             setInfoVoucher(voucher as any);
             setInfoStatus(status);
           }}
           style={{
-            background: 'none',
-            border: 'none',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
             cursor: 'pointer',
-            padding: '2px',
-            color: 'var(--text-muted)',
-            borderRadius: '4px',
+            padding: '6px',
+            color: 'var(--foreground)',
+            borderRadius: '6px',
             flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
-          title="View details"
+          title={t('common.details') || 'التفاصيل'}
         >
-          <Info size={13} />
-        </button>
-        <button
-          onClick={() => confirmDeleteSingle(name)}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '2px',
-            color: 'var(--text-muted)',
-            borderRadius: '4px',
-            flexShrink: 0,
-          }}
-          title="Delete voucher"
-        >
-          <Trash2 size={13} />
+          <Info size={14} />
         </button>
       </div>
     );
@@ -1240,6 +1380,7 @@ export default function BatchDetailPage() {
       },
       { label: t('batch.profileName'), value: profile },
       { label: t('batch.batchInfoComment'), value: comment || '—' },
+      { label: t('batch.createdAt') || (isRtl ? 'تاريخ الإنشاء' : 'Created At'), value: batchDetail?.createdAt ? formatDate(batchDetail.createdAt) : formatBatchTime(comment) },
       { label: t('batch.unusedVouchersToPrint'), value: <span style={{ fontWeight: 800, color: 'var(--success)' }}>{countToPrint}</span> },
       { label: t('batch.totalBatchSize'), value: batchDetail?.originalCount ?? '—' },
     ];
@@ -1614,6 +1755,24 @@ export default function BatchDetailPage() {
                     {comment}
                   </span>
                 )}
+                {(detail?.createdAt || comment) && (
+                  <span className="hide-sm" style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    padding: '1px 5px',
+                    borderRadius: '5px',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: 'var(--text-muted)',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}>
+                    <Clock size={10} />
+                    {detail?.createdAt ? formatDate(detail.createdAt) : formatBatchTime(comment)}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -1952,8 +2111,8 @@ export default function BatchDetailPage() {
         {detailLoading ? (
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              display: 'flex',
+              flexDirection: 'column',
               gap: '8px',
             }}
           >
@@ -1980,11 +2139,11 @@ export default function BatchDetailPage() {
             ))}
           </div>
         ) : isEmpty && !hasSearch ? (
-          <p style={{ color: 'var(--text-muted)' }}>No vouchers in this batch.</p>
+          <p style={{ color: 'var(--text-muted)' }}>{t('batch.noVouchersInBatch') || 'لا توجد كروت في هذه الدفعة.'}</p>
         ) : hasSearch ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
-              {searchResults!.length} result{searchResults!.length !== 1 ? 's' : ''}
+              {searchResults!.length} {t('common.results') || 'نتيجة'}
             </p>
             {searchResults!.map((v) =>
               renderVoucherCard(
@@ -2000,7 +2159,7 @@ export default function BatchDetailPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
-                      Unused Vouchers
+                      {t('batch.unusedVouchers') || 'الكروت غير المستخدمة'}
                     </span>
                     <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
                       ({detail?.unusedCount || visible.unused.length})
@@ -2011,7 +2170,7 @@ export default function BatchDetailPage() {
                       onClick={() => handleShowAll('unused')}
                       style={{ ...btnSecondary, fontSize: '11px', padding: '3px 8px', borderRadius: '6px' }}
                     >
-                      Show All {visible.unused.length > 5 ? `(${visible.unused.length})` : ''}
+                      {t('batch.showAll') || 'عرض الكل'} {visible.unused.length > 5 ? `(${visible.unused.length})` : ''}
                     </button>
                   )}
                 </div>
@@ -2026,7 +2185,7 @@ export default function BatchDetailPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
-                      Active Vouchers
+                      {t('batch.activeVouchers') || 'الكروت النشطة'}
                     </span>
                     <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
                       ({detail?.activeCount || visible.active.length})
@@ -2037,7 +2196,7 @@ export default function BatchDetailPage() {
                       onClick={() => handleShowAll('active')}
                       style={{ ...btnSecondary, fontSize: '11px', padding: '3px 8px', borderRadius: '6px' }}
                     >
-                      Show All
+                      {t('batch.showAll') || 'عرض الكل'}
                     </button>
                   )}
                 </div>
@@ -2052,7 +2211,7 @@ export default function BatchDetailPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
-                      Expired Vouchers
+                      {t('batch.expiredVouchers') || 'الكروت المنتهية'}
                     </span>
                     <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
                       ({detail?.expiredCount || visible.expired.length})
@@ -2063,7 +2222,7 @@ export default function BatchDetailPage() {
                       onClick={() => handleShowAll('expired')}
                       style={{ ...btnSecondary, fontSize: '11px', padding: '3px 8px', borderRadius: '6px' }}
                     >
-                      Show All
+                      {t('batch.showAll') || 'عرض الكل'}
                     </button>
                   )}
                 </div>

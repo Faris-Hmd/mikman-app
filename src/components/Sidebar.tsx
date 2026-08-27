@@ -79,7 +79,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
     { href: `/${routerId}/revenue`, label: t('sidebar.revenue'), icon: TrendingUp },
     { href: `/${routerId}/vouchers`, label: t('sidebar.vouchers'), icon: Ticket },
     { href: `/${routerId}/profiles`, label: t('sidebar.profiles'), icon: Layers },
-    { href: `/${routerId}/batch`, label: t('sidebar.batchPrint'), icon: Printer },
     { href: `/${routerId}/users`, label: t('sidebar.users'), icon: Users },
     { href: `/${routerId}/aps`, label: t('sidebar.devices'), icon: Laptop },
     { href: `/${routerId}/records`, label: t('sidebar.audit'), icon: Server },
