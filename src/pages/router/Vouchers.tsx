@@ -1307,15 +1307,15 @@ export default function VouchersPage() {
                   </div>
 
                   {/* Profile Metadata Pills Stack */}
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
                     {/* Time / Validity Badge */}
                     {pInfo.validityBadge && (
                       <span
                         style={{
                           fontSize: '10px',
                           fontWeight: 800,
-                          padding: '2px 7px',
-                          borderRadius: '6px',
+                          padding: '2px 6px',
+                          borderRadius: '5px',
                           background: 'rgba(59, 130, 246, 0.15)',
                           color: '#3b82f6',
                           border: '1px solid rgba(59, 130, 246, 0.25)',
@@ -1323,6 +1323,7 @@ export default function VouchersPage() {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '3px',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         <Clock size={10} style={{ opacity: 0.8 }} />
@@ -1335,8 +1336,8 @@ export default function VouchersPage() {
                         style={{
                           fontSize: '10px',
                           fontWeight: 800,
-                          padding: '2px 7px',
-                          borderRadius: '6px',
+                          padding: '2px 6px',
+                          borderRadius: '5px',
                           background: 'rgba(16, 185, 129, 0.15)',
                           color: '#10b981',
                           border: '1px solid rgba(16, 185, 129, 0.25)',
@@ -1344,6 +1345,7 @@ export default function VouchersPage() {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '3px',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         <HardDrive size={10} style={{ opacity: 0.8 }} />
@@ -1355,10 +1357,11 @@ export default function VouchersPage() {
                         style={{
                           fontSize: '10px',
                           fontWeight: 700,
-                          padding: '2px 7px',
-                          borderRadius: '6px',
+                          padding: '2px 6px',
+                          borderRadius: '5px',
                           background: 'rgba(234, 179, 8, 0.15)',
                           color: '#eab308',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         ${pInfo.price}
@@ -1369,10 +1372,11 @@ export default function VouchersPage() {
                         style={{
                           fontSize: '10px',
                           fontWeight: 600,
-                          padding: '2px 7px',
-                          borderRadius: '6px',
+                          padding: '2px 6px',
+                          borderRadius: '5px',
                           background: 'rgba(255, 255, 255, 0.08)',
                           color: 'var(--text-muted)',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         {pInfo.rateLimit}
@@ -1382,10 +1386,11 @@ export default function VouchersPage() {
                       style={{
                         fontSize: '10px',
                         fontWeight: 600,
-                        padding: '2px 7px',
-                        borderRadius: '6px',
+                        padding: '2px 6px',
+                        borderRadius: '5px',
                         background: 'rgba(255, 255, 255, 0.06)',
                         color: 'var(--text-muted)',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {pGroup.batches.length} {pGroup.batches.length === 1 ? 'دفعة' : 'دفعات'}
@@ -1430,17 +1435,18 @@ export default function VouchersPage() {
                         }}
                       >
                         {/* Top Badges Stack & Arrow */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', flex: 1 }}>
                             {/* Total Pill */}
                             <span
                               style={{
-                                fontSize: '11px',
+                                fontSize: '10.5px',
                                 fontWeight: 700,
-                                padding: '3px 8px',
-                                borderRadius: '6px',
+                                padding: '2px 6px',
+                                borderRadius: '5px',
                                 background: 'rgba(255, 255, 255, 0.08)',
                                 color: 'var(--foreground)',
+                                whiteSpace: 'nowrap',
                               }}
                             >
                               {batch.originalCount} {t('batch.totalVouchers') || 'إجمالي'}
@@ -1449,12 +1455,13 @@ export default function VouchersPage() {
                             {/* Unused Pill */}
                             <span
                               style={{
-                                fontSize: '11px',
+                                fontSize: '10.5px',
                                 fontWeight: 700,
-                                padding: '3px 8px',
-                                borderRadius: '6px',
+                                padding: '2px 6px',
+                                borderRadius: '5px',
                                 background: 'rgba(34, 197, 94, 0.15)',
                                 color: '#22c55e',
+                                whiteSpace: 'nowrap',
                               }}
                             >
                               {batch.unusedCount} {t('batch.statusUnused') || 'غير مستخدم'}
@@ -1463,12 +1470,13 @@ export default function VouchersPage() {
                             {/* Active Pill */}
                             <span
                               style={{
-                                fontSize: '11px',
+                                fontSize: '10.5px',
                                 fontWeight: 700,
-                                padding: '3px 8px',
-                                borderRadius: '6px',
+                                padding: '2px 6px',
+                                borderRadius: '5px',
                                 background: 'rgba(59, 130, 246, 0.15)',
                                 color: '#3b82f6',
+                                whiteSpace: 'nowrap',
                               }}
                             >
                               {batch.activeCount} {t('batch.statusActive') || 'نشط'}
@@ -1478,12 +1486,13 @@ export default function VouchersPage() {
                             {batch.expiredCount > 0 && (
                               <span
                                 style={{
-                                  fontSize: '11px',
+                                  fontSize: '10.5px',
                                   fontWeight: 700,
-                                  padding: '3px 8px',
-                                  borderRadius: '6px',
+                                  padding: '2px 6px',
+                                  borderRadius: '5px',
                                   background: 'rgba(255, 255, 255, 0.1)',
                                   color: 'var(--text-muted)',
+                                  whiteSpace: 'nowrap',
                                 }}
                               >
                                 {batch.expiredCount} {t('batch.statusExpired') || 'منتهي'}
