@@ -52,10 +52,11 @@ export const translations: Record<Language, Record<string, any>> = {
       allRouters: "All Routers",
     },
     sidebar: {
-      mainMenu: "MAIN",
+      mainMenu: "Main",
       mainPage: "Main Page",
       routerMenu: "Router",
       dashboard: "Dashboard",
+      account: "Account",
       accountDetails: "Account Details",
       vouchers: "Vouchers",
       profiles: "Profiles",
@@ -691,7 +692,7 @@ export const translations: Record<Language, Record<string, any>> = {
     },
     sidebar: {
       mainMenu: "الرئيسية", mainPage: "الصفحة الرئيسية", routerMenu: "الراوتر",
-      dashboard: "لوحة التحكم", accountDetails: "تفاصيل الحساب", vouchers: "الكروت",
+      dashboard: "لوحة التحكم", account: "الحساب", accountDetails: "تفاصيل الحساب", vouchers: "الكروت",
       profiles: "البروفايلات", batchPrint: "طباعة وتصدير", users: "المستخدمين",
       devices: "الأجهزة", audit: "السجلات", revenue: "الإيرادات", settings: "الإعدادات",
       collapseMenu: "طي القائمة", expandMenu: "توسيع القائمة", switchRouter: "تغيير الميكروتك",

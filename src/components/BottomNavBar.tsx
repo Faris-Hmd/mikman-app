@@ -51,13 +51,13 @@ export default function BottomNavBar() {
   ] : [
     {
       href: '/',
-      label: t('sidebar.mainPage'),
+      label: t('sidebar.mainMenu') || 'الرئيسية',
       icon: Home,
       isActive: pathname === '/'
     },
     {
       href: '/account',
-      label: t('sidebar.accountDetails'),
+      label: t('sidebar.account') || 'الحساب',
       icon: User,
       isActive: pathname === '/account'
     }
@@ -70,7 +70,7 @@ export default function BottomNavBar() {
         bottom: 0,
         left: 0,
         right: 0,
-        height: '60px',
+        height: '62px',
         backgroundColor: 'var(--header-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
@@ -79,7 +79,8 @@ export default function BottomNavBar() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-around',
-        padding: '0 8px',
+        padding: '0 4px',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         boxSizing: 'border-box',
         boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)'
       }}>
@@ -91,12 +92,14 @@ export default function BottomNavBar() {
             to={item.href}
             style={{
               flex: 1,
+              minWidth: 0,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '3px',
+              gap: '2px',
               height: '100%',
+              padding: '4px 1px',
               textDecoration: 'none',
               color: item.isActive ? 'var(--primary)' : 'var(--text-muted)',
               transition: 'all 0.2s ease',
@@ -107,7 +110,7 @@ export default function BottomNavBar() {
               <div style={{
                 position: 'absolute',
                 top: 0,
-                width: '28px',
+                width: '24px',
                 height: '3px',
                 borderRadius: '0 0 4px 4px',
                 backgroundColor: 'var(--primary)',
@@ -118,20 +121,23 @@ export default function BottomNavBar() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transform: item.isActive ? 'scale(1.1)' : 'scale(1)',
+              transform: item.isActive ? 'scale(1.08)' : 'scale(1)',
               transition: 'transform 0.2s ease'
             }}>
-              <Icon size={19} color={item.isActive ? 'var(--primary)' : 'var(--text-muted)'} />
+              <Icon size={18} color={item.isActive ? 'var(--primary)' : 'var(--text-muted)'} />
             </div>
             <span style={{
               fontSize: '10px',
-              fontWeight: item.isActive ? '800' : '600',
-              lineHeight: 1.1,
+              fontWeight: item.isActive ? '700' : '500',
+              lineHeight: 1.15,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '64px',
-              textAlign: 'center'
+              textOverflow: 'clip',
+              maxWidth: '100%',
+              width: '100%',
+              textAlign: 'center',
+              letterSpacing: '-0.2px',
+              padding: '0 1px'
             }}>
               {item.label}
             </span>

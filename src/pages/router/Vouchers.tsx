@@ -1070,15 +1070,8 @@ export default function VouchersPage() {
         </div>
       </div>
 
-      {/* ─── 2. Summary Statistics Cards (4 Cards Grid) ─── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '12px',
-          marginBottom: '20px',
-        }}
-      >
+      {/* ─── 2. Summary Statistics Cards (4 Cards Grid: 2 cols on mobile) ─── */}
+      <div className="stat-summary-grid">
         {/* Total Batches Card */}
         <div className="responsive-card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div

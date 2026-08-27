@@ -567,15 +567,8 @@ export default function ProfilesPage() {
         </div>
       )}
 
-      {/* Telemetry Strip */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '12px',
-          marginBottom: '16px',
-        }}
-      >
+      {/* Telemetry Strip (2 cols on mobile) */}
+      <div className="stat-summary-grid">
         <div className="responsive-card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div
             style={{

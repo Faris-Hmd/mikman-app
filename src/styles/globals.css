@@ -55,65 +55,65 @@ html, body, #root {
 /* ─── Global Responsive Small Screen Typography & Density Compaction ─── */
 @media (max-width: 640px) {
   body {
-    font-size: 12px;
-    line-height: 1.35;
+    font-size: 11px;
+    line-height: 1.3;
   }
 
   /* Compact headings on mobile screens */
   h1, .page-title {
-    font-size: 14px !important;
+    font-size: 13px !important;
     letter-spacing: -0.2px;
   }
   h2 {
-    font-size: 13.5px !important;
+    font-size: 12px !important;
     letter-spacing: -0.2px;
   }
   h3 {
-    font-size: 12px !important;
+    font-size: 11px !important;
   }
 
   /* Form controls density */
   input, select, textarea {
-    font-size: 11.5px !important;
+    font-size: 10.5px !important;
   }
 
   /* Tables density on small viewports */
   table th {
-    font-size: 10px !important;
-    padding: 5px 6px !important;
+    font-size: 9px !important;
+    padding: 4px 5px !important;
   }
   table td {
-    font-size: 11px !important;
-    padding: 5px 6px !important;
+    font-size: 10px !important;
+    padding: 4px 5px !important;
   }
 }
 
 @media (max-width: 480px) {
   body {
-    font-size: 11.5px;
+    font-size: 10px;
   }
 
   h1, .page-title {
-    font-size: 13px !important;
+    font-size: 12px !important;
   }
   h2 {
-    font-size: 12.5px !important;
+    font-size: 11px !important;
   }
   h3 {
-    font-size: 11.5px !important;
+    font-size: 10px !important;
   }
 
   input, select, textarea {
-    font-size: 11px !important;
+    font-size: 10px !important;
   }
 
   table th {
-    font-size: 9.5px !important;
-    padding: 4px 5px !important;
+    font-size: 8.5px !important;
+    padding: 3px 4px !important;
   }
   table td {
-    font-size: 10.5px !important;
-    padding: 4px 5px !important;
+    font-size: 9px !important;
+    padding: 3px 4px !important;
   }
 }
 
@@ -215,63 +215,21 @@ html, body, #root {
 @media (max-width: 640px) {
   .list-item-card,
   .bill-card,
-  .standard-card {
-    padding: 10px 12px !important;
-    border-radius: 10px !important;
-  }
-  .item-title,
-  .bill-title,
-  .card-item-title {
-    font-size: 12px !important;
-  }
-  .item-subtext,
-  .bill-subtext,
-  .card-item-subtext,
-  .item-meta {
-    font-size: 10px !important;
-  }
-  .item-value,
-  .bill-value,
-  .card-item-value,
-  .batch-stat-card-val,
-  .stat-value {
-    font-size: 13px !important;
-  }
-  .item-badge,
-  .card-item-badge {
-    font-size: 9.5px !important;
-    padding: 1.5px 5px !important;
-  }
-  .item-icon,
-  .card-icon-box {
-    width: 28px !important;
-    height: 28px !important;
-    border-radius: 7px !important;
-  }
-  .item-icon svg,
-  .card-icon-box svg {
-    width: 14px !important;
-    height: 14px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .list-item-card,
-  .bill-card,
-  .standard-card {
-    padding: 9px 11px !important;
+  .standard-card,
+  .responsive-card {
+    padding: 8px 10px !important;
     border-radius: 8px !important;
   }
   .item-title,
   .bill-title,
   .card-item-title {
-    font-size: 11.5px !important;
+    font-size: 11px !important;
   }
   .item-subtext,
   .bill-subtext,
   .card-item-subtext,
   .item-meta {
-    font-size: 9.5px !important;
+    font-size: 9px !important;
   }
   .item-value,
   .bill-value,
@@ -282,7 +240,7 @@ html, body, #root {
   }
   .item-badge,
   .card-item-badge {
-    font-size: 9px !important;
+    font-size: 8.5px !important;
     padding: 1px 4px !important;
   }
   .item-icon,
@@ -295,5 +253,49 @@ html, body, #root {
   .card-icon-box svg {
     width: 13px !important;
     height: 13px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .list-item-card,
+  .bill-card,
+  .standard-card,
+  .responsive-card {
+    padding: 6px 8px !important;
+    border-radius: 7px !important;
+  }
+  .item-title,
+  .bill-title,
+  .card-item-title {
+    font-size: 10px !important;
+  }
+  .item-subtext,
+  .bill-subtext,
+  .card-item-subtext,
+  .item-meta {
+    font-size: 8px !important;
+  }
+  .item-value,
+  .bill-value,
+  .card-item-value,
+  .batch-stat-card-val,
+  .stat-value {
+    font-size: 11px !important;
+  }
+  .item-badge,
+  .card-item-badge {
+    font-size: 8px !important;
+    padding: 1px 3px !important;
+  }
+  .item-icon,
+  .card-icon-box {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 5px !important;
+  }
+  .item-icon svg,
+  .card-icon-box svg {
+    width: 12px !important;
+    height: 12px !important;
   }
 }
