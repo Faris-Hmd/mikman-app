@@ -290,11 +290,13 @@ export default function SettingsPage() {
     const assets = generateHotspotAssets(brandName);
 
     const css = assets.find((a: any) => a.fileName === 'hotspot/css/style.css')?.content || '';
-    const config = assets.find((a: any) => a.fileName === 'hotspot/js/config.js')?.content || '';
+    const configRaw = assets.find((a: any) => a.fileName === 'hotspot/js/config.js')?.content || '';
+    const config = configRaw.replace(/\.focus\(\)/g, '');
     const targetFile = page === 'status' ? 'hotspot/status.html' : 'hotspot/login.html';
     let html = assets.find((a: any) => a.fileName === targetFile)?.content || '';
 
     html = html
+      .replace(/\sautofocus\b/gi, '')
       .replace(/\$\(if chap-id\)[\s\S]*?\$\(endif\)/gi, '')
       .replace(/\$\(if chap-id == ""\)[\s\S]*?\$\(endif\)/gi, '')
       .replace(/\$\(username\)/g, '84920481')

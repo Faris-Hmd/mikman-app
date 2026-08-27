@@ -1,5 +1,5 @@
 import { useLocation, Link, useParams } from 'react-router-dom';
-import { LayoutDashboard, Ticket, TrendingUp, Users, Settings, Home, User } from 'lucide-react';
+import { LayoutDashboard, Ticket, Layers, TrendingUp, Users, Settings, Home, User } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function BottomNavBar() {
@@ -23,6 +23,12 @@ export default function BottomNavBar() {
       label: t('sidebar.vouchers'),
       icon: Ticket,
       isActive: pathname.startsWith(`/${routerId}/vouchers`) || pathname.startsWith(`/${routerId}/batch`)
+    },
+    {
+      href: `/${routerId}/profiles`,
+      label: t('sidebar.profiles'),
+      icon: Layers,
+      isActive: pathname.startsWith(`/${routerId}/profiles`)
     },
     {
       href: `/${routerId}/revenue`,

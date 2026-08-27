@@ -504,20 +504,20 @@ export default function ApsPage() {
             border: selectedFilter === 'all'
               ? '1px solid rgba(16, 185, 129, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '8px 10px',
+            borderRadius: '12px',
+            padding: '14px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: selectedFilter === 'all' ? '0 2px 8px rgba(16, 185, 129, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: selectedFilter === 'all' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.08)',
             color: selectedFilter === 'all' ? '#10b981' : 'var(--foreground)',
             display: 'flex',
@@ -526,13 +526,13 @@ export default function ApsPage() {
             border: '1px solid rgba(16, 185, 129, 0.25)',
             flexShrink: 0
           }}>
-            <Radio size={14} />
+            <Radio size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('aps.totalDevices') || 'Total'}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', marginTop: '1px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginTop: '4px' }}>
               {isLoading ? '—' : stats.totalBindings}
             </div>
           </div>
@@ -549,20 +549,20 @@ export default function ApsPage() {
             border: selectedFilter === 'bypassed'
               ? '1px solid rgba(16, 185, 129, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '8px 10px',
+            borderRadius: '12px',
+            padding: '14px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: selectedFilter === 'bypassed' ? '0 2px 8px rgba(16, 185, 129, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: 'rgba(16, 185, 129, 0.2)',
             color: '#10b981',
             display: 'flex',
@@ -571,13 +571,13 @@ export default function ApsPage() {
             border: '1px solid rgba(16, 185, 129, 0.3)',
             flexShrink: 0
           }}>
-            <CheckCircle2 size={14} />
+            <CheckCircle2 size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('aps.bypassed')}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#10b981', marginTop: '1px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>
               {isLoading ? '—' : stats.bypassed}
             </div>
           </div>
@@ -594,20 +594,20 @@ export default function ApsPage() {
             border: selectedFilter === 'regular'
               ? '1px solid rgba(59, 130, 246, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '8px 10px',
+            borderRadius: '12px',
+            padding: '14px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: selectedFilter === 'regular' ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: 'rgba(59, 130, 246, 0.2)',
             color: '#3b82f6',
             display: 'flex',
@@ -616,13 +616,13 @@ export default function ApsPage() {
             border: '1px solid rgba(59, 130, 246, 0.3)',
             flexShrink: 0
           }}>
-            <Shield size={14} />
+            <Shield size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('aps.regular') || 'Regular'}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#3b82f6', marginTop: '1px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#3b82f6', marginTop: '4px' }}>
               {isLoading ? '—' : stats.regular}
             </div>
           </div>
@@ -639,20 +639,20 @@ export default function ApsPage() {
             border: selectedFilter === 'unbound'
               ? '1px solid rgba(245, 158, 11, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '8px 10px',
+            borderRadius: '12px',
+            padding: '14px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: selectedFilter === 'unbound' ? '0 2px 8px rgba(245, 158, 11, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: 'rgba(245, 158, 11, 0.2)',
             color: '#f59e0b',
             display: 'flex',
@@ -661,13 +661,13 @@ export default function ApsPage() {
             border: '1px solid rgba(245, 158, 11, 0.3)',
             flexShrink: 0
           }}>
-            <Zap size={14} />
+            <Zap size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('aps.unboundCount') || 'Unbound'}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#f59e0b', marginTop: '1px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>
               {isLoading ? '—' : stats.unbound}
             </div>
           </div>

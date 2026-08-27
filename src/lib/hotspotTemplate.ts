@@ -128,26 +128,42 @@ function hexMD5(str) { return binl2hex(coreMD5(str2binl(str))); }
 // Comprehensive Arabic error translations
 const ERRORS_JS = `(function () {
   var translations = {
+    // Session & Device Limits
+    "user already logged in":                    "الكرت مستخدم حالياً على جهاز آخر — قطع الاتصال من الجهاز الآخر أولاً",
+    "already logged in":                         "الكرت مستخدم حالياً على جهاز آخر — قطع الاتصال من الجهاز الآخر أولاً",
+    "already signed":                            "الكرت مستخدم حالياً — وصل للحد الأقصى للأجهزة",
+    "already active":                            "الكرت مستخدم حالياً — لا يمكن تسجيل دخول جديد",
+    "no more sessions are allowed":              "الكرت مستخدم حالياً — لا يمكن تسجيل دخول جديد",
+    "user session limit":                        "الكرت مستخدم حالياً — الحد الأقصى للأجهزة وصل",
+    "session limit reached":                     "تم الوصول إلى الحد الأقصى لعدد الاتصالات المسموح بها",
+    "license-session-limit":                     "تم الوصول إلى الحد الأقصى لاتصالات الشبكة",
+    "reached its limit":                         "وصل الكرت للحد الأقصى المسموح به من الأجهزة أو الوقت",
+    "reached limit":                             "وصل للحد الأقصى المسموح به",
+    "simultaneous":                              "الكرت مستخدم حالياً — لا يمكن فتح جلسات إضافية",
+
+    // Authentication & Credentials
     "invalid username or password":              "رمز الاشتراك غير صحيح، يرجى المحاولة مرة أخرى",
     "invalid password":                          "كلمة المرور غير صحيحة",
     "invalid username":                          "رمز الاشتراك غير موجود",
     "invalid mac":                               "غير مسموح لهذا الجهاز بتسجيل الدخول",
     "wrong-mac-username":                        "عنوان MAC غير صحيح لهذا المستخدم",
     "this mac address is not yours":             "عنوان الجهاز لا يتطابق مع الحساب",
-    "user already logged in":                    "الكرت مستخدم حالياً على جهاز آخر — قطع الاتصال من الجهاز الآخر أولاً",
-    "no more sessions are allowed":              "الكرت مستخدم حالياً — لا يمكن تسجيل دخول جديد",
-    "user session limit":                        "الكرت مستخدم حالياً — الحد الأقصى للأجهزة وصل",
-    "session limit reached":                     "تم الوصول إلى الحد الأقصى لعدد الاتصالات المسموح بها",
-    "license-session-limit":                     "تم الوصول إلى الحد الأقصى لاتصالات الشبكة",
+    "not allowed to log in":                     "غير مسموح لهذا الجهاز بتسجيل الدخول",
+
+    // Traffic & Data Limits
     "has reached traffic limit":                 "رصيد البيانات في الكرت نفد — يرجى تجديد الاشتراك",
     "traffic-limit":                             "رصيد البيانات في الكرت نفد — يرجى تجديد الاشتراك",
     "exceeded the data limit":                   "رصيد البيانات في الكرت نفد — يرجى تجديد الاشتراك",
+
+    // Time & Uptime Limits
     "has reached uptime limit":                  "انتهت مدة الكرت الزمنية — يرجى تجديد الاشتراك",
     "uptime-limit":                              "انتهت مدة الكرت الزمنية — يرجى تجديد الاشتراك",
     "exceeded the time limit":                   "انتهت مدة الكرت الزمنية — يرجى تجديد الاشتراك",
     "exceeded uptime limit":                     "انتهت مدة الاتصال المسموح بها",
     "uptime limit exceeded":                     "انتهت مدة الاتصال المسموح بها",
     "limit for this user exceeded":              "تجاوزت الحد المسموح به لهذا الكرت",
+
+    // Account Status
     "account expired":                           "انتهت صلاحية الكرت — يرجى شراء كرت جديد",
     "user account expired":                      "انتهت صلاحية الكرت — يرجى شراء كرت جديد",
     "user disabled":                             "الكرت موقوف — تواصل مع الدعم",
@@ -155,6 +171,8 @@ const ERRORS_JS = `(function () {
     "you are not logged in":                     "أنت لست مسجل الدخول",
     "not logged in":                             "أنت لست مسجل الدخول",
     "user profile limit reached":                "تم الوصول إلى الحد الأقصى للملف الشخصي",
+
+    // Network / IP Pool / RADIUS
     "cannot assign ip address":                  "لا توجد عناوين IP متاحة — يرجى المحاولة لاحقاً",
     "ippool-empty":                              "لا توجد عناوين IP متاحة — يرجى المحاولة لاحقاً",
     "ip/mac binding violation":                  "خطأ في ربط عنوان الجهاز بالشبكة",
@@ -164,11 +182,15 @@ const ERRORS_JS = `(function () {
     "internal error":                            "خطأ داخلي في النظام — يرجى التواصل مع الدعم",
     "configuration error":                       "خطأ في الإعدادات — يرجى التواصل مع الدعم",
     "hotspot service is shutting down":          "الشبكة تتوقف مؤقتاً — يرجى المحاولة بعد قليل",
+
+    // CHAP / JavaScript / Progress
     "web browser did not send challenge response": "تأكد من تفعيل JavaScript في المتصفح وأعد المحاولة",
     "chap-missing":                              "تأكد من تفعيل JavaScript في المتصفح وأعد المحاولة",
     "already authorizing":                       "طلب المصادقة جارٍ بالفعل — انتظر لحظة وأعد المحاولة",
     "auth-in-progress":                          "طلب المصادقة جارٍ بالفعل — انتظر لحظة وأعد المحاولة",
     "advertisement pending":                     "يجب مشاهدة الإعلان أولاً للمتابعة",
+
+    // Fallback
     "error":                                     "حدث خطأ، يرجى المحاولة مرة أخرى"
   };
 
@@ -183,12 +205,20 @@ const ERRORS_JS = `(function () {
     return text;
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    var nodes = document.querySelectorAll(".error-msg");
+  function runTranslation() {
+    var nodes = document.querySelectorAll(".error-msg, .field-error, #field-error");
     nodes.forEach(function (el) {
-      el.textContent = translateError(el.textContent);
+      if (el && el.textContent && el.textContent.trim().length > 0) {
+        el.textContent = translateError(el.textContent);
+      }
     });
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", runTranslation);
+  } else {
+    runTranslation();
+  }
 })();
 `;
 
@@ -310,10 +340,83 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="input-container">
                         <input name="password" type="tel" inputmode="numeric" pattern="[0-9]*" value="\$(username)" placeholder="أدخل رقم الكرت" autocomplete="off" autofocus />
                     </div>
-                    <div id="field-error" class="field-error \$(if error)visible\$(endif)">\$(if error)\$(error)\$(endif)</div>
+                    <div id="field-error" class="field-error error-msg \$(if error)visible\$(endif)">\$(if error)\$(error)\$(endif)</div>
                     <input type="submit" value="اتصال بالشبكة" />
                     <div class="card-notice">💡 الاحتفاظ بكرت الشحن حتى انتهاء الوقت</div>
                 </form>
+
+                <p class="bt">
+                    <a href="tel:+249966626693" class="dev-link">
+                        <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" style="opacity: 0.7;"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+
+  const aloginHtml = `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="refresh" content="5; url=\$(link-status)">
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="expires" content="-1">
+    <title>أهلاً بك - جاري التوجيه</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/config.js"><\/script>
+    <script>
+        function startClock() {
+            var seconds = 5;
+            var countdownEl = document.getElementById('count-num');
+            var timer = setInterval(function() {
+                seconds--;
+                if (countdownEl && seconds >= 0) {
+                    countdownEl.textContent = seconds;
+                }
+                if (seconds <= 0) {
+                    clearInterval(timer);
+                    location.href = unescape('\$(link-status-esc)');
+                }
+            }, 1000);
+        }
+    <\/script> 
+</head>
+<body onLoad="startClock()">
+    <div class="ie-fixMinHeight">
+        <div class="main">
+            <div class="wrap" style="text-align: center;">
+                <div class="top-bar">
+                    <button id="theme-toggle-btn" class="theme-toggle-btn" type="button" title="تغيير المظهر">
+                        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    </button>
+                </div>
+
+                <div class="wifi-brand-icon">
+                    <div class="wifi-icon-wrapper">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="status-badge">
+                    <span class="status-badge-dot"></span> أهلاً بك! تم الاتصال بنجاح
+                </div>
+
+                <h1><span class="brand-name">${escapedBrand}</span></h1>
+                <p class="subtitle" style="margin-bottom: 12px;">نتمنى لك تصفحاً ممتعاً وسريعاً</p>
+
+                <p class="info" style="font-size: 14px; color: var(--text-muted); margin: 15px 0;">
+                    سيتم التوجيه لصفحة حالة الاشتراك خلال <strong id="count-num" style="color: var(--accent-blue); font-size: 18px;">5</strong> ثوانٍ...
+                </p>
+
+                <div class="card-notice">
+                    💡 يمكنك دائماً متابعة رصيدك عبر فتح: <strong>wifi.lan</strong>
+                </div>
+
+                <a href="\$(link-status)" class="btn-submit" style="display: block; text-align: center; margin-top: 15px; text-decoration: none;">الانتقال لصفحة الحالة 📊</a>
 
                 <p class="bt">
                     <a href="tel:+249966626693" class="dev-link">
@@ -361,9 +464,17 @@ document.addEventListener("DOMContentLoaded", function () {
                         \$(endif)
                     </table>
                     \$(if login-by-mac != 'yes')
-                    <input type="submit" value="قطع الاتصال" />
+                    <input type="submit" value="قطع الاتصال" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); margin-top: 10px;" />
                     \$(endif)
                 </form>
+
+                \$(if link-redirect)
+                <a href="\$(link-redirect)" target="_blank" class="btn-submit" style="display: block; text-align: center; margin-top: 15px; text-decoration: none;">تصفح الإنترنت الآن 🚀</a>
+                \$(endif)
+
+                <div class="card-notice" style="margin-top: 15px;">
+                    💡 لمتابعة رصيدك في أي وقت، افتح المتصفح وادخل: <strong>wifi.lan</strong>
+                </div>
 
                 <p class="bt">
                     <a href="tel:+249966626693" class="dev-link">
@@ -460,6 +571,7 @@ document.addEventListener("DOMContentLoaded", function () {
     { fileName: 'hotspot/md5.js', content: MD5_JS },
     { fileName: 'hotspot/css/style.css', content: HOTSPOT_CSS },
     { fileName: 'hotspot/login.html', content: loginHtml },
+    { fileName: 'hotspot/alogin.html', content: aloginHtml },
     { fileName: 'hotspot/status.html', content: statusHtml },
     { fileName: 'hotspot/logout.html', content: logoutHtml },
     { fileName: 'hotspot/error.html', content: errorHtml },

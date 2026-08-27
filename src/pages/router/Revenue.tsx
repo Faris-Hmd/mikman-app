@@ -394,23 +394,20 @@ export default function RevenuePage() {
         </div>
       ) : (
         <div style={{ opacity: isValidating ? 0.75 : 1, transition: 'opacity 0.2s ease', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* ─── Compact KPI Cards Grid (2 Cards side-by-side in 1 row) ─── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+          {/* ─── Standardized KPI Cards Grid ─── */}
+          <div className="stat-summary-grid">
             {/* KPI 1: Total Revenue */}
-            <div style={{
-              background: 'var(--card-bg)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: '12px',
-              padding: '10px 10px',
+            <div className="responsive-card" style={{
+              padding: '14px 16px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '12px',
               minWidth: 0
             }}>
               <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
                 background: 'rgba(59, 130, 246, 0.12)',
                 color: '#3b82f6',
                 display: 'flex',
@@ -418,16 +415,16 @@ export default function RevenuePage() {
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <DollarSign size={16} />
+                <DollarSign size={18} />
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {language === 'ar' ? 'إجمالي الإيرادات' : 'Total Revenue'}
                 </div>
-                <div style={{ fontSize: '15px', fontWeight: 800, marginTop: '1px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '18px', fontWeight: 800, marginTop: '4px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {formatCurrency(totalRev)}
                 </div>
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '2px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '2px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                   <ArrowUpRight size={10} style={{ color: '#10b981', flexShrink: 0 }} />
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatCurrency(avgDailyRev)}/{language === 'ar' ? 'يوم' : 'day'}</span>
                 </div>
@@ -435,20 +432,17 @@ export default function RevenuePage() {
             </div>
 
             {/* KPI 2: Total Vouchers */}
-            <div style={{
-              background: 'var(--card-bg)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: '12px',
-              padding: '10px 10px',
+            <div className="responsive-card" style={{
+              padding: '14px 16px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '12px',
               minWidth: 0
             }}>
               <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
                 background: 'rgba(16, 185, 129, 0.12)',
                 color: '#10b981',
                 display: 'flex',
@@ -456,16 +450,16 @@ export default function RevenuePage() {
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <Ticket size={16} />
+                <Ticket size={18} />
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {language === 'ar' ? 'الكروت المباعة' : 'Total Vouchers'}
                 </div>
-                <div style={{ fontSize: '15px', fontWeight: 800, marginTop: '1px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '18px', fontWeight: 800, marginTop: '4px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {totalVouchers}
                 </div>
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {chartDaily.length > 0 ? (totalVouchers / chartDaily.length).toFixed(1) : 0} {language === 'ar' ? 'كرت/يوم' : 'vouchers/day'}
                 </div>
               </div>

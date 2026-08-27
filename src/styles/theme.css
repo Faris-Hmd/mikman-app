@@ -619,15 +619,16 @@ input, textarea { font-family: inherit; }
   }
 }
 
-/* ─── Responsive Stat Summary Grid (2x2 on mobile, 1x4 on desktop) ─── */
+/* ─── Responsive Stat Summary Grid (Standardized across all pages) ─── */
 .stat-summary-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 @media (min-width: 640px) {
   .stat-summary-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
 }

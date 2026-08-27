@@ -258,20 +258,20 @@ export default function UsersPage() {
             border: activeTab === 'signedIn'
               ? '1px solid rgba(59, 130, 246, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '8px 10px',
+            borderRadius: '12px',
+            padding: '14px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'signedIn' ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: activeTab === 'signedIn' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(16, 185, 129, 0.15)',
             color: activeTab === 'signedIn' ? '#60a5fa' : '#10b981',
             display: 'flex',
@@ -280,13 +280,13 @@ export default function UsersPage() {
             border: '1px solid rgba(59, 130, 246, 0.25)',
             flexShrink: 0
           }}>
-            <UserCheck size={14} />
+            <UserCheck size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('users.signedIn')}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', marginTop: '1px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginTop: '4px' }}>
               {isLoading ? '—' : signedInClients.length}
             </div>
           </div>
@@ -303,20 +303,20 @@ export default function UsersPage() {
             border: activeTab === 'waiting'
               ? '1px solid rgba(245, 158, 11, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '8px 10px',
+            borderRadius: '12px',
+            padding: '14px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'waiting' ? '0 2px 8px rgba(245, 158, 11, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: activeTab === 'waiting' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(245, 158, 11, 0.15)',
             color: '#f59e0b',
             display: 'flex',
@@ -325,13 +325,13 @@ export default function UsersPage() {
             border: '1px solid rgba(245, 158, 11, 0.25)',
             flexShrink: 0
           }}>
-            <Clock size={14} />
+            <Clock size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('users.waiting')}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', marginTop: '1px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginTop: '4px' }}>
               {isLoading ? '—' : waitingClients.length}
             </div>
           </div>
@@ -348,20 +348,20 @@ export default function UsersPage() {
             border: activeTab === 'all'
               ? '1px solid rgba(99, 102, 241, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '8px 10px',
+            borderRadius: '12px',
+            padding: '14px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'all' ? '0 2px 8px rgba(99, 102, 241, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: activeTab === 'all' ? 'rgba(99, 102, 241, 0.25)' : 'rgba(99, 102, 241, 0.15)',
             color: '#818cf8',
             display: 'flex',
@@ -370,13 +370,13 @@ export default function UsersPage() {
             border: '1px solid rgba(99, 102, 241, 0.25)',
             flexShrink: 0
           }}>
-            <Users size={14} />
+            <Users size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('users.all')}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', marginTop: '1px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginTop: '4px' }}>
               {isLoading ? '—' : rawClientList.length}
             </div>
           </div>

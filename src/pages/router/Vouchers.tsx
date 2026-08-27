@@ -161,7 +161,7 @@ const formatBytes = (bytesVal?: string | number): string => {
 };
 
 const getProfileInfoDetails = (pName: string, profilesList: Profile[]) => {
-  if (!pName) return { price: null, validity: null, dataLimit: null, rateLimit: null, statsSummary: '' };
+  if (!pName) return { price: null, validity: null, dataLimit: null, rateLimit: null, validityBadge: '', dataBadge: '', statsSummary: '' };
 
   const target = pName.toString().trim().toLowerCase();
   const p = profilesList.find((prof) => {
@@ -185,15 +185,20 @@ const getProfileInfoDetails = (pName: string, profilesList: Profile[]) => {
 
   // 2. Validity Extraction
   if (p?.validity) {
-    const isUnlVal = p.validity === '0d' || p.validity === '0' || p.validity === '0h' || p.validity?.toLowerCase() === 'unlimited';
-    validity = isUnlVal ? (p.isUnlimited ? 'Unlimited' : '0d') : p.validity;
+    const isUnlVal = p.validity === '0d' || p.validity === '0' || p.validity === '0h' || p.validity === '0m' || p.validity === '0s' || p.validity?.toLowerCase() === 'unlimited';
+    validity = isUnlVal ? 'Unlimited' : p.validity;
   }
 
   if (!validity && (p as any)?.['session-timeout']) {
-    const timeoutStr = String((p as any)['session-timeout']).trim();
-    const matchTimeout = timeoutStr.match(/^(\d+\s*[dhmwDHMW])/);
-    if (matchTimeout) {
-      validity = matchTimeout[1];
+    const timeoutStr = String((p as any)['session-timeout']).trim().toLowerCase();
+    const isUnlTimeout = timeoutStr === '00:00:00' || timeoutStr === '0' || timeoutStr === '0s' || timeoutStr === '0d';
+    if (isUnlTimeout) {
+      validity = 'Unlimited';
+    } else {
+      const matchTimeout = timeoutStr.match(/^(\d+\s*[dhmwDHMW])/);
+      if (matchTimeout) {
+        validity = matchTimeout[1];
+      }
     }
   }
 
@@ -202,7 +207,9 @@ const getProfileInfoDetails = (pName: string, profilesList: Profile[]) => {
   if (!validity && scriptText) {
     const matchScriptVal = scriptText.match(/(?:validity|rem|time)\s*[:=]?\s*["']?(\d+\s*[dhmw])["']?/i);
     if (matchScriptVal) {
-      validity = matchScriptVal[1];
+      const valStr = matchScriptVal[1];
+      const isUnlScriptVal = valStr.toLowerCase() === '0d' || valStr === '0h' || valStr === '0m' || valStr === '0s' || valStr === '0';
+      validity = isUnlScriptVal ? 'Unlimited' : valStr;
     }
   }
 
@@ -210,18 +217,29 @@ const getProfileInfoDetails = (pName: string, profilesList: Profile[]) => {
     const nameToTest = `${pName} ${p?.name || ''}`;
     const valMatch = nameToTest.match(/\b(\d+\s*[dhmwDHMW])\b/);
     if (valMatch) {
-      validity = valMatch[1].toUpperCase();
+      const matchedVal = valMatch[1];
+      const isUnlValName = matchedVal.toLowerCase() === '0d' || matchedVal.toLowerCase() === '0h' || matchedVal.toLowerCase() === '0m';
+      validity = isUnlValName ? 'Unlimited' : matchedVal.toUpperCase();
     }
   }
 
   // 3. Data Limit Extraction
-  if (p?.limitMB) {
-    dataLimit = p.limitMB >= 1024 ? `${(p.limitMB / 1024).toFixed(1).replace(/\.0$/, '')} GB` : `${p.limitMB} MB`;
-  } else if (p?.['limit-bytes-total']) {
+  if (p?.limitMB !== undefined && p?.limitMB !== null) {
+    if (p.limitMB === 0) {
+      dataLimit = 'Unlimited';
+    } else {
+      dataLimit = p.limitMB >= 1024 ? `${(p.limitMB / 1024).toFixed(1).replace(/\.0$/, '')} GB` : `${p.limitMB} MB`;
+    }
+  } else if (p?.['limit-bytes-total'] !== undefined && p?.['limit-bytes-total'] !== null) {
     const b = parseInt(String(p['limit-bytes-total']), 10);
-    if (!isNaN(b) && b > 0) {
-      if (b >= 1073741824) dataLimit = `${(b / 1073741824).toFixed(1).replace(/\.0$/, '')} GB`;
-      else dataLimit = `${(b / 1048576).toFixed(0)} MB`;
+    if (!isNaN(b)) {
+      if (b === 0) {
+        dataLimit = 'Unlimited';
+      } else if (b >= 1073741824) {
+        dataLimit = `${(b / 1073741824).toFixed(1).replace(/\.0$/, '')} GB`;
+      } else {
+        dataLimit = `${(b / 1048576).toFixed(0)} MB`;
+      }
     }
   }
 
@@ -230,7 +248,9 @@ const getProfileInfoDetails = (pName: string, profilesList: Profile[]) => {
     if (matchScriptData) {
       const num = parseFloat(matchScriptData[1]);
       const unit = (matchScriptData[2] || 'm').toUpperCase();
-      if (unit.startsWith('G')) {
+      if (num === 0) {
+        dataLimit = 'Unlimited';
+      } else if (unit.startsWith('G')) {
         dataLimit = `${num} GB`;
       } else {
         dataLimit = num >= 1024 ? `${(num / 1024).toFixed(1).replace(/\.0$/, '')} GB` : `${num} MB`;
@@ -244,7 +264,9 @@ const getProfileInfoDetails = (pName: string, profilesList: Profile[]) => {
     if (dataMatch) {
       const num = parseFloat(dataMatch[1]);
       const unit = dataMatch[2].toUpperCase();
-      if (unit === 'GB' || unit === 'G') {
+      if (num === 0) {
+        dataLimit = 'Unlimited';
+      } else if (unit === 'GB' || unit === 'G') {
         dataLimit = `${num} GB`;
       } else {
         dataLimit = num >= 1024 ? `${(num / 1024).toFixed(1).replace(/\.0$/, '')} GB` : `${num} MB`;
@@ -261,12 +283,16 @@ const getProfileInfoDetails = (pName: string, profilesList: Profile[]) => {
     rateLimit = String(p['rate-limit']);
   }
 
-  const parts = [];
-  if (validity) parts.push(validity.toUpperCase());
-  if (dataLimit) parts.push(dataLimit.toUpperCase());
-  const statsSummary = parts.join(' ').toUpperCase() || '';
+  // 5. Sanitize & Build Badges with Infinity sign '∞'
+  const isUnlTime = !validity || validity === 'Unlimited' || validity.toLowerCase() === '0d' || validity === '0' || validity.toLowerCase() === '0h' || validity.toLowerCase() === '0m';
+  const validityBadge = isUnlTime ? '∞' : (validity?.toUpperCase() || '∞');
 
-  return { price, validity, dataLimit, rateLimit, statsSummary };
+  const isUnlData = !dataLimit || dataLimit === 'Unlimited' || dataLimit.toUpperCase() === '0 MB' || dataLimit.toUpperCase() === '0MB' || dataLimit === '0' || dataLimit === '0 B' || p?.isUnlimited;
+  const dataBadge = isUnlData ? '∞' : (dataLimit?.toUpperCase() || '∞');
+
+  const statsSummary = `${validityBadge} · ${dataBadge}`;
+
+  return { price, validity, dataLimit, rateLimit, validityBadge, dataBadge, statsSummary };
 };
 
 export default function VouchersPage() {
@@ -1259,7 +1285,13 @@ export default function VouchersPage() {
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '10px',
+                  gap: '12px',
+                  padding: '16px',
+                  borderRadius: '16px',
+                  background: 'var(--card-bg, rgba(255, 255, 255, 0.04))',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.12)',
                 }}
               >
                 {/* Profile Section Header */}
@@ -1270,7 +1302,8 @@ export default function VouchersPage() {
                     justifyContent: 'space-between',
                     flexWrap: 'wrap',
                     gap: '8px',
-                    padding: '4px 6px',
+                    paddingBottom: '10px',
+                    borderBottom: '1px solid var(--glass-border, rgba(255, 255, 255, 0.06))',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1282,7 +1315,8 @@ export default function VouchersPage() {
 
                   {/* Profile Metadata Pills Stack */}
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    {pInfo.statsSummary && (
+                    {/* Time / Validity Badge */}
+                    {pInfo.validityBadge && (
                       <span
                         style={{
                           fontSize: '10px',
@@ -1293,9 +1327,34 @@ export default function VouchersPage() {
                           color: '#3b82f6',
                           border: '1px solid rgba(59, 130, 246, 0.25)',
                           letterSpacing: '0.3px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
                         }}
                       >
-                        {pInfo.statsSummary.toUpperCase()}
+                        <Clock size={10} style={{ opacity: 0.8 }} />
+                        {pInfo.validityBadge}
+                      </span>
+                    )}
+                    {/* Data Limit Badge */}
+                    {pInfo.dataBadge && (
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          background: 'rgba(16, 185, 129, 0.15)',
+                          color: '#10b981',
+                          border: '1px solid rgba(16, 185, 129, 0.25)',
+                          letterSpacing: '0.3px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                        }}
+                      >
+                        <HardDrive size={10} style={{ opacity: 0.8 }} />
+                        {pInfo.dataBadge}
                       </span>
                     )}
                     {pInfo.price && (
@@ -1652,23 +1711,44 @@ export default function VouchersPage() {
                       >
                         <Layers size={13} />
                         <span>{pName}</span>
-                        {badgeText ? (
+                        {pInfo.validityBadge && (
                           <span
                             style={{
                               fontSize: '10px',
                               fontWeight: 800,
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.5px',
                               background: isSelected ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.1)',
                               border: isSelected ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid rgba(255, 255, 255, 0.15)',
                               padding: '1px 6px',
                               borderRadius: '4px',
                               color: isSelected ? '#60a5fa' : 'var(--foreground)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
                             }}
                           >
-                            {badgeText}
+                            <Clock size={9} />
+                            {pInfo.validityBadge}
                           </span>
-                        ) : null}
+                        )}
+                        {pInfo.dataBadge && (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 800,
+                              background: isSelected ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.1)',
+                              border: isSelected ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.15)',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              color: isSelected ? '#34d399' : 'var(--foreground)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                            }}
+                          >
+                            <HardDrive size={9} />
+                            {pInfo.dataBadge}
+                          </span>
+                        )}
                       </button>
                     );
                   })}

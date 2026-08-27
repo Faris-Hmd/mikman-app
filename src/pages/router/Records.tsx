@@ -430,20 +430,20 @@ export default function RecordsPage() {
             border: activeTab === 'all'
               ? '1px solid rgba(168, 85, 247, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '8px 10px',
+            borderRadius: '12px',
+            padding: '14px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'all' ? '0 2px 8px rgba(168, 85, 247, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: activeTab === 'all' ? 'rgba(168, 85, 247, 0.25)' : 'rgba(168, 85, 247, 0.15)',
             color: '#c084fc',
             display: 'flex',
@@ -452,13 +452,13 @@ export default function RecordsPage() {
             border: '1px solid rgba(168, 85, 247, 0.25)',
             flexShrink: 0
           }}>
-            <Layers size={14} />
+            <Layers size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('records.totalRecords')}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--foreground)', marginTop: '1px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginTop: '4px' }}>
               {isLoading ? '—' : stats.totalRecords}
             </div>
           </div>
@@ -475,20 +475,20 @@ export default function RecordsPage() {
             border: activeTab === 'create'
               ? '1px solid rgba(16, 185, 129, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '8px 10px',
+            borderRadius: '12px',
+            padding: '14px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'create' ? '0 2px 8px rgba(16, 185, 129, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: activeTab === 'create' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.15)',
             color: '#10b981',
             display: 'flex',
@@ -497,13 +497,13 @@ export default function RecordsPage() {
             border: '1px solid rgba(16, 185, 129, 0.25)',
             flexShrink: 0
           }}>
-            <PlusCircle size={14} />
+            <PlusCircle size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('records.creations')}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#10b981', marginTop: '1px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>
               {isLoading ? '—' : stats.creationsCount}
             </div>
           </div>
@@ -520,20 +520,20 @@ export default function RecordsPage() {
             border: activeTab === 'delete'
               ? '1px solid rgba(239, 68, 68, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '8px 10px',
+            borderRadius: '12px',
+            padding: '14px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'delete' ? '0 2px 8px rgba(239, 68, 68, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: activeTab === 'delete' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.15)',
             color: '#ef4444',
             display: 'flex',
@@ -542,13 +542,13 @@ export default function RecordsPage() {
             border: '1px solid rgba(239, 68, 68, 0.25)',
             flexShrink: 0
           }}>
-            <Trash2 size={14} />
+            <Trash2 size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('records.deletions')}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#ef4444', marginTop: '1px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#ef4444', marginTop: '4px' }}>
               {isLoading ? '—' : stats.deletionsCount}
             </div>
           </div>
@@ -565,20 +565,20 @@ export default function RecordsPage() {
             border: activeTab === 'other'
               ? '1px solid rgba(59, 130, 246, 0.4)'
               : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '8px 10px',
+            borderRadius: '12px',
+            padding: '14px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'other' ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none'
           }}
         >
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
             background: activeTab === 'other' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(59, 130, 246, 0.15)',
             color: '#60a5fa',
             display: 'flex',
@@ -587,13 +587,13 @@ export default function RecordsPage() {
             border: '1px solid rgba(59, 130, 246, 0.25)',
             flexShrink: 0
           }}>
-            <Edit3 size={14} />
+            <Edit3 size={18} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
               {t('records.filterOther') || 'Other'}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#60a5fa', marginTop: '1px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#60a5fa', marginTop: '4px' }}>
               {isLoading ? '—' : stats.otherCount}
             </div>
           </div>
