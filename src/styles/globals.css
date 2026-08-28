@@ -406,8 +406,9 @@ html, body, #root {
   }
   .item-badge,
   .card-item-badge {
-    font-size: var(--font-2xs) !important;
-    padding: 1.5px 4px !important;
+    font-size: 8.5px !important;
+    padding: 1px 4px !important;
+    height: 18px !important;
   }
   .item-icon,
   .card-icon-box {

@@ -36,10 +36,10 @@ interface Profile {
 
 const parseValidity = (str?: string) => {
   if (!str) {
-    return { num: 1, unit: 'd', isUnl: false };
+    return { num: 0, unit: '', isUnl: true };
   }
   const s = str.trim().toLowerCase();
-  if (s === '0d' || s === '0h' || s === '0m' || s === '0' || s === 'unlimited' || s === 'none') {
+  if (s === '0d' || s === '0h' || s === '0m' || s === '0' || s === 'unlimited' || s === 'none' || s === 'infinity' || s === '∞') {
     return { num: 0, unit: '', isUnl: true };
   }
   const match = s.match(/^(\d+)\s*([a-zA-Z]+)?$/);
@@ -52,7 +52,7 @@ const parseValidity = (str?: string) => {
     const unit = ['m', 'h', 'd', 'w'].includes(u) ? u : 'd';
     return { num, unit, isUnl: false };
   }
-  return { num: 1, unit: 'd', isUnl: false };
+  return { num: 0, unit: '', isUnl: true };
 };
 
 const formatPriceBadge = (val: number): string => {
@@ -205,7 +205,7 @@ export default function ProfilesPage() {
   const { data: profiles, isLoading, mutate } = useSWR(
     routerId ? `router-profiles-${routerId}` : null,
     () => fetchProfilesAPI(routerId!),
-    { revalidateOnFocus: true }
+    { revalidateOnFocus: true, keepPreviousData: true }
   );
 
   const profileList: Profile[] = useMemo(() => {
@@ -654,8 +654,13 @@ export default function ProfilesPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {profileList.map((profile) => {
-            const isUnlVal = profile.validity === '0d' || profile.validity === '0' || profile.validity === '0h' || profile.validity?.toLowerCase() === 'unlimited';
-            const displayValidity = isUnlVal ? '∞' : (profile.validity ? profile.validity.toUpperCase() : '1D');
+            const rawVal = profile.validity;
+            let displayValidity = '...';
+            if (rawVal !== undefined && rawVal !== null) {
+              const s = String(rawVal).trim().toLowerCase();
+              const isUnlVal = s === '' || s === 'unlimited' || s === '0d' || s === '0h' || s === '0m' || s === '0s' || s === '0' || s === 'none';
+              displayValidity = isUnlVal ? '∞' : String(rawVal).toUpperCase();
+            }
 
             const revVal = profile.revenue ?? profile.price;
             const numRev = revVal != null && revVal !== '' ? Number(revVal) : NaN;

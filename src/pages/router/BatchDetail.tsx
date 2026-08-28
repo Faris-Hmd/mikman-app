@@ -4,6 +4,9 @@ import useSWR, { mutate } from 'swr';
 import {
   fetchVoucherBatchDetailAPI,
   deleteVouchersAPI,
+  enableVouchersAPI,
+  formatLoginDateDisplay,
+  sortByLoginDate,
   searchVouchersAPI,
   getVoucherCodesAPI,
   getAllVouchersByStatusAPI,
@@ -42,6 +45,7 @@ import {
   MessageSquare,
   RefreshCw,
   Calendar,
+  RotateCcw,
 } from 'lucide-react';
 
 type StatusFilter = 'all' | 'unused' | 'active' | 'expired';
@@ -137,18 +141,34 @@ export default function BatchDetailPage() {
 
   const getProfileStatsForBatch = (pName: string) => {
     const found = profileList.find((p: any) => (p.name || p.id) === pName);
-    let validity = found?.validity || '';
+    let validity = '';
+    const scriptText = String(found?.['on-login'] || (found as any)?.onlogin || '');
+    if (scriptText) {
+      const addDaysMatch = scriptText.match(/:local addDays (\d+);/i);
+      const addHoursMatch = scriptText.match(/:local addHours ([\d:]+);/i);
+      if (addDaysMatch && addHoursMatch) {
+        const d = parseInt(addDaysMatch[1], 10);
+        const hParts = addHoursMatch[1].split(':');
+        const h = parseInt(hParts[0], 10);
+        const m = parseInt(hParts[1], 10);
+        const parts = [];
+        if (d > 0) parts.push(`${d}d`);
+        if (h > 0) parts.push(`${h}h`);
+        if (m > 0) parts.push(`${m}m`);
+        validity = parts.length > 0 ? parts.join(' ') : 'UNLIMITED';
+      } else if (scriptText.includes('exp=unlimited') || (!scriptText.includes('kill_') && scriptText.length > 0)) {
+        validity = 'UNLIMITED';
+      }
+    }
+    if (!validity && found?.validity) {
+      validity = found.validity;
+    }
+
     let dataLimit = found?.limitMB 
       ? (found.limitMB >= 500 
           ? `${(found.limitMB % 1024 === 0 || found.limitMB === 512 ? found.limitMB / 1024 : found.limitMB / 1000).toFixed(1).replace(/\.0$/, '')} GB` 
           : `${found.limitMB} MB`) 
       : (found?.['limit-bytes-total'] ? formatBytes(found['limit-bytes-total']) : '');
-
-    if (!validity && found?.['on-login']) {
-      const scriptText = String(found['on-login']);
-      const valMatch = scriptText.match(/validity[=:\s]+(["']?)([^"'\s;,]+)\1/i);
-      if (valMatch) validity = valMatch[2];
-    }
     if (!validity && pName) {
       const valMatch = pName.match(/\b(\d+)\s*([dhms]|days?|hours?)\b/i);
       if (valMatch) validity = `${valMatch[1]}${valMatch[2][0].toLowerCase()}`;
@@ -217,6 +237,7 @@ export default function BatchDetailPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeleteBatchModal, setShowDeleteBatchModal] = useState(false);
   const [deleteBatchLoading, setDeleteBatchLoading] = useState(false);
+  const [isEnablingVouchers, setIsEnablingVouchers] = useState(false);
 
   // Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -370,6 +391,22 @@ export default function BatchDetailPage() {
       showToast(err?.message || 'Failed to delete batch.', 'error');
     } finally {
       setDeleteBatchLoading(false);
+    }
+  };
+
+  const handleEnableVouchers = async (names: string[]) => {
+    if (!routerId || !names || names.length === 0) return;
+    try {
+      setIsEnablingVouchers(true);
+      const res = await enableVouchersAPI(routerId, names);
+      showToast(`تم إعادة تفعيل ${res.enabledCount || names.length} كرت بنجاح!`, 'success');
+      revalidateRouterCache(routerId);
+      mutateDetail();
+    } catch (err: any) {
+      console.error('Failed to enable vouchers:', err);
+      showToast(err.message || 'فشل تفعيل الكروت.', 'error');
+    } finally {
+      setIsEnablingVouchers(false);
     }
   };
 
@@ -880,7 +917,8 @@ export default function BatchDetailPage() {
 
     if (status === 'unused') {
       dataLeftStr = null;
-    } else if (status === 'active') {
+    } else {
+      // Active or Expired
       const rawRemBytes = (voucher as any).remainingBytes ?? (voucher as any)['remaining-bytes'];
       if (rawRemBytes != null && rawRemBytes !== '') {
         const num = Number(rawRemBytes);
@@ -894,9 +932,9 @@ export default function BatchDetailPage() {
         dataLeftStr = formatBytes(rem);
         dataPct = Math.min(100, Math.max(0, (rem / limitBytesNum) * 100));
       }
-    } else {
-      // Expired
-      dataLeftStr = '0 MB';
+      if (!dataLeftStr && status === 'expired') {
+        dataLeftStr = '0 MB';
+      }
     }
 
     // Time / Uptime limit & remaining
@@ -944,6 +982,8 @@ export default function BatchDetailPage() {
     }
 
     let loginDateStr: string | null = null;
+    let loginDateFull: string | null = null;
+    let loginDateRelative: string | null = null;
     if (status === 'active' || status === 'expired') {
       const rawComment = String((voucher as any).comment || (voucher as any).remarks || '');
       if (rawComment.includes('login:')) {
@@ -954,6 +994,12 @@ export default function BatchDetailPage() {
       }
       if (!loginDateStr) {
         loginDateStr = (voucher as any)['first-login'] || (voucher as any).loginDate || (voucher as any).firstLogin || (voucher as any).startTime || (voucher as any)['start-time'] || (active as any).loginTime || (active as any).startTime || null;
+      }
+      if (loginDateStr) {
+        const { displayDate, fullDate, relativeSince } = formatLoginDateDisplay(loginDateStr);
+        loginDateStr = displayDate;
+        loginDateFull = fullDate;
+        loginDateRelative = relativeSince;
       }
     }
 
@@ -992,33 +1038,70 @@ export default function BatchDetailPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
             {/* Status Pill Badge */}
-            <span
-              className="item-badge"
-              style={{
-                fontSize: '10px',
-                fontWeight: 700,
-                padding: '0 6px',
-                borderRadius: '5px',
-                height: '20px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                background: 'rgba(255, 255, 255, 0.08)',
-                color:
-                  status === 'active'
-                    ? '#3b82f6'
-                    : status === 'expired'
-                    ? '#ef4444'
-                    : '#22c55e',
-                border: '1px solid var(--glass-border)',
-                flexShrink: 0,
-              }}
-            >
-              {status === 'active'
+            {(() => {
+              const vDisabled = (voucher as any).isDisabled === true || (voucher as any).disabled === true || (voucher as any).disabled === 'true';
+              const hasRemData = (() => {
+                const lb = Number(((voucher as any).limitBytesTotal ?? (voucher as any)['limit-bytes-total']) || 0);
+                const bi = Number(((voucher as any).bytesIn ?? (voucher as any)['bytes-in']) || 0);
+                const bo = Number(((voucher as any).bytesOut ?? (voucher as any)['bytes-out']) || 0);
+                const rb = (voucher as any).remainingBytes;
+                if (rb != null && Number(rb) > 0) return true;
+                if (lb > 0 && (lb - bi - bo) > 0) return true;
+                return false;
+              })();
+              // If disabled but has remaining data, show as active (disabled), not expired
+              const effectiveStatus = (status === 'expired' && vDisabled && hasRemData) ? 'active' : status;
+              const statusColor = effectiveStatus === 'active' ? '#3b82f6' : effectiveStatus === 'expired' ? '#ef4444' : '#22c55e';
+              const statusLabel = effectiveStatus === 'active'
                 ? t('batch.statusActive') || 'نشط'
-                : status === 'expired'
+                : effectiveStatus === 'expired'
                 ? t('batch.statusExpired') || 'منتهي'
-                : t('batch.statusUnused') || 'غير مستخدم'}
-            </span>
+                : t('batch.statusUnused') || 'غير مستخدم';
+              return (
+                <>
+                  <span
+                    className="item-badge"
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      padding: '0 6px',
+                      borderRadius: '5px',
+                      height: '20px',
+                      minWidth: '65px',
+                      justifyContent: 'center',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      color: statusColor,
+                      border: '1px solid var(--glass-border)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {statusLabel}
+                  </span>
+                  {vDisabled && (
+                    <span
+                      className="item-badge"
+                      style={{
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        padding: '0 5px',
+                        borderRadius: '5px',
+                        height: '18px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        background: 'rgba(249, 115, 22, 0.12)',
+                        color: '#f97316',
+                        border: '1px solid rgba(249, 115, 22, 0.25)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      Disabled
+                    </span>
+                  )}
+                </>
+              );
+            })()}
 
             {/* PIN / Code */}
             <strong style={{ fontSize: '13px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--foreground)', letterSpacing: '0.5px', flexShrink: 0 }}>
@@ -1042,6 +1125,32 @@ export default function BatchDetailPage() {
             >
               {copiedCode === name ? <Check size={13} /> : <Copy size={13} />}
             </button>
+
+            {/* Re-enable Button for Expired Voucher */}
+            {status === 'expired' && (
+              <button
+                onClick={() => handleEnableVouchers([name])}
+                disabled={isEnablingVouchers}
+                title="تفعيل الكرت"
+                style={{
+                  background: 'rgba(34, 197, 94, 0.15)',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  color: '#22c55e',
+                  borderRadius: '5px',
+                  padding: '2px 8px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: isEnablingVouchers ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  flexShrink: 0,
+                }}
+              >
+                <RotateCcw size={11} />
+                <span>تفعيل</span>
+              </button>
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -1068,9 +1177,19 @@ export default function BatchDetailPage() {
           </button>
         </div>
 
-        {/* Second Row: Metadata Pills for active / expired vouchers */}
+        {/* Second Row: Single-line Metadata Pills for active / expired vouchers */}
         {hasMetadataPills && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              flexWrap: 'nowrap',
+              overflowX: 'auto',
+              maxWidth: '100%',
+              scrollbarWidth: 'none',
+            }}
+          >
             {/* Time Pill */}
             {timeLeftStr && (
               <span
@@ -1078,7 +1197,7 @@ export default function BatchDetailPage() {
                 style={{
                   fontSize: '10px',
                   fontWeight: 700,
-                  padding: '0 6px',
+                  padding: '0 5px',
                   borderRadius: '5px',
                   height: '20px',
                   display: 'inline-flex',
@@ -1089,6 +1208,7 @@ export default function BatchDetailPage() {
                   color: '#38bdf8',
                   whiteSpace: 'nowrap',
                   textTransform: 'uppercase',
+                  flexShrink: 0,
                 }}
               >
                 <Clock size={10} style={{ flexShrink: 0 }} />
@@ -1106,7 +1226,7 @@ export default function BatchDetailPage() {
                 style={{
                   fontSize: '10px',
                   fontWeight: 700,
-                  padding: '0 6px',
+                  padding: '0 5px',
                   borderRadius: '5px',
                   height: '20px',
                   display: 'inline-flex',
@@ -1117,6 +1237,7 @@ export default function BatchDetailPage() {
                   color: '#c084fc',
                   whiteSpace: 'nowrap',
                   textTransform: 'uppercase',
+                  flexShrink: 0,
                 }}
               >
                 <HardDrive size={10} style={{ flexShrink: 0 }} />
@@ -1133,22 +1254,25 @@ export default function BatchDetailPage() {
                 className="item-badge"
                 style={{
                   fontSize: '10px',
-                  fontWeight: 700,
-                  padding: '0 6px',
+                  fontWeight: 600,
+                  padding: '0 5px',
                   borderRadius: '5px',
                   height: '20px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '3px',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid var(--glass-border)',
+                  background: 'rgba(245, 158, 11, 0.12)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
                   color: '#f59e0b',
                   whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
-                title={t('vouchers.loginDate') || 'تاريخ الدخول'}
+                title={loginDateFull ? `Login Date: ${loginDateFull}` : (t('vouchers.loginDate') || 'تاريخ الدخول')}
               >
                 <Calendar size={10} style={{ flexShrink: 0 }} />
-                <span>{loginDateStr}</span>
+                <span>
+                  {loginDateRelative || loginDateStr}
+                </span>
               </span>
             )}
 
@@ -1160,21 +1284,26 @@ export default function BatchDetailPage() {
                   fontSize: '10px',
                   fontWeight: 600,
                   color: '#3b82f6',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid var(--glass-border)',
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
                   borderRadius: '5px',
-                  padding: '0 6px',
+                  padding: '0 5px',
                   height: '20px',
+                  maxWidth: '90px',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  maxWidth: '120px',
+                  gap: '3px',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
                 title={cleanDeviceName}
               >
-                {cleanDeviceName}
+                <Wifi size={10} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {cleanDeviceName}
+                </span>
               </span>
             )}
           </div>
@@ -1666,8 +1795,8 @@ export default function BatchDetailPage() {
       : true;
 
     const unusedVouchers = detail?.unusedVouchers || [];
-    const activeVouchers = detail?.activeVouchers || [];
-    const expiredVouchers = detail?.expiredVouchers || [];
+    const activeVouchers = sortByLoginDate(detail?.activeVouchers || []);
+    const expiredVouchers = sortByLoginDate(detail?.expiredVouchers || []);
 
     const getVisibleVouchers = () => {
       if (searchResults) return { search: searchResults };

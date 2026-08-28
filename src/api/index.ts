@@ -607,6 +607,15 @@ export const deleteVouchersAPI = async (routerId: string, ids: string[]): Promis
   });
 };
 
+export const enableVouchersAPI = async (routerId: string, names: string[]): Promise<{ success: boolean; enabledCount: number }> => {
+  if (!names || names.length === 0) return { success: true, enabledCount: 0 };
+  return apiCall<{ success: boolean; enabledCount: number }>('/vouchers/enable', {
+    method: 'POST',
+    body: { names },
+    routerId,
+  });
+};
+
 export const fetchNetworkClientsAPI = async (routerId: string): Promise<unknown> => {
   return apiCall('/network-clients', { routerId, cache: 'no-store' });
 };
@@ -743,6 +752,121 @@ export const formatUptimeAPI = (uptime?: string): string => {
     return `${h}h ${m}m`;
   }
   return `${m}m`;
+};
+
+export const formatLoginDateDisplay = (rawStr: string): { displayDate: string; fullDate: string; relativeSince: string | null } => {
+  if (!rawStr) return { displayDate: '', fullDate: '', relativeSince: null };
+
+  // 1. Strip seconds (e.g. "07:30:15" -> "07:30")
+  const fullDate = rawStr.replace(/(\d{1,2}:\d{2}):\d{2}/, '$1');
+  const currentYear = new Date().getFullYear().toString();
+  const displayDate = fullDate.replace(new RegExp(`[-/]${currentYear}|${currentYear}[-/]`, 'g'), '').trim();
+
+  // 2. Calculate relative time since login
+  let dateObj: Date | null = null;
+
+  const ts = Date.parse(rawStr);
+  if (!isNaN(ts)) {
+    dateObj = new Date(ts);
+  } else {
+    const months: Record<string, number> = {
+      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+    };
+
+    const m1 = rawStr.match(/([a-zA-Z]{3})\/(\d{1,2})(?:\/(\d{4}))?\s+(\d{1,2}):(\d{2})/i);
+    const m2 = rawStr.match(/(\d{1,2})\/([a-zA-Z]{3})(?:\/(\d{4}))?\s+(\d{1,2}):(\d{2})/i);
+
+    if (m1) {
+      const monthIdx = months[m1[1].toLowerCase()];
+      if (monthIdx !== undefined) {
+        const day = parseInt(m1[2], 10);
+        const year = m1[3] ? parseInt(m1[3], 10) : new Date().getFullYear();
+        const hr = parseInt(m1[4], 10);
+        const min = parseInt(m1[5], 10);
+        dateObj = new Date(year, monthIdx, day, hr, min);
+      }
+    } else if (m2) {
+      const monthIdx = months[m2[2].toLowerCase()];
+      if (monthIdx !== undefined) {
+        const day = parseInt(m2[1], 10);
+        const year = m2[3] ? parseInt(m2[3], 10) : new Date().getFullYear();
+        const hr = parseInt(m2[4], 10);
+        const min = parseInt(m2[5], 10);
+        dateObj = new Date(year, monthIdx, day, hr, min);
+      }
+    }
+  }
+
+  let relativeSince: string | null = null;
+  if (dateObj && !isNaN(dateObj.getTime())) {
+    const diffMs = Date.now() - dateObj.getTime();
+    if (diffMs > 0) {
+      const mins = Math.floor(diffMs / 60000);
+      const hours = Math.floor(mins / 60);
+      const days = Math.floor(hours / 24);
+
+      if (days > 0) relativeSince = `${days}d`;
+      else if (hours > 0) relativeSince = `${hours}h`;
+      else if (mins > 0) relativeSince = `${mins}m`;
+      else relativeSince = 'now';
+    }
+  }
+
+  return { displayDate, fullDate, relativeSince };
+};
+
+export const getLoginTimestampMs = (v: any): number => {
+  if (!v) return 0;
+  let rawDateStr: string | null = null;
+  const rawComment = String(v.comment || v.remarks || '');
+  if (rawComment.includes('login:')) {
+    const match = rawComment.match(/login:\s*([^\s,;]+(?:\s+[^\s,;]+)?)/i);
+    if (match && match[1]) {
+      rawDateStr = match[1];
+    }
+  }
+  if (!rawDateStr) {
+    rawDateStr = v['first-login'] || v.loginDate || v.firstLogin || v.startTime || v['start-time'] || v.uptime || null;
+  }
+  if (!rawDateStr) return 0;
+
+  const ts = Date.parse(rawDateStr);
+  if (!isNaN(ts)) return ts;
+
+  const months: Record<string, number> = {
+    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+  };
+
+  const m1 = rawDateStr.match(/([a-zA-Z]{3})\/(\d{1,2})(?:\/(\d{4}))?\s+(\d{1,2}):(\d{2})/i);
+  const m2 = rawDateStr.match(/(\d{1,2})\/([a-zA-Z]{3})(?:\/(\d{4}))?\s+(\d{1,2}):(\d{2})/i);
+
+  if (m1) {
+    const monthIdx = months[m1[1].toLowerCase()];
+    if (monthIdx !== undefined) {
+      const day = parseInt(m1[2], 10);
+      const year = m1[3] ? parseInt(m1[3], 10) : new Date().getFullYear();
+      const hr = parseInt(m1[4], 10);
+      const min = parseInt(m1[5], 10);
+      return new Date(year, monthIdx, day, hr, min).getTime();
+    }
+  } else if (m2) {
+    const monthIdx = months[m2[2].toLowerCase()];
+    if (monthIdx !== undefined) {
+      const day = parseInt(m2[1], 10);
+      const year = m2[3] ? parseInt(m2[3], 10) : new Date().getFullYear();
+      const hr = parseInt(m2[4], 10);
+      const min = parseInt(m2[5], 10);
+      return new Date(year, monthIdx, day, hr, min).getTime();
+    }
+  }
+
+  return 0;
+};
+
+export const sortByLoginDate = <T,>(vouchers: T[]): T[] => {
+  return [...vouchers].sort((a, b) => getLoginTimestampMs(b) - getLoginTimestampMs(a));
 };
 
 export const setupWireguardTunnelAPI = async (routerId: string, routerData: Record<string, unknown>): Promise<unknown> => {

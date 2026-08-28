@@ -7,6 +7,9 @@ import {
   createVouchersAPI,
   fetchVoucherJobStatusAPI,
   deleteVouchersAPI,
+  enableVouchersAPI,
+  formatLoginDateDisplay,
+  sortByLoginDate,
   fetchProfilesAPI,
   fetchRouterProfilesWithUserAPI,
   revalidateRouterCache,
@@ -52,6 +55,10 @@ import {
   Share2,
   Download,
   Loader2,
+  Play,
+  RotateCcw,
+  Smartphone,
+  Wifi,
 } from 'lucide-react';
 
 interface Profile {
@@ -195,8 +202,27 @@ const getProfileInfoDetails = (pName: string, profilesList: Profile[]) => {
     }
   }
 
-  // 2. Validity Extraction
-  if (p?.validity) {
+  // 2. Validity Extraction - On-login script as single source of truth
+  const scriptText = ((p?.['on-login'] || (p as any)?.onlogin || '') as string);
+  if (scriptText) {
+    const addDaysMatch = scriptText.match(/:local addDays (\d+);/i);
+    const addHoursMatch = scriptText.match(/:local addHours ([\d:]+);/i);
+    if (addDaysMatch && addHoursMatch) {
+      const d = parseInt(addDaysMatch[1], 10);
+      const hParts = addHoursMatch[1].split(':');
+      const h = parseInt(hParts[0], 10);
+      const m = parseInt(hParts[1], 10);
+      const parts = [];
+      if (d > 0) parts.push(`${d}d`);
+      if (h > 0) parts.push(`${h}h`);
+      if (m > 0) parts.push(`${m}m`);
+      validity = parts.length > 0 ? parts.join(' ') : 'Unlimited';
+    } else if (scriptText.includes('exp=unlimited') || (!scriptText.includes('kill_') && scriptText.length > 0)) {
+      validity = 'Unlimited';
+    }
+  }
+
+  if (!validity && p?.validity) {
     const isUnlVal = p.validity === '0d' || p.validity === '0' || p.validity === '0h' || p.validity === '0m' || p.validity === '0s' || p.validity?.toLowerCase() === 'unlimited';
     validity = isUnlVal ? 'Unlimited' : p.validity;
   }
@@ -211,17 +237,6 @@ const getProfileInfoDetails = (pName: string, profilesList: Profile[]) => {
       if (matchTimeout) {
         validity = matchTimeout[1];
       }
-    }
-  }
-
-  const scriptText = ((p?.['on-login'] || (p as any)?.onlogin || p?.comment || '') as string).toLowerCase();
-
-  if (!validity && scriptText) {
-    const matchScriptVal = scriptText.match(/(?:validity|rem|time)\s*[:=]?\s*["']?(\d+\s*[dhmw])["']?/i);
-    if (matchScriptVal) {
-      const valStr = matchScriptVal[1];
-      const isUnlScriptVal = valStr.toLowerCase() === '0d' || valStr === '0h' || valStr === '0m' || valStr === '0s' || valStr === '0';
-      validity = isUnlScriptVal ? 'Unlimited' : valStr;
     }
   }
 
@@ -337,6 +352,7 @@ export default function VouchersPage() {
   const [detailSearch, setDetailSearch] = useState<string>('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isDeletingBatch, setIsDeletingBatch] = useState<boolean>(false);
+  const [isEnablingVouchers, setIsEnablingVouchers] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Print Modal State
@@ -367,7 +383,7 @@ export default function VouchersPage() {
   const { data: profilesData } = useSWR(
     routerId ? `voucher-profiles-${routerId}` : null,
     () => fetchProfilesAPI(routerId!),
-    { revalidateOnFocus: true }
+    { revalidateOnFocus: true, keepPreviousData: true }
   );
 
   const profileList: Profile[] = useMemo(() => {
@@ -700,6 +716,23 @@ export default function VouchersPage() {
     );
   };
 
+  // Handle Enable Vouchers
+  const handleEnableVouchers = async (names: string[]) => {
+    if (!routerId || !names || names.length === 0) return;
+    try {
+      setIsEnablingVouchers(true);
+      const res = await enableVouchersAPI(routerId, names);
+      showToast(`تم إعادة تفعيل ${res.enabledCount || names.length} كرت بنجاح!`, 'success');
+      revalidateRouterCache(routerId);
+      mutateBatches();
+    } catch (err: any) {
+      console.error('Failed to enable vouchers:', err);
+      showToast(err.message || 'فشل تفعيل الكروت.', 'error');
+    } finally {
+      setIsEnablingVouchers(false);
+    }
+  };
+
   // Copy Code to Clipboard
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -919,13 +952,13 @@ export default function VouchersPage() {
     let list: (VoucherSummary | ActiveVoucher | ExpiredVoucher)[] = [];
 
     if (detailTab === 'unused') list = batchDetail.unusedVouchers || [];
-    else if (detailTab === 'active') list = batchDetail.activeVouchers || [];
-    else if (detailTab === 'expired') list = batchDetail.expiredVouchers || [];
+    else if (detailTab === 'active') list = sortByLoginDate(batchDetail.activeVouchers || []);
+    else if (detailTab === 'expired') list = sortByLoginDate(batchDetail.expiredVouchers || []);
     else {
       list = [
         ...(batchDetail.unusedVouchers || []),
-        ...(batchDetail.activeVouchers || []),
-        ...(batchDetail.expiredVouchers || []),
+        ...sortByLoginDate(batchDetail.activeVouchers || []),
+        ...sortByLoginDate(batchDetail.expiredVouchers || []),
       ];
     }
 
@@ -2312,10 +2345,19 @@ export default function VouchersPage() {
                     const vAny = vItem as any;
                     const vName = vItem.name || vAny['.id'] || '';
 
-                    // Determine Voucher Status
-                    const isAct = Boolean(vAny.timeLeftText || vAny.bytesIn || vAny.address || (batchDetail?.activeVouchers || []).some(av => av.name === vName));
-                    const isExp = Boolean(vAny.isExpired || vAny.expireDate || (batchDetail?.expiredVouchers || []).some(ev => ev.name === vName));
-                    const vStatus: 'unused' | 'active' | 'expired' = isAct ? 'active' : isExp ? 'expired' : 'unused';
+                    // Determine Voucher Status — trust the backend classification from batchDetail arrays
+                    const isInExpiredList = (batchDetail?.expiredVouchers || []).some((ev) => ev.name === vName);
+                    const isInActiveList = (batchDetail?.activeVouchers || []).some((av) => av.name === vName);
+                    const isExp = Boolean(
+                      vAny.isExpired === true ||
+                      (vAny.disabled === true || vAny.disabled === 'true') ||
+                      isInExpiredList
+                    );
+                    const isAct = !isExp && Boolean(
+                      isInActiveList ||
+                      (vAny.address && vAny.disabled !== true && vAny.disabled !== 'true')
+                    );
+                    const vStatus: 'unused' | 'active' | 'expired' = isExp ? 'expired' : isAct ? 'active' : 'unused';
 
                     // Profile Fallback metadata
                     const vProf = vItem.profile || selectedBatchModal?.profile || '';
@@ -2332,7 +2374,8 @@ export default function VouchersPage() {
 
                     if (vStatus === 'unused') {
                       dataLeftStr = null;
-                    } else if (vStatus === 'active') {
+                    } else {
+                      // Active or Expired
                       const rawRemBytes = vAny.remainingBytes ?? vAny['remaining-bytes'];
                       if (rawRemBytes != null && rawRemBytes !== '') {
                         const num = Number(rawRemBytes);
@@ -2346,8 +2389,9 @@ export default function VouchersPage() {
                         dataLeftStr = formatBytes(rem);
                         dataPct = Math.min(100, Math.max(0, (rem / limitBytesNum) * 100));
                       }
-                    } else {
-                      dataLeftStr = '0 MB';
+                      if (!dataLeftStr && vStatus === 'expired') {
+                        dataLeftStr = '0 MB';
+                      }
                     }
 
                     // 2. Time Remaining / Limit Calculation
@@ -2377,6 +2421,8 @@ export default function VouchersPage() {
 
                     // 3. Login Date / Activation Date
                     let loginDateStr: string | null = null;
+                    let loginDateFull: string | null = null;
+                    let loginDateRelative: string | null = null;
                     if (vStatus === 'active' || vStatus === 'expired') {
                       const rawComment = String(vAny.comment || vAny.remarks || '');
                       if (rawComment.includes('login:')) {
@@ -2387,6 +2433,12 @@ export default function VouchersPage() {
                       }
                       if (!loginDateStr) {
                         loginDateStr = vAny['first-login'] || vAny.loginDate || vAny.firstLogin || vAny.startTime || vAny['start-time'] || vAny.uptime || null;
+                      }
+                      if (loginDateStr) {
+                        const { displayDate, fullDate, relativeSince } = formatLoginDateDisplay(loginDateStr);
+                        loginDateStr = displayDate;
+                        loginDateFull = fullDate;
+                        loginDateRelative = relativeSince;
                       }
                     }
 
@@ -2431,34 +2483,68 @@ export default function VouchersPage() {
                       >
                         {/* Row 1: Header line with Status, PIN, Copy button */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-                          {/* Status Badge */}
-                          <span
-                            className="item-badge"
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: 700,
-                              padding: '0 6px',
-                              borderRadius: '5px',
-                              height: '20px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              background: 'rgba(255, 255, 255, 0.08)',
-                              color:
-                                vStatus === 'active'
-                                  ? '#3b82f6'
-                                  : vStatus === 'expired'
-                                  ? '#ef4444'
-                                  : '#22c55e',
-                              border: '1px solid var(--glass-border)',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {vStatus === 'active'
+                          {/* Status Badge + Disabled Badge */}
+                          {(() => {
+                            const vDisabled = vAny.isDisabled === true || vAny.disabled === true || vAny.disabled === 'true';
+                            const hasRemData = (() => {
+                              const rb = vAny.remainingBytes;
+                              if (rb != null && Number(rb) > 0) return true;
+                              if (limitBytesNum > 0 && (limitBytesNum - usedBytes) > 0) return true;
+                              return false;
+                            })();
+                            // If backend says expired but voucher is just disabled with remaining data, treat as active
+                            const effectiveStatus = (vStatus === 'expired' && vDisabled && hasRemData) ? 'active' : vStatus;
+                            const statusColor = effectiveStatus === 'active' ? '#3b82f6' : effectiveStatus === 'expired' ? '#ef4444' : '#22c55e';
+                            const statusLabel = effectiveStatus === 'active'
                               ? t('batch.statusActive') || 'نشط'
-                              : vStatus === 'expired'
+                              : effectiveStatus === 'expired'
                               ? t('batch.statusExpired') || 'منتهي'
-                              : t('batch.statusUnused') || 'غير مستخدم'}
-                          </span>
+                              : t('batch.statusUnused') || 'غير مستخدم';
+                            return (
+                              <>
+                                <span
+                                  className="item-badge"
+                                  style={{
+                                    fontSize: '10px',
+                                    fontWeight: 700,
+                                    padding: '0 6px',
+                                    borderRadius: '5px',
+                                    height: '20px',
+                                    minWidth: '65px',
+                                    justifyContent: 'center',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    color: statusColor,
+                                    border: '1px solid var(--glass-border)',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {statusLabel}
+                                </span>
+                                {vDisabled && (
+                                  <span
+                                    className="item-badge"
+                                    style={{
+                                      fontSize: '9px',
+                                      fontWeight: 700,
+                                      padding: '0 5px',
+                                      borderRadius: '5px',
+                                      height: '18px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      background: 'rgba(249, 115, 22, 0.12)',
+                                      color: '#f97316',
+                                      border: '1px solid rgba(249, 115, 22, 0.25)',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    Disabled
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })()}
 
                           {/* PIN / Voucher Code */}
                           <strong
@@ -2491,11 +2577,49 @@ export default function VouchersPage() {
                           >
                             {isCopied ? <Check size={13} /> : <Copy size={13} />}
                           </button>
+
+                          {/* Re-enable Button for Expired/Disabled Voucher */}
+                          {(vStatus === 'expired' || vAny.isDisabled === true || vAny.disabled === true || vAny.disabled === 'true') && (
+                            <button
+                              onClick={() => handleEnableVouchers([vName])}
+                              disabled={isEnablingVouchers}
+                              title="تفعيل الكرت"
+                              style={{
+                                marginLeft: isRtl ? '0' : 'auto',
+                                marginRight: isRtl ? 'auto' : '0',
+                                background: 'rgba(34, 197, 94, 0.15)',
+                                border: '1px solid rgba(34, 197, 94, 0.3)',
+                                color: '#22c55e',
+                                borderRadius: '5px',
+                                padding: '2px 8px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                cursor: isEnablingVouchers ? 'not-allowed' : 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <RotateCcw size={11} />
+                              <span>تفعيل</span>
+                            </button>
+                          )}
                         </div>
 
-                        {/* Row 2: Badges stack for active / expired vouchers */}
+                        {/* Row 2: Single-line badges container for active / expired vouchers */}
                         {hasMetadataPills && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              flexWrap: 'nowrap',
+                              overflowX: 'auto',
+                              maxWidth: '100%',
+                              scrollbarWidth: 'none',
+                            }}
+                          >
                             {/* Time Pill */}
                             {timeLeftStr && (
                               <span
@@ -2503,7 +2627,7 @@ export default function VouchersPage() {
                                 style={{
                                   fontSize: '10px',
                                   fontWeight: 700,
-                                  padding: '0 6px',
+                                  padding: '0 5px',
                                   borderRadius: '5px',
                                   height: '20px',
                                   display: 'inline-flex',
@@ -2514,6 +2638,7 @@ export default function VouchersPage() {
                                   color: '#38bdf8',
                                   whiteSpace: 'nowrap',
                                   textTransform: 'uppercase',
+                                  flexShrink: 0,
                                 }}
                               >
                                 <Clock size={10} style={{ flexShrink: 0 }} />
@@ -2531,7 +2656,7 @@ export default function VouchersPage() {
                                 style={{
                                   fontSize: '10px',
                                   fontWeight: 700,
-                                  padding: '0 6px',
+                                  padding: '0 5px',
                                   borderRadius: '5px',
                                   height: '20px',
                                   display: 'inline-flex',
@@ -2542,6 +2667,7 @@ export default function VouchersPage() {
                                   color: '#c084fc',
                                   whiteSpace: 'nowrap',
                                   textTransform: 'uppercase',
+                                  flexShrink: 0,
                                 }}
                               >
                                 <HardDrive size={10} style={{ flexShrink: 0 }} />
@@ -2558,22 +2684,25 @@ export default function VouchersPage() {
                                 className="item-badge"
                                 style={{
                                   fontSize: '10px',
-                                  fontWeight: 700,
-                                  padding: '0 6px',
+                                  fontWeight: 600,
+                                  padding: '0 5px',
                                   borderRadius: '5px',
                                   height: '20px',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '3px',
-                                  background: 'rgba(255, 255, 255, 0.08)',
-                                  border: '1px solid var(--glass-border)',
+                                  background: 'rgba(245, 158, 11, 0.12)',
+                                  border: '1px solid rgba(245, 158, 11, 0.3)',
                                   color: '#f59e0b',
                                   whiteSpace: 'nowrap',
+                                  flexShrink: 0,
                                 }}
-                                title={t('vouchers.loginDate') || 'تاريخ الدخول'}
+                                title={loginDateFull ? `Login Date: ${loginDateFull}` : (t('vouchers.loginDate') || 'تاريخ الدخول')}
                               >
                                 <Calendar size={10} style={{ flexShrink: 0 }} />
-                                <span>{loginDateStr}</span>
+                                <span>
+                                  {loginDateRelative || loginDateStr}
+                                </span>
                               </span>
                             )}
 
@@ -2585,21 +2714,26 @@ export default function VouchersPage() {
                                   fontSize: '10px',
                                   fontWeight: 600,
                                   color: '#3b82f6',
-                                  background: 'rgba(255, 255, 255, 0.08)',
-                                  border: '1px solid var(--glass-border)',
+                                  background: 'rgba(59, 130, 246, 0.1)',
+                                  border: '1px solid rgba(59, 130, 246, 0.25)',
                                   borderRadius: '5px',
-                                  padding: '0 6px',
+                                  padding: '0 5px',
                                   height: '20px',
+                                  maxWidth: '90px',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  maxWidth: '120px',
+                                  gap: '3px',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
                                   whiteSpace: 'nowrap',
+                                  flexShrink: 0,
                                 }}
                                 title={cleanDeviceName}
                               >
-                                {cleanDeviceName}
+                                <Smartphone size={10} style={{ flexShrink: 0 }} />
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {cleanDeviceName}
+                                </span>
                               </span>
                             )}
                           </div>
