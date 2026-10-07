@@ -174,7 +174,8 @@ export default function ApsPage() {
 
   const routerVpnIp = pfData?.routerVpnIp || '';
 
-  const nextAvailablePort = useMemo(() => {
+  const getSuggestedPort = (targetPort: string | number) => {
+    const isSsl = String(targetPort) === '443';
     const usedPorts = new Set<number>();
     if (pfData?.portForwards && Array.isArray(pfData.portForwards)) {
       pfData.portForwards.forEach((pf) => {
@@ -182,26 +183,32 @@ export default function ApsPage() {
         if (!isNaN(p)) usedPorts.add(p);
       });
     }
-    let p = 8081;
+    let p = isSsl ? 8443 : 8081;
     while (usedPorts.has(p)) {
       p++;
     }
     return p;
-  }, [pfData]);
+  };
+
+  const getPortForwardUrl = (pf: PortForwardRule, host: string) => {
+    const isHttps = String(pf.toPort) === '443' || String(pf.dstPort).startsWith('84') || String(pf.dstPort).endsWith('443');
+    return `${isHttps ? 'https' : 'http'}://${host}:${pf.dstPort}`;
+  };
 
   useEffect(() => {
     if (selectedDevice?.ip) {
       const existing = portForwardMap.get(selectedDevice.ip);
       if (existing) {
         setPfExternalPort(String(existing.dstPort));
-        setPfTargetPort(String(existing.toPort || 80));
+        setPfTargetPort(String(existing.toPort || 443));
       } else {
-        setPfExternalPort(String(nextAvailablePort));
-        setPfTargetPort('80');
+        // Default to HTTPS (443) for modern APs / CPEs (TP-Link / Ubiquiti)
+        setPfTargetPort('443');
+        setPfExternalPort(String(getSuggestedPort('443')));
       }
     }
     setPfError(null);
-  }, [selectedDevice, portForwardMap, nextAvailablePort]);
+  }, [selectedDevice, portForwardMap]);
 
   const handleEnablePortForward = async () => {
     if (!routerId || !selectedDevice?.ip) return;
@@ -210,8 +217,8 @@ export default function ApsPage() {
     try {
       await addPortForwardAPI(routerId, {
         toAddress: selectedDevice.ip,
-        toPort: parseInt(pfTargetPort, 10) || 80,
-        dstPort: parseInt(pfExternalPort, 10) || nextAvailablePort,
+        toPort: parseInt(pfTargetPort, 10) || 443,
+        dstPort: parseInt(pfExternalPort, 10) || getSuggestedPort(pfTargetPort),
         comment: selectedDevice.comment || selectedDevice.name || selectedDevice.mac,
       });
       await mutatePortForwards();
@@ -918,7 +925,7 @@ export default function ApsPage() {
                       onClick={(e) => {
                         e.stopPropagation();
                         const pf = portForwardMap.get(device.ip!)!;
-                        window.open(`http://${routerVpnIp}:${pf.dstPort}`, '_blank');
+                        window.open(getPortForwardUrl(pf, routerVpnIp), '_blank');
                       }}
                       title={t('aps.openWebGui') || 'Open AP Web GUI'}
                       style={{
@@ -1409,81 +1416,140 @@ export default function ApsPage() {
 
                 {portForwardMap.has(selectedDevice.ip) ? (
                   <div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      background: 'rgba(0, 0, 0, 0.3)',
-                      padding: '8px 10px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
-                      marginBottom: '10px'
-                    }}>
-                      <div>
-                        <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', display: 'block' }}>
-                          {t('aps.forwardedPort') || 'VPN Direct Link'}
-                        </span>
-                        <span style={{ fontSize: '11.5px', fontFamily: 'monospace', fontWeight: 700, color: '#38bdf8' }}>
-                          http://{routerVpnIp || '10.8.0.x'}:{portForwardMap.get(selectedDevice.ip)!.dstPort}
-                        </span>
-                      </div>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                        ➔ {selectedDevice.ip}:{portForwardMap.get(selectedDevice.ip)!.toPort}
-                      </span>
-                    </div>
+                    {(() => {
+                      const activePf = portForwardMap.get(selectedDevice.ip!)!;
+                      const directUrl = getPortForwardUrl(activePf, routerVpnIp);
+                      const isSsl = String(activePf.toPort) === '443' || String(activePf.dstPort).startsWith('84');
 
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const pf = portForwardMap.get(selectedDevice.ip!)!;
-                          window.open(`http://${routerVpnIp}:${pf.dstPort}`, '_blank');
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: 'none',
-                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 1) 100%)',
-                          color: '#ffffff',
-                          fontSize: '11.5px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px'
-                        }}
-                      >
-                        <Globe size={13} />
-                        <span>{t('aps.openWebGui') || 'Open AP Web GUI'}</span>
-                        <ArrowUpRight size={12} />
-                      </button>
+                      return (
+                        <>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            marginBottom: '8px'
+                          }}>
+                            <div>
+                              <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', display: 'block' }}>
+                                {t('aps.forwardedPort') || 'VPN Direct Link'}
+                              </span>
+                              <span style={{ fontSize: '11.5px', fontFamily: 'monospace', fontWeight: 700, color: '#38bdf8' }}>
+                                {directUrl}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                              ➔ {selectedDevice.ip}:{activePf.toPort}
+                            </span>
+                          </div>
 
-                      <button
-                        type="button"
-                        onClick={handleDisablePortForward}
-                        disabled={isPfSubmitting}
-                        style={{
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          background: 'rgba(239, 68, 68, 0.1)',
-                          color: '#ef4444',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {isPfSubmitting ? (t('aps.disabling') || '...') : (t('aps.disableRemoteAccess') || 'Disable')}
-                      </button>
-                    </div>
+                          {isSsl && (
+                            <p style={{ margin: '0 0 10px 0', fontSize: '10px', color: '#f59e0b', lineHeight: 1.3 }}>
+                              💡 <strong>ملاحظة:</strong> أجهزة TP-Link PharOS و Ubiquiti تستخدم شهادة SSL ذاتية. إذا ظهر تحذير أمان في المتصفح، اختر <em>Advanced → Proceed</em> لفتح الصفحة.
+                            </p>
+                          )}
+
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                window.open(directUrl, '_blank');
+                              }}
+                              style={{
+                                flex: 1,
+                                padding: '8px 12px',
+                                borderRadius: '8px',
+                                border: 'none',
+                                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 1) 100%)',
+                                color: '#ffffff',
+                                fontSize: '11.5px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <Globe size={13} />
+                              <span>{t('aps.openWebGui') || 'Open AP Web GUI'}</span>
+                              <ArrowUpRight size={12} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleDisablePortForward}
+                              disabled={isPfSubmitting}
+                              style={{
+                                padding: '8px 12px',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                color: '#ef4444',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {isPfSubmitting ? (t('aps.disabling') || '...') : (t('aps.disableRemoteAccess') || 'Disable')}
+                            </button>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div>
                     <p style={{ margin: '0 0 10px 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                       {t('aps.remoteAccessDesc') || 'Access this device web management interface over WireGuard VPN.'}
                     </p>
+
+                    {/* Protocol Presets */}
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPfTargetPort('443');
+                          setPfExternalPort(String(getSuggestedPort('443')));
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '5px 8px',
+                          borderRadius: '6px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          border: pfTargetPort === '443' ? '1px solid #10b981' : '1px solid var(--border-color)',
+                          background: pfTargetPort === '443' ? 'rgba(16, 185, 129, 0.15)' : 'var(--card-bg)',
+                          color: pfTargetPort === '443' ? '#10b981' : 'var(--muted)',
+                        }}
+                      >
+                        🔒 HTTPS (443) - TP-Link / Ubiquiti
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPfTargetPort('80');
+                          setPfExternalPort(String(getSuggestedPort('80')));
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '5px 8px',
+                          borderRadius: '6px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          border: pfTargetPort === '80' ? '1px solid #3b82f6' : '1px solid var(--border-color)',
+                          background: pfTargetPort === '80' ? 'rgba(59, 130, 246, 0.15)' : 'var(--card-bg)',
+                          color: pfTargetPort === '80' ? '#38bdf8' : 'var(--muted)',
+                        }}
+                      >
+                        🌐 HTTP (80)
+                      </button>
+                    </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
                       <div>
@@ -1494,7 +1560,7 @@ export default function ApsPage() {
                           type="number"
                           value={pfExternalPort}
                           onChange={(e) => setPfExternalPort(e.target.value)}
-                          placeholder="8081"
+                          placeholder="8443"
                           style={{
                             width: '100%',
                             padding: '6px 8px',
@@ -1518,7 +1584,7 @@ export default function ApsPage() {
                           type="number"
                           value={pfTargetPort}
                           onChange={(e) => setPfTargetPort(e.target.value)}
-                          placeholder="80"
+                          placeholder="443"
                           style={{
                             width: '100%',
                             padding: '6px 8px',
