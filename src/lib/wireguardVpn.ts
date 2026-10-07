@@ -204,7 +204,7 @@ export async function generateUserVpnConfig(
 
   // Authoritative server WireGuard parameters
   let serverPublicKey = customServerPublicKey || '5OI5UlxA6qJQKLU/29S1Ox6oCZKR91SWLEq1DvXVuks=';
-  let endpointHost = customEndpointHost || 'vpn.mikman.net';
+  let endpointHost = customEndpointHost || '192.236.234.151';
   let endpointPort = customEndpointPort ? String(customEndpointPort) : '13231';
 
   // Build strictly isolated AllowedIPs list: ONLY this user's router VPN IPs
@@ -240,7 +240,6 @@ export async function generateUserVpnConfig(
     '[Interface]',
     `PrivateKey = ${privateKey}`,
     `Address = ${clientIp}/16`,
-    'DNS = 1.1.1.1, 8.8.8.8',
     '',
     '[Peer]',
     `PublicKey = ${serverPublicKey}`,
