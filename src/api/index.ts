@@ -1013,6 +1013,26 @@ export const generateCloudScriptAPI = async (params: GenerateScriptParams): Prom
   });
 };
 
+export interface ServerVpnConfigResponse {
+  success: boolean;
+  confText?: string;
+  clientIp?: string;
+  serverPublicKey?: string;
+  endpointHost?: string;
+  endpointPort?: number;
+  allowedIps?: string;
+  routers?: Array<{ id: string; name: string; vpnIp: string; model?: string }>;
+}
+
+export const fetchUserVpnConfigAPI = async (): Promise<ServerVpnConfigResponse | null> => {
+  try {
+    return await apiCall<ServerVpnConfigResponse>('/user/vpn-config', { cache: 'no-store' });
+  } catch (e) {
+    // Graceful fallback to client generation
+    return null;
+  }
+};
+
 export const fetchAllRoutersStatusAPI = async (): Promise<any[]> => {
   try {
     return await apiCall<any[]>('/routers', { cache: 'no-store' });

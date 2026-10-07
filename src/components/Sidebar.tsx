@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { Ticket, Server, Layers, Users, Laptop, Settings, ChevronLeft, ChevronRight, LogOut, LayoutDashboard, TrendingUp, User, Home, Printer, Sun, Moon, Globe } from 'lucide-react';
+import { Ticket, Server, Layers, Users, Laptop, Settings, ChevronLeft, ChevronRight, LogOut, LayoutDashboard, TrendingUp, User, Home, Printer, Sun, Moon, Globe, Shield } from 'lucide-react';
 import BrandLogo from './BrandLogo';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useVpnModal } from '../context/VpnModalContext';
 import LogoutConfirmModal from './LogoutConfirmModal';
 
 interface SidebarProps {
@@ -17,6 +18,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const params = useParams();
   const { user } = useAuth();
   const { language, setLanguage, t } = useLanguage();
+  const { openVpnModal } = useVpnModal();
   const routerId = params?.routerId as string | undefined;
   const isRouterConnected = Boolean(routerId);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -221,6 +223,39 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </Link>
             );
           })}
+
+          {/* WireGuard VPN Access Item */}
+          <button
+            onClick={() => {
+              onClose?.();
+              openVpnModal();
+            }}
+            title={collapsed ? (t('sidebar.vpnAccess') || 'VPN Access') : undefined}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              gap: collapsed ? '0' : '10px',
+              padding: '6px 10px',
+              borderRadius: '8px',
+              color: 'var(--text-muted)',
+              backgroundColor: 'transparent',
+              border: 'none',
+              transition: 'all 0.2s ease',
+              fontWeight: '500',
+              fontSize: 'var(--font-sm)',
+              width: '100%',
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '20px' }}>
+              <Shield size={18} color="var(--primary)" />
+            </div>
+            <span style={{ opacity: collapsed ? 0 : 1, width: collapsed ? 0 : 'auto', transition: 'opacity 0.2s ease, width 0.2s ease', overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--foreground)' }}>
+              {t('sidebar.vpnAccess') || 'VPN Access'}
+            </span>
+          </button>
 
           {isRouterConnected && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', borderTop: '1px solid var(--glass-border)', paddingTop: '6px', marginTop: '4px', width: '100%' }}>

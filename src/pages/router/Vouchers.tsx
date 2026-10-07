@@ -2486,14 +2486,7 @@ export default function VouchersPage() {
                           {/* Status Badge + Disabled Badge */}
                           {(() => {
                             const vDisabled = vAny.isDisabled === true || vAny.disabled === true || vAny.disabled === 'true';
-                            const hasRemData = (() => {
-                              const rb = vAny.remainingBytes;
-                              if (rb != null && Number(rb) > 0) return true;
-                              if (limitBytesNum > 0 && (limitBytesNum - usedBytes) > 0) return true;
-                              return false;
-                            })();
-                            // If backend says expired but voucher is just disabled with remaining data, treat as active
-                            const effectiveStatus = (vStatus === 'expired' && vDisabled && hasRemData) ? 'active' : vStatus;
+                            const effectiveStatus = vStatus;
                             const statusColor = effectiveStatus === 'active' ? '#3b82f6' : effectiveStatus === 'expired' ? '#ef4444' : '#22c55e';
                             const statusLabel = effectiveStatus === 'active'
                               ? t('batch.statusActive') || 'نشط'

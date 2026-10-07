@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ModalProvider } from './context/ModalContext';
+import { VpnModalProvider } from './context/VpnModalContext';
 import { useLanguage } from './context/LanguageContext';
 
 import LoadingScreen from './components/LoadingScreen';
@@ -104,7 +105,9 @@ function AppContent() {
   // Authenticated + subscribed — render app
   return (
     <ModalProvider>
-      <AppRoutes />
+      <VpnModalProvider>
+        <AppRoutes />
+      </VpnModalProvider>
     </ModalProvider>
   );
 }

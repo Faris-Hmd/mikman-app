@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { Sun, Moon, Menu } from 'lucide-react';
+import { Sun, Moon, Menu, Shield } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useVpnModal } from '../context/VpnModalContext';
 import BrandLogo from './BrandLogo';
 
 interface HeaderProps {
@@ -16,6 +17,7 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
   const { user } = useAuth();
+  const { openVpnModal } = useVpnModal();
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
@@ -73,6 +75,23 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {user && (
+            <button
+              onClick={() => openVpnModal()}
+              className="header-action-btn flex items-center justify-center"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                flexShrink: 0,
+                background: 'rgba(var(--primary-rgb), 0.1)',
+                border: '1.5px solid rgba(var(--primary-rgb), 0.3)',
+              }}
+              title={t('vpnModal.title') || 'WireGuard VPN Access'}
+            >
+              <Shield size={18} color="var(--primary)" />
+            </button>
+          )}
           <button
             onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
             className="header-action-btn hide-on-mobile text-[11px] font-extrabold text-[var(--primary)] tracking-[0.3px]"

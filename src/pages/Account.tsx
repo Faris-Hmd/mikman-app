@@ -5,8 +5,9 @@ import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { supabase } from '../lib/supabase';
 import useSWR from 'swr';
-import { fetchUserSubscriptionHistoryAPI, fetchPlansCatalogAPI, SubscriptionHistoryEntry, PlanCatalogItem } from '../api';
-import { User, ShieldCheck, Clock, CreditCard, History, MessageCircle, Calendar, AlertTriangle, KeyRound, Eye, EyeOff, Lock, CheckCircle2, LogOut } from 'lucide-react';
+import { fetchUserSubscriptionHistoryAPI, fetchPlansCatalogAPI, fetchRouterProfilesWithUserAPI, SubscriptionHistoryEntry, PlanCatalogItem } from '../api';
+import { User, ShieldCheck, Clock, CreditCard, History, MessageCircle, Calendar, AlertTriangle, KeyRound, Eye, EyeOff, Lock, CheckCircle2, LogOut, Shield, Smartphone, Laptop, Router, Download, Copy, Check, ExternalLink } from 'lucide-react';
+import { useVpnModal } from '../context/VpnModalContext';
 import LogoutConfirmModal from '../components/LogoutConfirmModal';
 
 const WHATSAPP_NUMBER = '249966626693';
@@ -44,7 +45,9 @@ export default function AccountPage() {
   const { user, userData, accountInfo } = useAuth();
   const { t, isRtl } = useLanguage();
   const { showAlert } = useModal();
+  const { openVpnModal } = useVpnModal();
   const { data: plansCatalog } = useSWR('plans-catalog', fetchPlansCatalogAPI);
+  const { data: profilesResponse } = useSWR('router-profiles-user', fetchRouterProfilesWithUserAPI);
   const [history, setHistory] = useState<SubscriptionHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -355,6 +358,91 @@ export default function AccountPage() {
               }}
             />
           </div>
+        </div>
+      </div>
+
+      {/* WireGuard VPN Access Card */}
+      <div
+        className="responsive-card"
+        style={{
+          marginBottom: '16px',
+          background: 'var(--card-bg)',
+          border: '1.5px solid rgba(var(--primary-rgb), 0.25)',
+          borderRadius: '14px',
+          padding: '16px 18px',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(var(--primary-rgb), 0.12)',
+                border: '1px solid var(--primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--primary)',
+              }}
+            >
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--foreground)', margin: 0 }}>
+                {t('vpnModal.title') || 'WireGuard Admin VPN Tunnel'}
+              </h2>
+              <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                {t('vpnModal.subtitle') || 'Direct WinBox & WebFig access to all your MikroTik routers'}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => openVpnModal()}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                backgroundColor: 'var(--primary)',
+                color: '#fff',
+                border: 'none',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(var(--primary-rgb), 0.25)',
+                transition: 'all 0.2s',
+              }}
+            >
+              <Smartphone size={14} />
+              <span>{t('vpnModal.tabMobile') || 'Scan QR / Config'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tenant Isolation Banner */}
+        <div
+          style={{
+            padding: '8px 12px',
+            borderRadius: '8px',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '11.5px',
+            color: 'var(--foreground)',
+          }}
+        >
+          <Lock size={14} style={{ color: '#10b981', flexShrink: 0 }} />
+          <span>
+            <strong style={{ color: '#10b981' }}>{t('vpnModal.isolatedBadge') || 'Tenant Isolation Active:'}</strong>{' '}
+            {t('vpnModal.isolatedText') || 'Your tunnel strictly routes traffic to your owned routers only.'}
+          </span>
         </div>
       </div>
 

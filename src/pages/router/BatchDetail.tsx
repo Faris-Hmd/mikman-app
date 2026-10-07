@@ -1040,17 +1040,7 @@ export default function BatchDetailPage() {
             {/* Status Pill Badge */}
             {(() => {
               const vDisabled = (voucher as any).isDisabled === true || (voucher as any).disabled === true || (voucher as any).disabled === 'true';
-              const hasRemData = (() => {
-                const lb = Number(((voucher as any).limitBytesTotal ?? (voucher as any)['limit-bytes-total']) || 0);
-                const bi = Number(((voucher as any).bytesIn ?? (voucher as any)['bytes-in']) || 0);
-                const bo = Number(((voucher as any).bytesOut ?? (voucher as any)['bytes-out']) || 0);
-                const rb = (voucher as any).remainingBytes;
-                if (rb != null && Number(rb) > 0) return true;
-                if (lb > 0 && (lb - bi - bo) > 0) return true;
-                return false;
-              })();
-              // If disabled but has remaining data, show as active (disabled), not expired
-              const effectiveStatus = (status === 'expired' && vDisabled && hasRemData) ? 'active' : status;
+              const effectiveStatus = status;
               const statusColor = effectiveStatus === 'active' ? '#3b82f6' : effectiveStatus === 'expired' ? '#ef4444' : '#22c55e';
               const statusLabel = effectiveStatus === 'active'
                 ? t('batch.statusActive') || 'نشط'
