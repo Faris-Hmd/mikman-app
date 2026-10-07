@@ -2094,12 +2094,14 @@ export default function VouchersPage() {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
-                    {selectedBatchModal.printLabel || selectedBatchModal.profile}
+                    {selectedBatchModal.profile || selectedBatchModal.printLabel}
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {t('batch.profileLabel')}: <strong>{selectedBatchModal.profile}</strong>
-                    </span>
+                    {selectedBatchModal.printLabel && selectedBatchModal.printLabel !== selectedBatchModal.profile && (
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {selectedBatchModal.printLabel}
+                      </span>
+                    )}
                     {(() => {
                       const pInfo = getProfileInfoDetails(selectedBatchModal.profile, profileList);
                       return (
@@ -2481,127 +2483,64 @@ export default function VouchersPage() {
                           backdropFilter: 'blur(8px)',
                         }}
                       >
-                        {/* Row 1: Header line with Status, PIN, Copy button */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-                          {/* Status Badge + Disabled Badge */}
-                          {(() => {
-                            const vDisabled = vAny.isDisabled === true || vAny.disabled === true || vAny.disabled === 'true';
-                            const effectiveStatus = vStatus;
-                            const statusColor = effectiveStatus === 'active' ? '#3b82f6' : effectiveStatus === 'expired' ? '#ef4444' : '#22c55e';
-                            const statusLabel = effectiveStatus === 'active'
-                              ? t('batch.statusActive') || 'نشط'
-                              : effectiveStatus === 'expired'
-                              ? t('batch.statusExpired') || 'منتهي'
-                              : t('batch.statusUnused') || 'غير مستخدم';
-                            return (
-                              <>
-                                <span
-                                  className="item-badge"
-                                  style={{
-                                    fontSize: '10px',
-                                    fontWeight: 700,
-                                    padding: '0 6px',
-                                    borderRadius: '5px',
-                                    height: '20px',
-                                    minWidth: '65px',
-                                    justifyContent: 'center',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    background: 'rgba(255, 255, 255, 0.08)',
-                                    color: statusColor,
-                                    border: '1px solid var(--glass-border)',
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {statusLabel}
-                                </span>
-                                {vDisabled && (
-                                  <span
-                                    className="item-badge"
-                                    style={{
-                                      fontSize: '9px',
-                                      fontWeight: 700,
-                                      padding: '0 5px',
-                                      borderRadius: '5px',
-                                      height: '18px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      background: 'rgba(249, 115, 22, 0.12)',
-                                      color: '#f97316',
-                                      border: '1px solid rgba(249, 115, 22, 0.25)',
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    Disabled
-                                  </span>
-                                )}
-                              </>
-                            );
-                          })()}
+                        {/* Streamlined Voucher Card: PIN, Copy, and essential badges (Time, Data, Device) */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                            {vAny.isDisabled === true || vAny.disabled === true || vAny.disabled === 'true' ? (
+                              <span
+                                className="item-badge"
+                                style={{
+                                  fontSize: '9px',
+                                  fontWeight: 700,
+                                  padding: '0 5px',
+                                  borderRadius: '5px',
+                                  height: '18px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  background: 'rgba(249, 115, 22, 0.12)',
+                                  color: '#f97316',
+                                  border: '1px solid rgba(249, 115, 22, 0.25)',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                Disabled
+                              </span>
+                            ) : null}
 
-                          {/* PIN / Voucher Code */}
-                          <strong
-                            style={{
-                              fontSize: '13px',
-                              fontWeight: 800,
-                              fontFamily: 'monospace',
-                              color: 'var(--foreground)',
-                              letterSpacing: '0.5px',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {vName}
-                          </strong>
-
-                          {/* Copy Button */}
-                          <button
-                            onClick={() => handleCopyCode(vName)}
-                            title={t('common.copy') || 'نسخ الكود'}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: isCopied ? '#22c55e' : 'var(--text-muted)',
-                              cursor: 'pointer',
-                              padding: '2px',
-                              flexShrink: 0,
-                              display: 'flex',
-                              alignItems: 'center',
-                            }}
-                          >
-                            {isCopied ? <Check size={13} /> : <Copy size={13} />}
-                          </button>
-
-                          {/* Re-enable Button for Expired/Disabled Voucher */}
-                          {(vStatus === 'expired' || vAny.isDisabled === true || vAny.disabled === true || vAny.disabled === 'true') && (
-                            <button
-                              onClick={() => handleEnableVouchers([vName])}
-                              disabled={isEnablingVouchers}
-                              title="تفعيل الكرت"
+                            {/* PIN / Voucher Code */}
+                            <strong
                               style={{
-                                marginLeft: isRtl ? '0' : 'auto',
-                                marginRight: isRtl ? 'auto' : '0',
-                                background: 'rgba(34, 197, 94, 0.15)',
-                                border: '1px solid rgba(34, 197, 94, 0.3)',
-                                color: '#22c55e',
-                                borderRadius: '5px',
-                                padding: '2px 8px',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                cursor: isEnablingVouchers ? 'not-allowed' : 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
+                                fontSize: '13px',
+                                fontWeight: 800,
+                                fontFamily: 'monospace',
+                                color: 'var(--foreground)',
+                                letterSpacing: '0.5px',
                                 flexShrink: 0,
                               }}
                             >
-                              <RotateCcw size={11} />
-                              <span>تفعيل</span>
-                            </button>
-                          )}
-                        </div>
+                              {vName}
+                            </strong>
 
-                        {/* Row 2: Single-line badges container for active / expired vouchers */}
-                        {hasMetadataPills && (
+                            {/* Copy Button */}
+                            <button
+                              onClick={() => handleCopyCode(vName)}
+                              title={t('common.copy') || 'نسخ الكود'}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: isCopied ? '#22c55e' : 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: '2px',
+                                flexShrink: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                              }}
+                            >
+                              {isCopied ? <Check size={13} /> : <Copy size={13} />}
+                            </button>
+                          </div>
+
+                          {/* Action & Metadata Badges */}
                           <div
                             style={{
                               display: 'flex',
@@ -2609,97 +2548,68 @@ export default function VouchersPage() {
                               gap: '5px',
                               flexWrap: 'nowrap',
                               overflowX: 'auto',
-                              maxWidth: '100%',
                               scrollbarWidth: 'none',
+                              marginLeft: isRtl ? '0' : 'auto',
+                              marginRight: isRtl ? 'auto' : '0',
                             }}
                           >
-                            {/* Time Pill */}
-                            {timeLeftStr && (
+                            {/* Remaining Time Badge */}
+                            {timeLeftStr && timeLeftStr !== '0s' && (
                               <span
                                 className="item-badge"
                                 style={{
                                   fontSize: '10px',
                                   fontWeight: 700,
-                                  padding: '0 5px',
+                                  padding: '0 6px',
                                   borderRadius: '5px',
                                   height: '20px',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '3px',
-                                  background: 'rgba(255, 255, 255, 0.08)',
-                                  border: '1px solid var(--glass-border)',
+                                  background: 'rgba(56, 189, 248, 0.12)',
+                                  border: '1px solid rgba(56, 189, 248, 0.3)',
                                   color: '#38bdf8',
                                   whiteSpace: 'nowrap',
-                                  textTransform: 'uppercase',
                                   flexShrink: 0,
                                 }}
                               >
                                 <Clock size={10} style={{ flexShrink: 0 }} />
                                 <span>{timeLeftStr}</span>
                                 {timePct !== null && (
-                                  <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 600 }}>({Math.round(timePct)}%)</span>
+                                  <span style={{ fontSize: '9px', opacity: 0.85, fontWeight: 600 }}>({Math.round(timePct)}%)</span>
                                 )}
                               </span>
                             )}
 
-                            {/* Data Pill */}
-                            {dataLeftStr && (
+                            {/* Remaining Data Badge */}
+                            {dataLeftStr && dataLeftStr !== '0 MB' && (
                               <span
                                 className="item-badge"
                                 style={{
                                   fontSize: '10px',
                                   fontWeight: 700,
-                                  padding: '0 5px',
+                                  padding: '0 6px',
                                   borderRadius: '5px',
                                   height: '20px',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '3px',
-                                  background: 'rgba(255, 255, 255, 0.08)',
-                                  border: '1px solid var(--glass-border)',
+                                  background: 'rgba(192, 132, 252, 0.12)',
+                                  border: '1px solid rgba(192, 132, 252, 0.3)',
                                   color: '#c084fc',
                                   whiteSpace: 'nowrap',
-                                  textTransform: 'uppercase',
                                   flexShrink: 0,
                                 }}
                               >
                                 <HardDrive size={10} style={{ flexShrink: 0 }} />
                                 <span>{dataLeftStr}</span>
                                 {dataPct !== null && (
-                                  <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 600 }}>({Math.round(dataPct)}%)</span>
+                                  <span style={{ fontSize: '9px', opacity: 0.85, fontWeight: 600 }}>({Math.round(dataPct)}%)</span>
                                 )}
                               </span>
                             )}
 
-                            {/* Login Date Badge */}
-                            {loginDateStr && (
-                              <span
-                                className="item-badge"
-                                style={{
-                                  fontSize: '10px',
-                                  fontWeight: 600,
-                                  padding: '0 5px',
-                                  borderRadius: '5px',
-                                  height: '20px',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                  background: 'rgba(245, 158, 11, 0.12)',
-                                  border: '1px solid rgba(245, 158, 11, 0.3)',
-                                  color: '#f59e0b',
-                                  whiteSpace: 'nowrap',
-                                  flexShrink: 0,
-                                }}
-                                title={loginDateFull ? `Login Date: ${loginDateFull}` : (t('vouchers.loginDate') || 'تاريخ الدخول')}
-                              >
-                                <Calendar size={10} style={{ flexShrink: 0 }} />
-                                <span>
-                                  {loginDateRelative || loginDateStr}
-                                </span>
-                              </span>
-                            )}
-
-                            {/* Device Name */}
+                            {/* Device Name Badge */}
                             {cleanDeviceName && (
                               <span
                                 className="item-badge"
@@ -2710,9 +2620,9 @@ export default function VouchersPage() {
                                   background: 'rgba(59, 130, 246, 0.1)',
                                   border: '1px solid rgba(59, 130, 246, 0.25)',
                                   borderRadius: '5px',
-                                  padding: '0 5px',
+                                  padding: '0 6px',
                                   height: '20px',
-                                  maxWidth: '90px',
+                                  maxWidth: '120px',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '3px',
@@ -2729,8 +2639,34 @@ export default function VouchersPage() {
                                 </span>
                               </span>
                             )}
+
+                            {/* Re-enable Button for Expired/Disabled Voucher */}
+                            {(vStatus === 'expired' || vAny.isDisabled === true || vAny.disabled === true || vAny.disabled === 'true') && (
+                              <button
+                                onClick={() => handleEnableVouchers([vName])}
+                                disabled={isEnablingVouchers}
+                                title="تفعيل الكرت"
+                                style={{
+                                  background: 'rgba(34, 197, 94, 0.15)',
+                                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                                  color: '#22c55e',
+                                  borderRadius: '5px',
+                                  padding: '2px 8px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  cursor: isEnablingVouchers ? 'not-allowed' : 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <RotateCcw size={11} />
+                                <span>تفعيل</span>
+                              </button>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })}

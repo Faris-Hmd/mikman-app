@@ -1034,64 +1034,29 @@ export default function BatchDetailPage() {
           backdropFilter: 'blur(8px)',
         }}
       >
-        {/* Main Row: Status, PIN, Copy button & Details action */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', width: '100%' }}>
+        {/* Streamlined Voucher Card: PIN, Copy, Details, and essential badges (Time, Data, Device) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-            {/* Status Pill Badge */}
-            {(() => {
-              const vDisabled = (voucher as any).isDisabled === true || (voucher as any).disabled === true || (voucher as any).disabled === 'true';
-              const effectiveStatus = status;
-              const statusColor = effectiveStatus === 'active' ? '#3b82f6' : effectiveStatus === 'expired' ? '#ef4444' : '#22c55e';
-              const statusLabel = effectiveStatus === 'active'
-                ? t('batch.statusActive') || 'نشط'
-                : effectiveStatus === 'expired'
-                ? t('batch.statusExpired') || 'منتهي'
-                : t('batch.statusUnused') || 'غير مستخدم';
-              return (
-                <>
-                  <span
-                    className="item-badge"
-                    style={{
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      padding: '0 6px',
-                      borderRadius: '5px',
-                      height: '20px',
-                      minWidth: '65px',
-                      justifyContent: 'center',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      color: statusColor,
-                      border: '1px solid var(--glass-border)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {statusLabel}
-                  </span>
-                  {vDisabled && (
-                    <span
-                      className="item-badge"
-                      style={{
-                        fontSize: '9px',
-                        fontWeight: 700,
-                        padding: '0 5px',
-                        borderRadius: '5px',
-                        height: '18px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        background: 'rgba(249, 115, 22, 0.12)',
-                        color: '#f97316',
-                        border: '1px solid rgba(249, 115, 22, 0.25)',
-                        flexShrink: 0,
-                      }}
-                    >
-                      Disabled
-                    </span>
-                  )}
-                </>
-              );
-            })()}
+            {((voucher as any).isDisabled === true || (voucher as any).disabled === true || (voucher as any).disabled === 'true') && (
+              <span
+                className="item-badge"
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  padding: '0 5px',
+                  borderRadius: '5px',
+                  height: '18px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'rgba(249, 115, 22, 0.12)',
+                  color: '#f97316',
+                  border: '1px solid rgba(249, 115, 22, 0.25)',
+                  flexShrink: 0,
+                }}
+              >
+                Disabled
+              </span>
+            )}
 
             {/* PIN / Code */}
             <strong style={{ fontSize: '13px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--foreground)', letterSpacing: '0.5px', flexShrink: 0 }}>
@@ -1115,6 +1080,107 @@ export default function BatchDetailPage() {
             >
               {copiedCode === name ? <Check size={13} /> : <Copy size={13} />}
             </button>
+          </div>
+
+          {/* Action & Metadata Badges */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              flexWrap: 'nowrap',
+              overflowX: 'auto',
+              scrollbarWidth: 'none',
+              marginLeft: isRtl ? '0' : 'auto',
+              marginRight: isRtl ? 'auto' : '0',
+            }}
+          >
+            {/* Remaining Time Badge */}
+            {timeLeftStr && timeLeftStr !== '0s' && (
+              <span
+                className="item-badge"
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  padding: '0 6px',
+                  borderRadius: '5px',
+                  height: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  color: '#38bdf8',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                <Clock size={10} style={{ flexShrink: 0 }} />
+                <span>{timeLeftStr}</span>
+                {timePct !== null && (
+                  <span style={{ fontSize: '9px', opacity: 0.85, fontWeight: 600 }}>({Math.round(timePct)}%)</span>
+                )}
+              </span>
+            )}
+
+            {/* Remaining Data Badge */}
+            {dataLeftStr && dataLeftStr !== '0 MB' && (
+              <span
+                className="item-badge"
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  padding: '0 6px',
+                  borderRadius: '5px',
+                  height: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  background: 'rgba(192, 132, 252, 0.12)',
+                  border: '1px solid rgba(192, 132, 252, 0.3)',
+                  color: '#c084fc',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                <HardDrive size={10} style={{ flexShrink: 0 }} />
+                <span>{dataLeftStr}</span>
+                {dataPct !== null && (
+                  <span style={{ fontSize: '9px', opacity: 0.85, fontWeight: 600 }}>({Math.round(dataPct)}%)</span>
+                )}
+              </span>
+            )}
+
+            {/* Device Name */}
+            {cleanDeviceName && (
+              <span
+                className="item-badge"
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  color: '#3b82f6',
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  borderRadius: '5px',
+                  padding: '0 6px',
+                  height: '20px',
+                  maxWidth: '120px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+                title={cleanDeviceName}
+              >
+                <Wifi size={10} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {cleanDeviceName}
+                </span>
+              </span>
+            )}
 
             {/* Re-enable Button for Expired Voucher */}
             {status === 'expired' && (
@@ -1141,163 +1207,31 @@ export default function BatchDetailPage() {
                 <span>تفعيل</span>
               </button>
             )}
-          </div>
 
-          {/* Action Buttons */}
-          <button
-            onClick={() => {
-              setInfoVoucher(voucher as any);
-              setInfoStatus(status);
-            }}
-            style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-              cursor: 'pointer',
-              padding: '4px 6px',
-              color: 'var(--foreground)',
-              borderRadius: '6px',
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            title={t('common.details') || 'التفاصيل'}
-          >
-            <Info size={14} />
-          </button>
+            {/* Details Action Button */}
+            <button
+              onClick={() => {
+                setInfoVoucher(voucher as any);
+                setInfoStatus(status);
+              }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+                cursor: 'pointer',
+                padding: '3px 6px',
+                color: 'var(--foreground)',
+                borderRadius: '6px',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title={t('common.details') || 'التفاصيل'}
+            >
+              <Info size={13} />
+            </button>
+          </div>
         </div>
-
-        {/* Second Row: Single-line Metadata Pills for active / expired vouchers */}
-        {hasMetadataPills && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              flexWrap: 'nowrap',
-              overflowX: 'auto',
-              maxWidth: '100%',
-              scrollbarWidth: 'none',
-            }}
-          >
-            {/* Time Pill */}
-            {timeLeftStr && (
-              <span
-                className="item-badge"
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  padding: '0 5px',
-                  borderRadius: '5px',
-                  height: '20px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid var(--glass-border)',
-                  color: '#38bdf8',
-                  whiteSpace: 'nowrap',
-                  textTransform: 'uppercase',
-                  flexShrink: 0,
-                }}
-              >
-                <Clock size={10} style={{ flexShrink: 0 }} />
-                <span>{timeLeftStr}</span>
-                {timePct !== null && (
-                  <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 600 }}>({Math.round(timePct)}%)</span>
-                )}
-              </span>
-            )}
-
-            {/* Data Pill */}
-            {dataLeftStr && (
-              <span
-                className="item-badge"
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  padding: '0 5px',
-                  borderRadius: '5px',
-                  height: '20px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid var(--glass-border)',
-                  color: '#c084fc',
-                  whiteSpace: 'nowrap',
-                  textTransform: 'uppercase',
-                  flexShrink: 0,
-                }}
-              >
-                <HardDrive size={10} style={{ flexShrink: 0 }} />
-                <span>{dataLeftStr}</span>
-                {dataPct !== null && (
-                  <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 600 }}>({Math.round(dataPct)}%)</span>
-                )}
-              </span>
-            )}
-
-            {/* Login Date Badge */}
-            {loginDateStr && (
-              <span
-                className="item-badge"
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  padding: '0 5px',
-                  borderRadius: '5px',
-                  height: '20px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  background: 'rgba(245, 158, 11, 0.12)',
-                  border: '1px solid rgba(245, 158, 11, 0.3)',
-                  color: '#f59e0b',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-                title={loginDateFull ? `Login Date: ${loginDateFull}` : (t('vouchers.loginDate') || 'تاريخ الدخول')}
-              >
-                <Calendar size={10} style={{ flexShrink: 0 }} />
-                <span>
-                  {loginDateRelative || loginDateStr}
-                </span>
-              </span>
-            )}
-
-            {/* Device Name */}
-            {cleanDeviceName && (
-              <span
-                className="item-badge"
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  color: '#3b82f6',
-                  background: 'rgba(59, 130, 246, 0.1)',
-                  border: '1px solid rgba(59, 130, 246, 0.25)',
-                  borderRadius: '5px',
-                  padding: '0 5px',
-                  height: '20px',
-                  maxWidth: '90px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-                title={cleanDeviceName}
-              >
-                <Wifi size={10} style={{ flexShrink: 0 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {cleanDeviceName}
-                </span>
-              </span>
-            )}
-          </div>
-        )}
       </div>
     );
   };
