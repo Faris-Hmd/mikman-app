@@ -1024,9 +1024,13 @@ export interface ServerVpnConfigResponse {
   routers?: Array<{ id: string; name: string; vpnIp: string; model?: string }>;
 }
 
-export const fetchUserVpnConfigAPI = async (): Promise<ServerVpnConfigResponse | null> => {
+export const fetchUserVpnConfigAPI = async (clientPublicKey?: string): Promise<ServerVpnConfigResponse | null> => {
   try {
-    return await apiCall<ServerVpnConfigResponse>('/user/vpn-config', { cache: 'no-store' });
+    let path = '/user/vpn-config';
+    if (clientPublicKey) {
+      path += `?clientPublicKey=${encodeURIComponent(clientPublicKey)}`;
+    }
+    return await apiCall<ServerVpnConfigResponse>(path, { cache: 'no-store' });
   } catch (e) {
     // Graceful fallback to client generation
     return null;

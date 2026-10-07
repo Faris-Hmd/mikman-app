@@ -21,7 +21,13 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchRouterProfilesWithUserAPI, fetchUserVpnConfigAPI } from '../api';
-import { generateUserVpnConfig, downloadVpnConfigFile, VpnClientConfig } from '../lib/wireguardVpn';
+import {
+  generateUserVpnConfig,
+  downloadVpnConfigFile,
+  VpnClientConfig,
+  getOrCreateUserPrivateKey,
+  getPublicKeyFromPrivateKey,
+} from '../lib/wireguardVpn';
 import type { RouterConfig } from '../store';
 
 interface VpnAccessModalProps {
@@ -68,30 +74,26 @@ export default function VpnAccessModal({
 
     const loadConfig = async () => {
       try {
-        // Try server-side API first
-        const serverConfig = await fetchUserVpnConfigAPI();
-        if (serverConfig && serverConfig.success && serverConfig.confText) {
-          const config = await generateUserVpnConfig(
-            currentUserEmail,
-            profiles,
-            serverConfig.serverPublicKey,
-            serverConfig.endpointHost
-          );
-          if (isMounted) {
-            setVpnConfig({
-              ...config,
-              confText: serverConfig.confText || config.confText,
-              clientIp: serverConfig.clientIp || config.clientIp,
-              allowedIps: serverConfig.allowedIps || config.allowedIps,
-            });
-          }
-          return;
-        }
+        const privKey = getOrCreateUserPrivateKey(currentUserEmail);
+        const pubKey = getPublicKeyFromPrivateKey(privKey);
 
-        // Fallback: Generate isolated client-side config from synchronized profiles
-        const config = await generateUserVpnConfig(currentUserEmail, profiles);
+        // Register peer public key on VPS WireGuard interface via server API
+        const serverConfig = await fetchUserVpnConfigAPI(pubKey);
+
+        const config = await generateUserVpnConfig(
+          currentUserEmail,
+          profiles,
+          serverConfig?.serverPublicKey,
+          serverConfig?.endpointHost,
+          serverConfig?.endpointPort
+        );
+
         if (isMounted) {
-          setVpnConfig(config);
+          setVpnConfig({
+            ...config,
+            clientIp: serverConfig?.clientIp || config.clientIp,
+            allowedIps: serverConfig?.allowedIps || config.allowedIps,
+          });
         }
       } catch (err) {
         console.error('Error generating VPN config:', err);

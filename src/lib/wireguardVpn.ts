@@ -5,12 +5,124 @@ export interface VpnClientConfig {
   confText: string;
   qrDataUrl: string;
   privateKey: string;
+  publicKey: string;
   clientIp: string;
   serverPublicKey: string;
   endpoint: string;
   allowedIps: string;
   userRouters: RouterConfig[];
   hasValidRouters: boolean;
+}
+
+// ── Curve25519 BigInt Math for 100% compliant WireGuard Public Keys ──────────
+const P = (1n << 255n) - 19n;
+const A24 = 121665n;
+
+function mod(a: bigint, m = P): bigint {
+  const r = a % m;
+  return r < 0n ? r + m : r;
+}
+
+function modInverse(a: bigint, m = P): bigint {
+  let m0 = m;
+  let y = 0n;
+  let x = 1n;
+  if (m === 1n) return 0n;
+  while (a > 1n) {
+    const q = a / m;
+    let t = m;
+    m = a % m;
+    a = t;
+    t = y;
+    y = x - q * y;
+    x = t;
+  }
+  if (x < 0n) x += m0;
+  return x;
+}
+
+function curve25519(scalarBytes: Uint8Array): Uint8Array {
+  const scalar = Array.from(scalarBytes);
+  scalar[0] &= 248;
+  scalar[31] &= 127;
+  scalar[31] |= 64;
+
+  let k = 0n;
+  for (let i = 31; i >= 0; i--) {
+    k = (k << 8n) | BigInt(scalar[i]);
+  }
+
+  const x1 = 9n;
+  let x2 = 1n;
+  let z2 = 0n;
+  let x3 = x1;
+  let z3 = 1n;
+  let swap = 0n;
+
+  for (let t = 254; t >= 0; t--) {
+    const kt = (k >> BigInt(t)) & 1n;
+    const dummy = swap ^ kt;
+    swap = kt;
+    if (dummy) {
+      const tmpX = x2;
+      x2 = x3;
+      x3 = tmpX;
+      const tmpZ = z2;
+      z2 = z3;
+      z3 = tmpZ;
+    }
+
+    const A = mod(x2 + z2);
+    const AA = mod(A * A);
+    const B = mod(x2 - z2);
+    const BB = mod(B * B);
+    const E = mod(AA - BB);
+    const C = mod(x3 + z3);
+    const D = mod(x3 - z3);
+    const DA = mod(D * A);
+    const CB = mod(C * B);
+
+    x3 = mod((DA + CB) * (DA + CB));
+    z3 = mod(x1 * mod((DA - CB) * (DA - CB)));
+    x2 = mod(AA * BB);
+    z2 = mod(E * mod(AA + mod(A24 * E)));
+  }
+
+  if (swap) {
+    const tmpX = x2;
+    x2 = x3;
+    x3 = tmpX;
+    const tmpZ = z2;
+    z2 = z3;
+    z3 = tmpZ;
+  }
+
+  let result = mod(x2 * modInverse(z2));
+  const out = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) {
+    out[i] = Number(result & 0xffn);
+    result >>= 8n;
+  }
+  return out;
+}
+
+export function getPublicKeyFromPrivateKey(privBase64: string): string {
+  try {
+    const binary = atob(privBase64);
+    const bytes = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const pub = curve25519(bytes);
+    let pubBinary = '';
+    for (let i = 0; i < 32; i++) {
+      pubBinary += String.fromCharCode(pub[i]);
+    }
+    return btoa(pubBinary);
+  } catch (e) {
+    console.error('Error deriving Curve25519 public key:', e);
+    return '';
+  }
 }
 
 /**
@@ -47,7 +159,7 @@ export function getOrCreateUserPrivateKey(userIdentifier: string): string {
 }
 
 /**
- * Derive a stable client IP in the 10.9.0.x subnet from the user identifier.
+ * Derive a stable client IP in the 10.8.250.x subnet from the user identifier.
  */
 function deriveClientIp(userIdentifier: string): string {
   let hash = 0;
@@ -57,7 +169,7 @@ function deriveClientIp(userIdentifier: string): string {
     hash |= 0;
   }
   const lastOctet = (Math.abs(hash) % 240) + 10; // 10..249
-  return `10.9.0.${lastOctet}/24`;
+  return `10.8.250.${lastOctet}`;
 }
 
 /**
@@ -68,7 +180,8 @@ export async function generateUserVpnConfig(
   userEmail: string,
   profiles: RouterConfig[],
   customServerPublicKey?: string,
-  customEndpointHost?: string
+  customEndpointHost?: string,
+  customEndpointPort?: number | string
 ): Promise<VpnClientConfig> {
   const normalizedEmail = userEmail.toLowerCase().trim();
 
@@ -86,40 +199,18 @@ export async function generateUserVpnConfig(
     if (p.owner && typeof p.owner === 'string' && p.owner.toLowerCase().trim() === normalizedEmail) {
       return true;
     }
-    // If no explicit owners array, include if provided in profiles response
     return true;
   });
 
-  // Extract WireGuard server parameters from the router profiles
-  let serverPublicKey = customServerPublicKey || '';
-  let endpointHost = customEndpointHost || '';
-  let endpointPort = '51820';
-
-  for (const r of profiles) {
-    if (!serverPublicKey && r.wgServerPublicKey) {
-      serverPublicKey = r.wgServerPublicKey;
-    }
-    if (!endpointHost && r.wgEndpointHost) {
-      endpointHost = r.wgEndpointHost;
-    }
-    if (r.wgEndpointPort) {
-      endpointPort = String(r.wgEndpointPort);
-    }
-  }
-
-  // Fallbacks if not present in profile objects
-  if (!endpointHost) {
-    endpointHost = '187.127.234.201';
-  }
-  if (!serverPublicKey) {
-    // Standard placeholder if no cloud router registered yet
-    serverPublicKey = 'SERVER_WIREGUARD_PUBLIC_KEY_PLACEHOLDER=';
-  }
+  // Authoritative server WireGuard parameters
+  let serverPublicKey = customServerPublicKey || '5OI5UlxA6qJQKLU/29S1Ox6oCZKR91SWLEq1DvXVuks=';
+  let endpointHost = customEndpointHost || 'vpn.mikman.net';
+  let endpointPort = customEndpointPort ? String(customEndpointPort) : '13231';
 
   // Build strictly isolated AllowedIPs list: ONLY this user's router VPN IPs
   const routerIps: string[] = [];
   userRouters.forEach((r) => {
-    const rawIp = r.vpnIp || (r.wgClientIp ? r.wgClientIp.split('/')[0] : '');
+    const rawIp = r.vpnIp || (r.wgClientIp ? r.wgClientIp.split('/')[0] : '') || r.ip || '';
     if (rawIp && !routerIps.includes(rawIp)) {
       routerIps.push(rawIp);
     }
@@ -129,11 +220,12 @@ export async function generateUserVpnConfig(
   if (routerIps.length > 0) {
     allowedIpsString = routerIps.map((ip) => `${ip}/32`).join(', ');
   } else {
-    // Fallback if no routers are added yet
+    // Fallback if no routers are registered yet
     allowedIpsString = '10.8.0.0/16';
   }
 
   const privateKey = getOrCreateUserPrivateKey(normalizedEmail);
+  const publicKey = getPublicKeyFromPrivateKey(privateKey);
   const clientIp = deriveClientIp(normalizedEmail);
 
   // Construct standard WireGuard .conf file
@@ -147,7 +239,7 @@ export async function generateUserVpnConfig(
     '',
     '[Interface]',
     `PrivateKey = ${privateKey}`,
-    `Address = ${clientIp}`,
+    `Address = ${clientIp}/16`,
     'DNS = 1.1.1.1, 8.8.8.8',
     '',
     '[Peer]',
@@ -178,6 +270,7 @@ export async function generateUserVpnConfig(
     confText,
     qrDataUrl,
     privateKey,
+    publicKey,
     clientIp,
     serverPublicKey,
     endpoint: `${endpointHost}:${endpointPort}`,
