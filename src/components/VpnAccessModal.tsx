@@ -617,7 +617,7 @@ export default function VpnAccessModal({
                       </span>
                       <button
                         onClick={async () => {
-                          const cmd = 'sudo ip link delete dev mikman 2>/dev/null; sudo cp ~/Downloads/mikman.conf /etc/wireguard/ && sudo systemctl enable --now wg-quick@mikman';
+                          const cmd = 'sudo install -m 600 ~/Downloads/mikman.conf /etc/wireguard/mikman.conf && sudo wg-quick up mikman';
                           await navigator.clipboard.writeText(cmd);
                           setCopiedLinuxCmd(true);
                           setTimeout(() => setCopiedLinuxCmd(false), 2000);
@@ -654,7 +654,7 @@ export default function VpnAccessModal({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {'sudo ip link delete dev mikman 2>/dev/null; sudo cp ~/Downloads/mikman.conf /etc/wireguard/ && sudo systemctl enable --now wg-quick@mikman'}
+                      {'sudo install -m 600 ~/Downloads/mikman.conf /etc/wireguard/mikman.conf && sudo wg-quick up mikman'}
                     </div>
                     <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
                       💡 {t('vpnModal.linuxQuickNote') || 'This sets up the VPN to auto-start automatically with zero interaction.'}
