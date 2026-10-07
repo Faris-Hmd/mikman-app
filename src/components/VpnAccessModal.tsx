@@ -131,7 +131,7 @@ export default function VpnAccessModal({
 
   const handleDownloadConf = () => {
     if (!vpnConfig?.confText) return;
-    downloadVpnConfigFile(vpnConfig.confText, `mikman-vpn-${currentUserEmail.split('@')[0] || 'admin'}.conf`);
+    downloadVpnConfigFile(vpnConfig.confText, 'mikman.conf');
   };
 
   const handleCopyIp = (ip: string, id: string) => {
