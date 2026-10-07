@@ -1006,6 +1006,49 @@ export const fetchMyClientInfoAPI = async (routerId: string): Promise<{ mac: str
   return apiCall('/my-client-info', { routerId, cache: 'no-store' });
 };
 
+export interface PortForwardRule {
+  id: string;
+  dstPort: string | number;
+  toAddress: string;
+  toPort: string | number;
+  protocol: string;
+  comment?: string;
+  rawComment?: string;
+  disabled?: boolean;
+}
+
+export interface PortForwardsResponse {
+  portForwards: PortForwardRule[];
+  routerVpnIp?: string;
+}
+
+export const fetchPortForwardsAPI = async (routerId: string): Promise<PortForwardsResponse> => {
+  return apiCall<PortForwardsResponse>(`/routers/${routerId}/port-forwards`, { routerId, cache: 'no-store' });
+};
+
+export const addPortForwardAPI = async (
+  routerId: string,
+  data: { toAddress: string; toPort?: number | string; dstPort: number | string; protocol?: string; comment?: string }
+): Promise<{ success: boolean; routerVpnIp?: string }> => {
+  return apiCall(`/routers/${routerId}/port-forwards/add`, {
+    method: 'POST',
+    body: data,
+    routerId,
+  });
+};
+
+export const removePortForwardAPI = async (
+  routerId: string,
+  id?: string,
+  toAddress?: string
+): Promise<{ success: boolean }> => {
+  return apiCall(`/routers/${routerId}/port-forwards/remove`, {
+    method: 'POST',
+    body: { id, toAddress },
+    routerId,
+  });
+};
+
 export const generateCloudScriptAPI = async (params: GenerateScriptParams): Promise<{ script: string; router: unknown }> => {
   return apiCall('/routers/generate-script', {
     method: 'POST',

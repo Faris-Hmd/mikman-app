@@ -1,7 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchIpBindingsAPI, fetchNetworkClientsAPI, addIpBindingAPI, removeIpBindingAPI } from '../../api';
+import {
+  fetchIpBindingsAPI,
+  fetchNetworkClientsAPI,
+  addIpBindingAPI,
+  removeIpBindingAPI,
+  fetchPortForwardsAPI,
+  addPortForwardAPI,
+  removePortForwardAPI,
+  PortForwardRule,
+} from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 
 import {
@@ -124,6 +133,12 @@ export default function ApsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Port Forwarding / Remote Web Access State
+  const [isPfSubmitting, setIsPfSubmitting] = useState(false);
+  const [pfExternalPort, setPfExternalPort] = useState<string>('8081');
+  const [pfTargetPort, setPfTargetPort] = useState<string>('80');
+  const [pfError, setPfError] = useState<string | null>(null);
+
   // Fetch IP Bindings from RouterOS
   const { data: bindingsData, isLoading: isLoadingBindings, mutate: mutateBindings } = useSWR(
     routerId ? `router-ip-bindings-${routerId}` : null,
@@ -138,9 +153,94 @@ export default function ApsPage() {
     { revalidateOnFocus: true }
   );
 
+  // Fetch Active Port Forwarding / NAT rules for AP Web Access
+  const { data: pfData, mutate: mutatePortForwards } = useSWR(
+    routerId ? `router-port-forwards-${routerId}` : null,
+    () => fetchPortForwardsAPI(routerId!),
+    { revalidateOnFocus: true }
+  );
+
+  const portForwardMap = useMemo(() => {
+    const map = new Map<string, PortForwardRule>();
+    if (pfData?.portForwards && Array.isArray(pfData.portForwards)) {
+      pfData.portForwards.forEach((pf) => {
+        if (pf.toAddress) {
+          map.set(pf.toAddress, pf);
+        }
+      });
+    }
+    return map;
+  }, [pfData]);
+
+  const routerVpnIp = pfData?.routerVpnIp || '';
+
+  const nextAvailablePort = useMemo(() => {
+    const usedPorts = new Set<number>();
+    if (pfData?.portForwards && Array.isArray(pfData.portForwards)) {
+      pfData.portForwards.forEach((pf) => {
+        const p = parseInt(String(pf.dstPort), 10);
+        if (!isNaN(p)) usedPorts.add(p);
+      });
+    }
+    let p = 8081;
+    while (usedPorts.has(p)) {
+      p++;
+    }
+    return p;
+  }, [pfData]);
+
+  useEffect(() => {
+    if (selectedDevice?.ip) {
+      const existing = portForwardMap.get(selectedDevice.ip);
+      if (existing) {
+        setPfExternalPort(String(existing.dstPort));
+        setPfTargetPort(String(existing.toPort || 80));
+      } else {
+        setPfExternalPort(String(nextAvailablePort));
+        setPfTargetPort('80');
+      }
+    }
+    setPfError(null);
+  }, [selectedDevice, portForwardMap, nextAvailablePort]);
+
+  const handleEnablePortForward = async () => {
+    if (!routerId || !selectedDevice?.ip) return;
+    setIsPfSubmitting(true);
+    setPfError(null);
+    try {
+      await addPortForwardAPI(routerId, {
+        toAddress: selectedDevice.ip,
+        toPort: parseInt(pfTargetPort, 10) || 80,
+        dstPort: parseInt(pfExternalPort, 10) || nextAvailablePort,
+        comment: selectedDevice.comment || selectedDevice.name || selectedDevice.mac,
+      });
+      await mutatePortForwards();
+    } catch (err: any) {
+      setPfError(err?.message || 'Failed to enable port forwarding');
+    } finally {
+      setIsPfSubmitting(false);
+    }
+  };
+
+  const handleDisablePortForward = async () => {
+    if (!routerId || !selectedDevice?.ip) return;
+    const existing = portForwardMap.get(selectedDevice.ip);
+    setIsPfSubmitting(true);
+    setPfError(null);
+    try {
+      await removePortForwardAPI(routerId, existing?.id, selectedDevice.ip);
+      await mutatePortForwards();
+    } catch (err: any) {
+      setPfError(err?.message || 'Failed to remove port forwarding');
+    } finally {
+      setIsPfSubmitting(false);
+    }
+  };
+
   const handleRefresh = () => {
     mutateBindings();
     mutateClients();
+    mutatePortForwards();
   };
 
   // Compare & Merge IP Bindings with Active Devices List
@@ -812,6 +912,35 @@ export default function ApsPage() {
 
                 {/* Right: Status Badge & Info Button */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                  {device.ip && portForwardMap.has(device.ip) && routerVpnIp && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const pf = portForwardMap.get(device.ip!)!;
+                        window.open(`http://${routerVpnIp}:${pf.dstPort}`, '_blank');
+                      }}
+                      title={t('aps.openWebGui') || 'Open AP Web GUI'}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        border: '1px solid rgba(16, 185, 129, 0.4)',
+                        background: 'linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.3) 100%)',
+                        color: '#10b981',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <Globe size={11} />
+                      <span>:{portForwardMap.get(device.ip!)!.dstPort}</span>
+                      <ArrowUpRight size={10} />
+                    </button>
+                  )}
+
                   {device.type === 'unbound' ? (
                     <button
                       onClick={(e) => {
@@ -1236,6 +1365,203 @@ export default function ApsPage() {
                 </div>
               )}
             </div>
+
+            {/* ─── Remote Web Access (VPN / Port Forwarding) Section ─── */}
+            {selectedDevice.ip && (
+              <div style={{
+                marginBottom: '16px',
+                padding: '12px 14px',
+                borderRadius: '12px',
+                background: portForwardMap.has(selectedDevice.ip)
+                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.15) 100%)'
+                  : 'var(--glass-bg, rgba(255, 255, 255, 0.03))',
+                border: portForwardMap.has(selectedDevice.ip)
+                  ? '1px solid rgba(16, 185, 129, 0.35)'
+                  : '1px solid var(--border-color)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Globe size={15} color={portForwardMap.has(selectedDevice.ip) ? '#10b981' : '#3b82f6'} />
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--foreground)' }}>
+                      {t('aps.remoteAccess') || 'Remote Web Access (VPN)'}
+                    </span>
+                  </div>
+                  {portForwardMap.has(selectedDevice.ip) && (
+                    <span style={{
+                      fontSize: '9.5px',
+                      fontWeight: 700,
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      background: 'rgba(16, 185, 129, 0.2)',
+                      color: '#10b981',
+                      border: '1px solid rgba(16, 185, 129, 0.3)'
+                    }}>
+                      {t('aps.portForwardEnabled') || 'Active'}
+                    </span>
+                  )}
+                </div>
+
+                {pfError && (
+                  <div style={{ padding: '6px 10px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', fontSize: '11px', marginBottom: '8px' }}>
+                    {pfError}
+                  </div>
+                )}
+
+                {portForwardMap.has(selectedDevice.ip) ? (
+                  <div>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      marginBottom: '10px'
+                    }}>
+                      <div>
+                        <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', display: 'block' }}>
+                          {t('aps.forwardedPort') || 'VPN Direct Link'}
+                        </span>
+                        <span style={{ fontSize: '11.5px', fontFamily: 'monospace', fontWeight: 700, color: '#38bdf8' }}>
+                          http://{routerVpnIp || '10.8.0.x'}:{portForwardMap.get(selectedDevice.ip)!.dstPort}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                        ➔ {selectedDevice.ip}:{portForwardMap.get(selectedDevice.ip)!.toPort}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const pf = portForwardMap.get(selectedDevice.ip!)!;
+                          window.open(`http://${routerVpnIp}:${pf.dstPort}`, '_blank');
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 1) 100%)',
+                          color: '#ffffff',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Globe size={13} />
+                        <span>{t('aps.openWebGui') || 'Open AP Web GUI'}</span>
+                        <ArrowUpRight size={12} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDisablePortForward}
+                        disabled={isPfSubmitting}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          color: '#ef4444',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {isPfSubmitting ? (t('aps.disabling') || '...') : (t('aps.disableRemoteAccess') || 'Disable')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ margin: '0 0 10px 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      {t('aps.remoteAccessDesc') || 'Access this device web management interface over WireGuard VPN.'}
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px' }}>
+                          {t('aps.forwardedPort') || 'VPN Port'}
+                        </label>
+                        <input
+                          type="number"
+                          value={pfExternalPort}
+                          onChange={(e) => setPfExternalPort(e.target.value)}
+                          placeholder="8081"
+                          style={{
+                            width: '100%',
+                            padding: '6px 8px',
+                            background: 'var(--card-bg)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '6px',
+                            color: 'var(--foreground)',
+                            fontSize: '11px',
+                            fontFamily: 'monospace',
+                            outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px' }}>
+                          {t('aps.targetPort') || 'AP Port'}
+                        </label>
+                        <input
+                          type="number"
+                          value={pfTargetPort}
+                          onChange={(e) => setPfTargetPort(e.target.value)}
+                          placeholder="80"
+                          style={{
+                            width: '100%',
+                            padding: '6px 8px',
+                            background: 'var(--card-bg)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '6px',
+                            color: 'var(--foreground)',
+                            fontSize: '11px',
+                            fontFamily: 'monospace',
+                            outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleEnablePortForward}
+                      disabled={isPfSubmitting || !pfExternalPort}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.3) 100%)',
+                        color: '#38bdf8',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Zap size={13} />
+                      <span>{isPfSubmitting ? (t('aps.enabling') || '...') : (t('aps.enableRemoteAccess') || 'Enable VPN Web Access')}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Actions / Deletion */}
             {selectedDevice.type === 'unbound' ? (
