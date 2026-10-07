@@ -49,6 +49,7 @@ export default function VpnAccessModal({
   const [vpnConfig, setVpnConfig] = useState<VpnClientConfig | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedConf, setCopiedConf] = useState(false);
+  const [copiedLinuxCmd, setCopiedLinuxCmd] = useState(false);
   const [copiedIpMap, setCopiedIpMap] = useState<Record<string, boolean>>({});
   const [copiedSshMap, setCopiedSshMap] = useState<Record<string, boolean>>({});
 
@@ -599,7 +600,68 @@ export default function VpnAccessModal({
                     </pre>
                   </div>
 
-                  {/* PC Steps Card */}
+                  {/* Linux / Ubuntu Instant Setup Command */}
+                  <div
+                    style={{
+                      background: 'rgba(59, 130, 246, 0.08)',
+                      border: '1px solid rgba(59, 130, 246, 0.25)',
+                      borderRadius: '12px',
+                      padding: '12px 14px',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Terminal size={14} />
+                        🐧 {t('vpnModal.linuxQuickTitle') || 'Linux / Ubuntu Quick Auto-Connect (1-Command):'}
+                      </span>
+                      <button
+                        onClick={async () => {
+                          const cmd = 'sudo cp ~/Downloads/mikman.conf /etc/wireguard/ && sudo systemctl enable --now wg-quick@mikman';
+                          await navigator.clipboard.writeText(cmd);
+                          setCopiedLinuxCmd(true);
+                          setTimeout(() => setCopiedLinuxCmd(false), 2000);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          background: copiedLinuxCmd ? '#16a34a20' : 'rgba(255, 255, 255, 0.08)',
+                          border: '1px solid var(--glass-border)',
+                          color: copiedLinuxCmd ? '#22c55e' : 'var(--foreground)',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {copiedLinuxCmd ? <Check size={12} /> : <Copy size={12} />}
+                        {copiedLinuxCmd ? (t('common.copied') || 'Copied!') : (t('common.copy') || 'Copy Command')}
+                      </button>
+                    </div>
+
+                    <div
+                      style={{
+                        background: 'rgba(0, 0, 0, 0.35)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '8px',
+                        padding: '8px 10px',
+                        fontFamily: 'monospace',
+                        fontSize: '11px',
+                        color: '#38bdf8',
+                        overflowX: 'auto',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      sudo cp ~/Downloads/mikman.conf /etc/wireguard/ && sudo systemctl enable --now wg-quick@mikman
+                    </div>
+                    <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
+                      💡 {t('vpnModal.linuxQuickNote') || 'This sets up the VPN to auto-start automatically with zero interaction.'}
+                    </p>
+                  </div>
+
+                  {/* Windows & Mac Steps Card */}
                   <div
                     style={{
                       background: 'var(--card-bg)',
@@ -611,11 +673,11 @@ export default function VpnAccessModal({
                     }}
                   >
                     <div style={{ fontWeight: 700, marginBottom: '6px', color: 'var(--primary)' }}>
-                      💻 {t('vpnModal.pcInstructionsTitle') || 'How to connect on PC / WinBox:'}
+                      🪟 {t('vpnModal.windowsInstructionsTitle') || 'Windows 11 / 10 & macOS Setup:'}
                     </div>
                     <ol style={{ margin: 0, paddingLeft: isRtl ? 0 : '18px', paddingRight: isRtl ? '18px' : 0, lineHeight: 1.6 }}>
                       <li>{t('vpnModal.step1Pc') || 'Download and install WireGuard for Windows / Mac.'}</li>
-                      <li>{t('vpnModal.step2Pc') || 'Click "Import tunnel(s) from file" and choose the downloaded mikman-vpn.conf file.'}</li>
+                      <li>{t('vpnModal.step2Pc') || 'Click "Import tunnel(s) from file" (Ctrl+O) and pick the downloaded mikman.conf file.'}</li>
                       <li>{t('vpnModal.step3Pc') || 'Click "Activate" to establish the connection.'}</li>
                       <li>{t('vpnModal.step4Pc') || 'Open WinBox, paste your router\'s VPN IP (see "Accessible Routers" tab), and log in directly!'}</li>
                     </ol>
