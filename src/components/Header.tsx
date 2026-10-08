@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { Sun, Moon, Menu, Shield } from 'lucide-react';
+import { Sun, Moon, Menu, Globe } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useVpnModal } from '../context/VpnModalContext';
 import BrandLogo from './BrandLogo';
+import WireguardIcon from './WireguardIcon';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -84,20 +85,19 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
                 height: '36px',
                 borderRadius: '10px',
                 flexShrink: 0,
-                background: 'rgba(var(--primary-rgb), 0.1)',
-                border: '1.5px solid rgba(var(--primary-rgb), 0.3)',
               }}
               title={t('vpnModal.title') || 'WireGuard VPN Access'}
             >
-              <Shield size={18} color="var(--primary)" />
+              <WireguardIcon size={19} color="#ef4444" />
             </button>
           )}
           <button
             onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
-            className="header-action-btn hide-on-mobile text-[11px] font-extrabold text-[var(--primary)] tracking-[0.3px]"
-            title={t('header.languageSelector')}
+            className="header-action-btn flex items-center justify-center"
+            style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0 }}
+            title={language === 'en' ? 'تغيير اللغة إلى العربية (Switch to Arabic)' : 'Switch Language to English'}
           >
-            {language === 'en' ? 'AR' : 'EN'}
+            <Globe size={18} color="var(--primary)" />
           </button>
           <button
             onClick={toggleTheme}

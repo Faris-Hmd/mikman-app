@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { Ticket, Server, Layers, Users, Laptop, Settings, ChevronLeft, ChevronRight, LogOut, LayoutDashboard, TrendingUp, User, Home, Printer, Sun, Moon, Globe, Shield } from 'lucide-react';
+import { Ticket, Server, Layers, Users, Laptop, Settings, ChevronLeft, ChevronRight, LogOut, LayoutDashboard, TrendingUp, User, Home, Printer, Sun, Moon, Globe } from 'lucide-react';
 import BrandLogo from './BrandLogo';
+import WireguardIcon from './WireguardIcon';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useVpnModal } from '../context/VpnModalContext';
@@ -250,7 +251,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '20px' }}>
-              <Shield size={18} color="var(--primary)" />
+              <WireguardIcon size={18} color="#ef4444" />
             </div>
             <span style={{ opacity: collapsed ? 0 : 1, width: collapsed ? 0 : 'auto', transition: 'opacity 0.2s ease, width 0.2s ease', overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--foreground)' }}>
               {t('sidebar.vpnAccess') || 'VPN Access'}

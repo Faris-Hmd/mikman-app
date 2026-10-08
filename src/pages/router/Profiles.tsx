@@ -434,7 +434,7 @@ export default function ProfilesPage() {
   };
 
   const modalContainerStyle: React.CSSProperties = {
-    background: 'var(--card-bg, #1e293b)',
+    background: 'var(--card-bg, #1a1a1a)',
     color: 'var(--foreground)',
     border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.15))',
     borderRadius: '12px',

@@ -1571,7 +1571,7 @@ export default function VouchersPage() {
               width: '100%',
               maxWidth: '520px',
               height: '100%',
-              background: 'var(--card-bg, #0f172a)',
+              background: 'var(--card-bg, #1a1a1a)',
               borderLeft: isRtl ? 'none' : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
               borderRight: isRtl ? '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))' : 'none',
               display: 'flex',
@@ -1924,7 +1924,7 @@ export default function VouchersPage() {
               {/* Live Ticket Replica Card Preview */}
               <div
                 style={{
-                  background: 'rgba(15, 23, 42, 0.5)',
+                  background: 'rgba(26, 26, 29, 0.5)',
                   border: '1px dashed rgba(255, 255, 255, 0.2)',
                   borderRadius: '14px',
                   padding: '16px',
@@ -2056,7 +2056,7 @@ export default function VouchersPage() {
               width: '100%',
               maxWidth: '680px',
               maxHeight: '85vh',
-              background: 'var(--card-bg, #0f172a)',
+              background: 'var(--card-bg, #1a1a1a)',
               border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
               borderRadius: '16px',
               display: 'flex',
@@ -2310,7 +2310,7 @@ export default function VouchersPage() {
                   placeholder="البحث في كروت هذه الدفعة..."
                   style={{
                     width: '100%',
-                    background: 'var(--input-bg, rgba(30, 41, 59, 0.5))',
+                    background: 'var(--input-bg, rgba(32, 32, 36, 0.75))',
                     border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
                     borderRadius: '8px',
                     padding: `6px ${isRtl ? '30px' : '10px'} 6px ${isRtl ? '10px' : '30px'}`,
@@ -2698,7 +2698,7 @@ export default function VouchersPage() {
             style={{
               width: '100%',
               maxWidth: '440px',
-              background: 'var(--card-bg, #0f172a)',
+              background: 'var(--card-bg, #1a1a1a)',
               border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
               borderRadius: '16px',
               padding: '20px',
@@ -2769,7 +2769,7 @@ export default function VouchersPage() {
                 placeholder="MikMan Wi-Fi"
                 style={{
                   width: '100%',
-                  background: 'var(--input-bg, rgba(30, 41, 59, 0.5))',
+                  background: 'var(--input-bg, rgba(32, 32, 36, 0.75))',
                   border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
                   borderRadius: '8px',
                   padding: '10px 12px',

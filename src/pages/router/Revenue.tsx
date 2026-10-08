@@ -583,7 +583,7 @@ export default function RevenuePage() {
                           top: '-8px',
                           left: `${leftPercent}%`,
                           transform: 'translateX(-50%)',
-                          background: 'rgba(15, 23, 42, 0.95)',
+                          background: 'rgba(24, 24, 27, 0.95)',
                           backdropFilter: 'blur(8px)',
                           border: '1px solid rgba(255, 255, 255, 0.15)',
                           color: '#fff',

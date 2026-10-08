@@ -9,6 +9,7 @@ import { fetchUserSubscriptionHistoryAPI, fetchPlansCatalogAPI, fetchRouterProfi
 import { User, ShieldCheck, Clock, CreditCard, History, MessageCircle, Calendar, AlertTriangle, KeyRound, Eye, EyeOff, Lock, CheckCircle2, LogOut, Shield, Smartphone, Laptop, Router, Download, Copy, Check, ExternalLink } from 'lucide-react';
 import { useVpnModal } from '../context/VpnModalContext';
 import LogoutConfirmModal from '../components/LogoutConfirmModal';
+import WireguardIcon from '../components/WireguardIcon';
 
 const WHATSAPP_NUMBER = '249966626693';
 
@@ -379,15 +380,14 @@ export default function AccountPage() {
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                backgroundColor: 'rgba(var(--primary-rgb), 0.12)',
-                border: '1px solid var(--primary)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'var(--primary)',
               }}
             >
-              <ShieldCheck size={20} />
+              <WireguardIcon size={20} color="#ef4444" />
             </div>
             <div>
               <h2 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--foreground)', margin: 0 }}>

@@ -1008,7 +1008,7 @@ export default function BatchDetailPage() {
         ? 'rgba(59, 130, 246, 0.08)'
         : status === 'expired'
         ? 'rgba(239, 68, 68, 0.08)'
-        : 'var(--card-bg, rgba(15, 23, 42, 0.55))';
+        : 'var(--card-bg, rgba(26, 26, 29, 0.75))';
 
     const borderColor =
       status === 'active'

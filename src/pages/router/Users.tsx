@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import { fetchNetworkClientsAPI, removeActiveSessionAPI } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
-import PortApModal from '../../components/PortApModal';
 
 import {
   Users,
@@ -114,7 +113,6 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [groupBy, setGroupBy] = useState<'port' | 'profile'>('port');
   const [selectedPortFilter, setSelectedPortFilter] = useState<string>('all');
-  const [isPortModalOpen, setIsPortModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<NetworkClient | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
@@ -335,30 +333,13 @@ export default function UsersPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-          <button
-            onClick={() => setIsPortModalOpen(true)}
-            className="page-header-btn"
-            style={{
-              background: 'rgba(6, 182, 212, 0.12)',
-              border: '1px solid rgba(6, 182, 212, 0.3)',
-              color: '#06b6d4'
-            }}
-            title={t('users.assignAps') || 'Ports & APs Mapping'}
-          >
-            <Radio size={14} />
-            <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>
-              {t('users.assignAps') || 'تعيين المنافذ'}
-            </span>
-          </button>
-          <button
-            onClick={() => mutate()}
-            className="page-header-btn"
-          >
-            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-            <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
-          </button>
-        </div>
+        <button
+          onClick={() => mutate()}
+          className="page-header-btn"
+        >
+          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+          <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
+        </button>
       </div>
 
       {/* ─── 2. Overview Stat Cards / Interactive Group Tabs ─── */}
@@ -921,7 +902,7 @@ export default function UsersPage() {
                             height: '7px',
                             borderRadius: '50%',
                             background: isSignedUser ? '#10b981' : '#f59e0b',
-                            border: '1.5px solid var(--card-bg, #0f172a)',
+                            border: '1.5px solid var(--card-bg, #1a1a1a)',
                             boxShadow: isSignedUser ? '0 0 4px rgba(16,185,129,0.8)' : '0 0 4px rgba(245,158,11,0.8)'
                           }} />
                         </div>
@@ -1193,7 +1174,7 @@ export default function UsersPage() {
             style={{
               width: '100%',
               maxWidth: '380px',
-              background: 'var(--card-bg, #0f172a)',
+              background: 'var(--card-bg, #1a1a1a)',
               border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.15))',
               borderRadius: '16px',
               padding: '16px',
@@ -1658,13 +1639,6 @@ export default function UsersPage() {
           </div>
         </div>
       )}
-      {/* ─── 5. Ports & APs Assignment Modal ─── */}
-      <PortApModal
-        isOpen={isPortModalOpen}
-        onClose={() => setIsPortModalOpen(false)}
-        routerId={routerId || ''}
-        onPortMapUpdated={() => mutate()}
-      />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import {
-  ShieldCheck,
   Smartphone,
   Laptop,
   Router,
@@ -16,6 +15,7 @@ import {
   ChevronUp,
   FileCode,
 } from 'lucide-react';
+import WireguardIcon from './WireguardIcon';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchRouterProfilesWithUserAPI, fetchUserVpnConfigAPI } from '../api';
@@ -217,16 +217,15 @@ export default function VpnAccessModal({
                 width: '38px',
                 height: '38px',
                 borderRadius: '10px',
-                background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.25), rgba(var(--primary-rgb), 0.05))',
-                border: '1.5px solid var(--primary)',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'var(--primary)',
                 flexShrink: 0,
               }}
             >
-              <ShieldCheck size={20} />
+              <WireguardIcon size={21} color="#ef4444" />
             </div>
             <div>
               <h2

@@ -13,6 +13,7 @@ import {
   deleteRouterProfileAPI,
   generateCloudScriptAPI,
   formatUptimeAPI,
+  fetchRouterInterfacesAPI,
 } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 import { useModal } from '../../context/ModalContext';
@@ -41,6 +42,8 @@ import {
   Smartphone,
   Laptop,
   Settings as SettingsIcon,
+  Network,
+  Radio,
 } from 'lucide-react';
 
 const HARDWARE_MODELS: { value: string; label: string }[] = [
@@ -99,6 +102,10 @@ export default function SettingsPage() {
   const useCustomHotspotName = !!hotspotWifiName.trim();
   const useCustomPrintLabel = !!cardPrintLabel.trim();
 
+  // Ethernet Port & AP Mapping State
+  const [portMap, setPortMap] = useState<Record<string, string>>({});
+  const [isSavingPortMap, setIsSavingPortMap] = useState(false);
+
   // Preview states
   const [previewTab, setPreviewTab] = useState<'login' | 'card'>('login');
   const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>('light');
@@ -107,6 +114,17 @@ export default function SettingsPage() {
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [generatedScript, setGeneratedScript] = useState<string | null>(null);
   const [copiedScript, setCopiedScript] = useState(false);
+
+  // Fetch live router physical interfaces & AP mapping
+  const {
+    data: ifaceData,
+    isLoading: isLoadingIfaces,
+    mutate: mutateIfaces,
+  } = useSWR(
+    routerId ? `router-interfaces-${routerId}` : null,
+    () => fetchRouterInterfacesAPI(routerId!),
+    { revalidateOnFocus: true }
+  );
 
   // Fetch telemetry status
   const { data: status, isLoading: isStatusLoading, mutate: mutateStatus } = useSWR(
@@ -155,8 +173,18 @@ export default function SettingsPage() {
       if (savedWifiName) {
         setWifiSsid(savedWifiName);
       }
+
+      if (currentConfig.portApMap && Object.keys(currentConfig.portApMap).length > 0) {
+        setPortMap((prev) => ({ ...prev, ...currentConfig.portApMap }));
+      }
     }
   }, [routerId, profilesData]);
+
+  useEffect(() => {
+    if (ifaceData?.portApMap && Object.keys(ifaceData.portApMap).length > 0) {
+      setPortMap((prev) => ({ ...prev, ...ifaceData.portApMap }));
+    }
+  }, [ifaceData]);
 
   // Populate Wi-Fi SSID and Timezone strictly from router status API (live router settings)
   useEffect(() => {
@@ -254,6 +282,46 @@ export default function SettingsPage() {
       showAlert(t('common.error'), errMsg, 'error');
     } finally {
       setIsSavingBranding(false);
+    }
+  };
+
+  // 1c. Save Ethernet Port & AP Mapping
+  const handlePortChange = (portName: string, value: string) => {
+    setPortMap((prev) => ({
+      ...prev,
+      [portName]: value,
+    }));
+  };
+
+  const handleSavePortMap = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!routerId) return;
+
+    try {
+      setIsSavingPortMap(true);
+      const cleanedMap: Record<string, string> = {};
+      Object.entries(portMap).forEach(([k, v]) => {
+        if (v && v.trim()) {
+          cleanedMap[k] = v.trim();
+        }
+      });
+
+      await updateRouterProfileAPI(routerId, { portApMap: cleanedMap });
+
+      try {
+        localStorage.setItem(`@router_port_map_${routerId}`, JSON.stringify(cleanedMap));
+      } catch {}
+
+      showAlert(t('common.success'), t('users.portMapSaved') || 'Port & AP assignments saved successfully', 'success');
+      mutateIfaces();
+      mutate(`router-clients-${routerId}`);
+      mutateProfiles();
+      mutateStatus();
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      showAlert(t('common.error'), errMsg, 'error');
+    } finally {
+      setIsSavingPortMap(false);
     }
   };
 
@@ -1349,6 +1417,197 @@ export default function SettingsPage() {
           </div>
         </form>
 
+        {/* ── 2c. Ethernet Ports & Access Points (APs) Mapping Card ── */}
+        <form onSubmit={handleSavePortMap} style={cardStyle}>
+          <div style={sectionHeaderStyle}>
+            <div style={iconCircleStyle('rgba(6, 182, 212, 0.15)', '#06b6d4')}>
+              <Radio size={16} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--foreground)' }}>
+                  {t('users.assignAps') || 'تعيين منافذ الإيثرنت ونقاط البث'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => mutateIfaces()}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '11px',
+                    padding: '2px 6px',
+                  }}
+                  title={t('common.refresh') || 'Refresh'}
+                >
+                  <RefreshCw size={12} className={isLoadingIfaces ? 'spin' : ''} />
+                  <span>{t('common.refresh') || 'تحديث'}</span>
+                </button>
+              </div>
+              <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
+                {t('users.assignApsDesc') || 'قم بتسمية وتعيين أسماء نقاط البث (APs) لكل منفذ إيثرنت أو واجهة لاسلكية لمعرفة مكان اتصال كل جهاز بدقة.'}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {isLoadingIfaces && (!ifaceData?.interfaces || ifaceData.interfaces.length === 0) ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <RefreshCw size={20} className="spin" style={{ color: '#06b6d4', margin: '0 auto 8px', display: 'block' }} />
+                <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                  {isRtl ? 'جاري قراءة منافذ الراوتر الفيزيائية...' : 'Reading router physical interfaces...'}
+                </span>
+              </div>
+            ) : (
+              (() => {
+                const ifaces = ifaceData?.interfaces || [];
+                const sortedIfaces = ifaces.length > 0 ? [...ifaces].sort((a: any, b: any) => {
+                  const isEthA = a.name.startsWith('ether');
+                  const isEthB = b.name.startsWith('ether');
+                  const isWlanA = a.name.startsWith('wlan') || a.name.startsWith('wifi');
+                  const isWlanB = b.name.startsWith('wlan') || b.name.startsWith('wifi');
+                  if (isEthA && !isEthB) return -1;
+                  if (!isEthA && isEthB) return 1;
+                  if (isWlanA && !isWlanB) return -1;
+                  if (!isWlanA && isWlanB) return 1;
+                  return a.name.localeCompare(b.name, undefined, { numeric: true });
+                }) : [
+                  { id: '1', name: 'ether1', type: 'ether', running: true, clientCount: 0 },
+                  { id: '2', name: 'ether2', type: 'ether', running: true, clientCount: 0 },
+                  { id: '3', name: 'ether3', type: 'ether', running: true, clientCount: 0 },
+                  { id: '4', name: 'ether4', type: 'ether', running: false, clientCount: 0 },
+                  { id: '5', name: 'ether5', type: 'ether', running: false, clientCount: 0 },
+                  { id: '6', name: 'wlan1', type: 'wlan', running: true, clientCount: 0 },
+                ];
+
+                return sortedIfaces.map((iface: any) => {
+                  const portName = iface.name;
+                  const isWireless = portName.startsWith('wlan') || portName.startsWith('wifi') || iface.type === 'wlan';
+                  const isEthernet = portName.startsWith('ether') || iface.type === 'ether';
+                  const clientCount = iface.clientCount || 0;
+
+                  return (
+                    <div
+                      key={iface.id || portName}
+                      style={{
+                        background: 'var(--input-bg, rgba(255, 255, 255, 0.03))',
+                        border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+                        borderRadius: '10px',
+                        padding: '9px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          background: isWireless
+                            ? 'rgba(16, 185, 129, 0.12)'
+                            : isEthernet
+                            ? 'rgba(6, 182, 212, 0.12)'
+                            : 'rgba(148, 163, 184, 0.12)',
+                          color: isWireless ? '#10b981' : isEthernet ? '#06b6d4' : 'var(--text-muted)',
+                          border: isWireless
+                            ? '1px solid rgba(16, 185, 129, 0.25)'
+                            : isEthernet
+                            ? '1px solid rgba(6, 182, 212, 0.25)'
+                            : '1px solid var(--glass-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isWireless ? <Wifi size={15} /> : isEthernet ? <Network size={15} /> : <Router size={15} />}
+                      </div>
+
+                      <div style={{ width: '100px', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
+                            {portName}
+                          </span>
+                          {iface.running && (
+                            <span
+                              style={{
+                                width: '6px',
+                                height: '6px',
+                                borderRadius: '50%',
+                                background: '#10b981',
+                                boxShadow: '0 0 4px #10b981',
+                              }}
+                              title="Port Link UP"
+                            />
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '1px' }}>
+                          {clientCount > 0 ? (
+                            <span
+                              style={{
+                                fontSize: '9.5px',
+                                fontWeight: 700,
+                                color: '#10b981',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '2px',
+                              }}
+                            >
+                              <Users size={9} />
+                              {clientCount} {t('users.activeClientsOnPort') || 'clients'}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '9.5px', color: 'var(--text-muted)' }}>
+                              {isWireless
+                                ? t('users.wirelessPort') || 'Wi-Fi'
+                                : isEthernet
+                                ? t('users.ethernetPort') || 'Ethernet'
+                                : iface.type || 'Port'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <input
+                          type="text"
+                          value={portMap[portName] !== undefined ? portMap[portName] : (iface.apName || '')}
+                          onChange={(e) => handlePortChange(portName, e.target.value)}
+                          placeholder={t('users.assignApNamePlaceholder') || 'e.g. Roof AP, Floor 1 TP-Link, Cashier...'}
+                          style={{
+                            ...inputStyle,
+                            padding: '6px 10px',
+                            fontSize: '11.5px',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                });
+              })()
+            )}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+            <button
+              type="submit"
+              disabled={isSavingPortMap}
+              style={{
+                ...primaryBtnStyle(isSavingPortMap),
+                background: isSavingPortMap ? 'var(--text-muted)' : 'linear-gradient(135deg, #06b6d4, #0891b2)',
+              }}
+            >
+              <Save size={13} />
+              <span>{isSavingPortMap ? t('settings.saving') : (t('users.savePortMap') || 'حفظ تعيينات المنافذ')}</span>
+            </button>
+          </div>
+        </form>
+
         {/* ── 3. Hotspot Server Setup Card ("Separate Hotspot Server") ── */}
         <div style={cardStyle}>
           <div style={sectionHeaderStyle}>
@@ -1503,7 +1762,7 @@ export default function SettingsPage() {
                   fontSize: '11px',
                   padding: '12px',
                   borderRadius: '8px',
-                  background: 'var(--surface-dark, #0f172a)',
+                  background: 'var(--surface-dark, #121214)',
                   color: '#38bdf8',
                   border: '1px solid var(--border-color)',
                   resize: 'vertical',

@@ -12,7 +12,6 @@ import {
   PortForwardRule,
 } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
-import PortApModal from '../../components/PortApModal';
 
 import {
   Radio,
@@ -129,9 +128,6 @@ export default function ApsPage() {
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-
-  // Port / AP Modal State
-  const [isPortModalOpen, setIsPortModalOpen] = useState(false);
 
   // Deletion state
   const [isDeleting, setIsDeleting] = useState(false);
@@ -544,22 +540,6 @@ export default function ApsPage() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <button
-            onClick={() => setIsPortModalOpen(true)}
-            className="page-header-btn"
-            style={{
-              padding: '4px 8px',
-              fontSize: '11px',
-              height: '28px',
-              background: 'rgba(6, 182, 212, 0.12)',
-              border: '1px solid rgba(6, 182, 212, 0.3)',
-              color: '#06b6d4',
-            }}
-            title={t('users.assignAps') || 'Assign APs to Ports'}
-          >
-            <Radio size={13} />
-            <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('users.assignAps') || 'تعيين المنافذ'}</span>
-          </button>
-          <button
             onClick={handleRefresh}
             disabled={isLoading}
             className="page-header-btn"
@@ -902,7 +882,7 @@ export default function ApsPage() {
                       height: '7px',
                       borderRadius: '50%',
                       background: device.isOnline ? '#10b981' : '#6b7280',
-                      border: '1.5px solid var(--card-bg, #0f172a)',
+                      border: '1.5px solid var(--card-bg, #1a1a1a)',
                       boxShadow: device.isOnline ? '0 0 4px rgba(16,185,129,0.8)' : 'none'
                     }} />
                   </div>
@@ -1749,14 +1729,6 @@ export default function ApsPage() {
           </div>
         </div>
       )}
-
-      {/* ─── Ports & APs Assignment Modal ─── */}
-      <PortApModal
-        isOpen={isPortModalOpen}
-        onClose={() => setIsPortModalOpen(false)}
-        routerId={routerId || ''}
-        onPortMapUpdated={() => handleRefresh()}
-      />
     </div>
   );
 }
