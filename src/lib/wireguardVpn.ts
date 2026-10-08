@@ -240,6 +240,7 @@ export async function generateUserVpnConfig(
     '[Interface]',
     `PrivateKey = ${privateKey}`,
     `Address = ${clientIp}/16`,
+    'MTU = 1280',
     '',
     '[Peer]',
     `PublicKey = ${serverPublicKey}`,

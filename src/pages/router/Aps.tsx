@@ -12,6 +12,7 @@ import {
   PortForwardRule,
 } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
+import PortApModal from '../../components/PortApModal';
 
 import {
   Radio,
@@ -128,6 +129,9 @@ export default function ApsPage() {
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Port / AP Modal State
+  const [isPortModalOpen, setIsPortModalOpen] = useState(false);
 
   // Deletion state
   const [isDeleting, setIsDeleting] = useState(false);
@@ -540,6 +544,22 @@ export default function ApsPage() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <button
+            onClick={() => setIsPortModalOpen(true)}
+            className="page-header-btn"
+            style={{
+              padding: '4px 8px',
+              fontSize: '11px',
+              height: '28px',
+              background: 'rgba(6, 182, 212, 0.12)',
+              border: '1px solid rgba(6, 182, 212, 0.3)',
+              color: '#06b6d4',
+            }}
+            title={t('users.assignAps') || 'Assign APs to Ports'}
+          >
+            <Radio size={13} />
+            <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('users.assignAps') || 'تعيين المنافذ'}</span>
+          </button>
+          <button
             onClick={handleRefresh}
             disabled={isLoading}
             className="page-header-btn"
@@ -575,20 +595,20 @@ export default function ApsPage() {
           onClick={() => setSelectedFilter('all')}
           className="responsive-card hover-card"
           style={{
-            padding: '6px 10px',
+            padding: '8px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '10px',
             minWidth: 0,
             cursor: 'pointer',
-            border: selectedFilter === 'all' ? '1px solid #3b82f6' : '1px solid var(--glass-border)',
+            border: selectedFilter === 'all' ? '1.5px solid #3b82f6' : '1px solid var(--glass-border)',
             background: selectedFilter === 'all' ? 'rgba(59, 130, 246, 0.12)' : undefined,
           }}
         >
           <div style={{
-            width: '26px',
-            height: '26px',
-            borderRadius: '6px',
+            width: '30px',
+            height: '30px',
+            borderRadius: '8px',
             background: 'var(--secondary)',
             color: '#3b82f6',
             border: '1px solid var(--glass-border)',
@@ -597,13 +617,13 @@ export default function ApsPage() {
             justifyContent: 'center',
             flexShrink: 0
           }}>
-            <Laptop size={13} />
+            <Laptop size={15} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {t('aps.totalDevices') || 'Total'}
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {t('aps.statTotal') || t('aps.totalDevices') || 'Total'}
             </span>
-            <strong style={{ fontSize: '13.5px', color: 'var(--foreground)', fontWeight: 800, marginTop: '2px', display: 'block' }}>
+            <strong style={{ fontSize: '15px', color: 'var(--foreground)', fontWeight: 800, marginTop: '2px', display: 'block', lineHeight: 1.2 }}>
               {isLoading ? '—' : stats.totalBindings}
             </strong>
           </div>
@@ -614,20 +634,20 @@ export default function ApsPage() {
           onClick={() => setSelectedFilter('bypassed')}
           className="responsive-card hover-card"
           style={{
-            padding: '6px 10px',
+            padding: '8px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '10px',
             minWidth: 0,
             cursor: 'pointer',
-            border: selectedFilter === 'bypassed' ? '1px solid #10b981' : '1px solid var(--glass-border)',
+            border: selectedFilter === 'bypassed' ? '1.5px solid #10b981' : '1px solid var(--glass-border)',
             background: selectedFilter === 'bypassed' ? 'rgba(16, 185, 129, 0.12)' : undefined,
           }}
         >
           <div style={{
-            width: '26px',
-            height: '26px',
-            borderRadius: '6px',
+            width: '30px',
+            height: '30px',
+            borderRadius: '8px',
             background: 'var(--secondary)',
             color: '#10b981',
             border: '1px solid var(--glass-border)',
@@ -636,13 +656,13 @@ export default function ApsPage() {
             justifyContent: 'center',
             flexShrink: 0
           }}>
-            <CheckCircle2 size={13} />
+            <CheckCircle2 size={15} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {t('aps.bypassed')}
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {t('aps.statBypassed') || t('aps.bypassed') || 'Bypassed'}
             </span>
-            <strong style={{ fontSize: '13.5px', color: '#10b981', fontWeight: 800, marginTop: '2px', display: 'block' }}>
+            <strong style={{ fontSize: '15px', color: '#10b981', fontWeight: 800, marginTop: '2px', display: 'block', lineHeight: 1.2 }}>
               {isLoading ? '—' : stats.bypassed}
             </strong>
           </div>
@@ -653,20 +673,20 @@ export default function ApsPage() {
           onClick={() => setSelectedFilter('regular')}
           className="responsive-card hover-card"
           style={{
-            padding: '6px 10px',
+            padding: '8px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '10px',
             minWidth: 0,
             cursor: 'pointer',
-            border: selectedFilter === 'regular' ? '1px solid #8b5cf6' : '1px solid var(--glass-border)',
+            border: selectedFilter === 'regular' ? '1.5px solid #8b5cf6' : '1px solid var(--glass-border)',
             background: selectedFilter === 'regular' ? 'rgba(139, 92, 246, 0.12)' : undefined,
           }}
         >
           <div style={{
-            width: '26px',
-            height: '26px',
-            borderRadius: '6px',
+            width: '30px',
+            height: '30px',
+            borderRadius: '8px',
             background: 'var(--secondary)',
             color: '#8b5cf6',
             border: '1px solid var(--glass-border)',
@@ -675,13 +695,13 @@ export default function ApsPage() {
             justifyContent: 'center',
             flexShrink: 0
           }}>
-            <Shield size={13} />
+            <Shield size={15} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {t('aps.regular') || 'Regular'}
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {t('aps.statRegular') || t('aps.regular') || 'Regular'}
             </span>
-            <strong style={{ fontSize: '13.5px', color: '#8b5cf6', fontWeight: 800, marginTop: '2px', display: 'block' }}>
+            <strong style={{ fontSize: '15px', color: '#8b5cf6', fontWeight: 800, marginTop: '2px', display: 'block', lineHeight: 1.2 }}>
               {isLoading ? '—' : stats.regular}
             </strong>
           </div>
@@ -692,20 +712,20 @@ export default function ApsPage() {
           onClick={() => setSelectedFilter('unbound')}
           className="responsive-card hover-card"
           style={{
-            padding: '6px 10px',
+            padding: '8px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '10px',
             minWidth: 0,
             cursor: 'pointer',
-            border: selectedFilter === 'unbound' ? '1px solid #f59e0b' : '1px solid var(--glass-border)',
+            border: selectedFilter === 'unbound' ? '1.5px solid #f59e0b' : '1px solid var(--glass-border)',
             background: selectedFilter === 'unbound' ? 'rgba(245, 158, 11, 0.12)' : undefined,
           }}
         >
           <div style={{
-            width: '26px',
-            height: '26px',
-            borderRadius: '6px',
+            width: '30px',
+            height: '30px',
+            borderRadius: '8px',
             background: 'rgba(245, 158, 11, 0.15)',
             color: '#f59e0b',
             border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -714,13 +734,13 @@ export default function ApsPage() {
             justifyContent: 'center',
             flexShrink: 0
           }}>
-            <Zap size={13} />
+            <Zap size={15} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {t('aps.unboundCount') || 'Unbound'}
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {t('aps.statUnbound') || t('aps.unboundCount') || 'Unbound'}
             </span>
-            <strong style={{ fontSize: '13.5px', color: '#f59e0b', fontWeight: 800, marginTop: '2px', display: 'block' }}>
+            <strong style={{ fontSize: '15px', color: '#f59e0b', fontWeight: 800, marginTop: '2px', display: 'block', lineHeight: 1.2 }}>
               {isLoading ? '—' : stats.unbound}
             </strong>
           </div>
@@ -1729,6 +1749,14 @@ export default function ApsPage() {
           </div>
         </div>
       )}
+
+      {/* ─── Ports & APs Assignment Modal ─── */}
+      <PortApModal
+        isOpen={isPortModalOpen}
+        onClose={() => setIsPortModalOpen(false)}
+        routerId={routerId || ''}
+        onPortMapUpdated={() => handleRefresh()}
+      />
     </div>
   );
 }

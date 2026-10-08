@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import {
-  Shield,
   ShieldCheck,
   Smartphone,
   Laptop,
@@ -12,11 +11,10 @@ import {
   X,
   ExternalLink,
   Terminal,
-  Info,
   Lock,
-  Wifi,
-  Cpu,
-  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  FileCode,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -50,11 +48,12 @@ export default function VpnAccessModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedConf, setCopiedConf] = useState(false);
   const [copiedLinuxCmd, setCopiedLinuxCmd] = useState(false);
+  const [showRawConf, setShowRawConf] = useState(false);
   const [copiedIpMap, setCopiedIpMap] = useState<Record<string, boolean>>({});
   const [copiedSshMap, setCopiedSshMap] = useState<Record<string, boolean>>({});
 
   // Fetch router profiles to construct user-isolated AllowedIPs and router list
-  const { data: profilesResponse, isLoading: isLoadingProfiles, mutate: revalidateProfiles } = useSWR(
+  const { data: profilesResponse, isLoading: isLoadingProfiles } = useSWR(
     isOpen ? 'router-profiles-user' : null,
     fetchRouterProfilesWithUserAPI,
     { revalidateOnFocus: false }
@@ -143,8 +142,8 @@ export default function VpnAccessModal({
     }, 2000);
   };
 
-  const handleCopySsh = (ip: string, user: string, id: string) => {
-    const cmd = `ssh ${user || 'admin'}@${ip}`;
+  const handleCopySsh = (ip: string, userStr: string, id: string) => {
+    const cmd = `ssh ${userStr || 'admin'}@${ip}`;
     navigator.clipboard.writeText(cmd);
     setCopiedSshMap((prev) => ({ ...prev, [id]: true }));
     setTimeout(() => {
@@ -154,19 +153,27 @@ export default function VpnAccessModal({
 
   const userRouters = vpnConfig?.userRouters || profiles;
 
+  // 1-Click Self-Contained Linux Setup Command
+  let linuxQuickCmd = 'sudo wg-quick up mikman';
+  if (vpnConfig?.confText) {
+    try {
+      const b64 = btoa(unescape(encodeURIComponent(vpnConfig.confText)));
+      linuxQuickCmd = `sudo bash -c 'echo "${b64}" | base64 -d > /etc/wireguard/mikman.conf && chmod 600 /etc/wireguard/mikman.conf && (wg-quick down mikman 2>/dev/null || true) && wg-quick up mikman'`;
+    } catch {
+      linuxQuickCmd = 'sudo wg-quick up mikman';
+    }
+  }
+
   return (
     <div
       className="modal-overlay"
       dir={isRtl ? 'rtl' : 'ltr'}
       style={{
         position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'rgba(0, 0, 0, 0.65)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
+        inset: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.72)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         zIndex: 1100,
         display: 'flex',
         alignItems: 'center',
@@ -180,20 +187,20 @@ export default function VpnAccessModal({
         className="responsive-card"
         style={{
           width: '100%',
-          maxWidth: '680px',
+          maxWidth: '600px',
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: 'var(--card-bg)',
           border: '1px solid var(--glass-border)',
-          borderRadius: '18px',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+          borderRadius: '20px',
+          boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
           overflow: 'hidden',
           animation: 'fadeIn 0.25s ease-out',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
+        {/* Sleek, Compact Header with Integrated Security Pill */}
         <div
           style={{
             padding: '16px 20px',
@@ -207,27 +214,27 @@ export default function VpnAccessModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div
               style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
                 background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.25), rgba(var(--primary-rgb), 0.05))',
                 border: '1.5px solid var(--primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'var(--primary)',
+                flexShrink: 0,
               }}
             >
-              <ShieldCheck size={22} />
+              <ShieldCheck size={20} />
             </div>
             <div>
               <h2
                 style={{
-                  fontSize: '16px',
+                  fontSize: '15px',
                   fontWeight: '800',
                   margin: 0,
                   color: 'var(--foreground)',
-                  letterSpacing: '-0.3px',
                 }}
               >
                 {t('vpnModal.title') || 'WireGuard Admin VPN'}
@@ -252,41 +259,20 @@ export default function VpnAccessModal({
               justifyContent: 'center',
               cursor: 'pointer',
               transition: 'all 0.2s',
+              flexShrink: 0,
             }}
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        {/* Security Isolation Banner */}
-        <div
-          style={{
-            margin: '12px 20px 0',
-            padding: '10px 14px',
-            borderRadius: '10px',
-            background: 'rgba(16, 185, 129, 0.1)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-          }}
-        >
-          <Lock size={16} style={{ color: '#10b981', flexShrink: 0 }} />
-          <div style={{ fontSize: '11px', color: 'var(--foreground)', lineHeight: 1.4 }}>
-            <span style={{ fontWeight: 700, color: '#10b981' }}>
-              {t('vpnModal.isolatedBadge') || 'Tenant Isolation Active:'}{' '}
-            </span>
-            {t('vpnModal.isolatedText') ||
-              'This VPN tunnel is strictly routed to your owned routers only. No other user can access your routers.'}
-          </div>
-        </div>
-
-        {/* Navigation Tabs */}
+        {/* Clean Segmented Tab Switcher */}
         <div
           style={{
             display: 'flex',
             gap: '6px',
-            padding: '12px 20px 0',
+            padding: '10px 16px',
+            background: 'rgba(0,0,0,0.15)',
             borderBottom: '1px solid var(--glass-border)',
           }}
         >
@@ -298,19 +284,19 @@ export default function VpnAccessModal({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              padding: '10px 12px',
-              background: activeTab === 'mobile' ? 'var(--input-bg)' : 'transparent',
+              padding: '8px 10px',
+              borderRadius: '8px',
+              background: activeTab === 'mobile' ? 'var(--primary)' : 'transparent',
               border: 'none',
-              borderBottom: activeTab === 'mobile' ? '2.5px solid var(--primary)' : '2.5px solid transparent',
-              color: activeTab === 'mobile' ? 'var(--primary)' : 'var(--text-muted)',
-              fontSize: '12px',
+              color: activeTab === 'mobile' ? '#ffffff' : 'var(--text-muted)',
+              fontSize: '11.5px',
               fontWeight: '700',
               cursor: 'pointer',
               transition: 'all 0.2s',
             }}
           >
-            <Smartphone size={15} />
-            {t('vpnModal.tabMobile') || 'Phone (QR Code)'}
+            <Smartphone size={14} />
+            {t('vpnModal.tabMobile') || 'Phone (QR)'}
           </button>
 
           <button
@@ -321,19 +307,19 @@ export default function VpnAccessModal({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              padding: '10px 12px',
-              background: activeTab === 'pc' ? 'var(--input-bg)' : 'transparent',
+              padding: '8px 10px',
+              borderRadius: '8px',
+              background: activeTab === 'pc' ? 'var(--primary)' : 'transparent',
               border: 'none',
-              borderBottom: activeTab === 'pc' ? '2.5px solid var(--primary)' : '2.5px solid transparent',
-              color: activeTab === 'pc' ? 'var(--primary)' : 'var(--text-muted)',
-              fontSize: '12px',
+              color: activeTab === 'pc' ? '#ffffff' : 'var(--text-muted)',
+              fontSize: '11.5px',
               fontWeight: '700',
               cursor: 'pointer',
               transition: 'all 0.2s',
             }}
           >
-            <Laptop size={15} />
-            {t('vpnModal.tabPc') || 'PC / WinBox (.conf)'}
+            <Laptop size={14} />
+            {t('vpnModal.tabPc') || 'PC / WinBox'}
           </button>
 
           <button
@@ -344,19 +330,19 @@ export default function VpnAccessModal({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              padding: '10px 12px',
-              background: activeTab === 'routers' ? 'var(--input-bg)' : 'transparent',
+              padding: '8px 10px',
+              borderRadius: '8px',
+              background: activeTab === 'routers' ? 'var(--primary)' : 'transparent',
               border: 'none',
-              borderBottom: activeTab === 'routers' ? '2.5px solid var(--primary)' : '2.5px solid transparent',
-              color: activeTab === 'routers' ? 'var(--primary)' : 'var(--text-muted)',
-              fontSize: '12px',
+              color: activeTab === 'routers' ? '#ffffff' : 'var(--text-muted)',
+              fontSize: '11.5px',
               fontWeight: '700',
               cursor: 'pointer',
               transition: 'all 0.2s',
             }}
           >
-            <Router size={15} />
-            {t('vpnModal.tabRouters') || 'Accessible Routers'} ({userRouters.length})
+            <Router size={14} />
+            {t('vpnModal.tabRouters') || 'Routers'} ({userRouters.length})
           </button>
         </div>
 
@@ -375,7 +361,7 @@ export default function VpnAccessModal({
                   margin: '0 auto 12px',
                 }}
               />
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
                 {t('vpnModal.generating') || 'Generating your secure WireGuard tunnel...'}
               </p>
             </div>
@@ -383,13 +369,14 @@ export default function VpnAccessModal({
             <>
               {/* TAB 1: Mobile (QR Code) */}
               {activeTab === 'mobile' && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                  {/* QR Card */}
                   <div
                     style={{
                       background: '#ffffff',
-                      padding: '14px',
-                      borderRadius: '16px',
-                      boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
+                      padding: '12px',
+                      borderRadius: '14px',
+                      boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -400,8 +387,8 @@ export default function VpnAccessModal({
                         src={vpnConfig.qrDataUrl}
                         alt="WireGuard QR Code"
                         style={{
-                          width: '240px',
-                          height: '240px',
+                          width: '200px',
+                          height: '200px',
                           display: 'block',
                           imageRendering: 'crisp-edges',
                         }}
@@ -409,8 +396,8 @@ export default function VpnAccessModal({
                     ) : (
                       <div
                         style={{
-                          width: '240px',
-                          height: '240px',
+                          width: '200px',
+                          height: '200px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -422,31 +409,8 @@ export default function VpnAccessModal({
                     )}
                   </div>
 
-                  {/* Steps Card */}
-                  <div
-                    style={{
-                      width: '100%',
-                      background: 'var(--input-bg)',
-                      border: '1px solid var(--glass-border)',
-                      borderRadius: '12px',
-                      padding: '12px 14px',
-                      fontSize: '12px',
-                      color: 'var(--foreground)',
-                    }}
-                  >
-                    <div style={{ fontWeight: 700, marginBottom: '6px', color: 'var(--primary)' }}>
-                      📱 {t('vpnModal.mobileInstructionsTitle') || 'How to connect on iOS & Android:'}
-                    </div>
-                    <ol style={{ margin: 0, paddingLeft: isRtl ? 0 : '18px', paddingRight: isRtl ? '18px' : 0, lineHeight: 1.6 }}>
-                      <li>{t('vpnModal.step1Mobile') || 'Install the official WireGuard app from App Store or Google Play.'}</li>
-                      <li>{t('vpnModal.step2Mobile') || 'Open WireGuard, tap the "+" button, and select "Scan from QR code".'}</li>
-                      <li>{t('vpnModal.step3Mobile') || 'Scan the QR code above and name the tunnel (e.g. "Mikman VPN").'}</li>
-                      <li>{t('vpnModal.step4Mobile') || 'Toggle the VPN ON to access all your routers via WinBox or WebFig!'}</li>
-                    </ol>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '380px' }}>
                     <button
                       onClick={handleCopyConf}
                       style={{
@@ -455,18 +419,18 @@ export default function VpnAccessModal({
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '6px',
-                        padding: '10px 14px',
-                        borderRadius: '10px',
-                        background: copiedConf ? '#16a34a20' : 'var(--card-bg)',
+                        padding: '9px 12px',
+                        borderRadius: '9px',
+                        background: copiedConf ? 'rgba(16, 185, 129, 0.15)' : 'var(--input-bg)',
                         border: '1px solid var(--glass-border)',
-                        color: copiedConf ? '#16a34a' : 'var(--foreground)',
-                        fontSize: '12px',
+                        color: copiedConf ? '#10b981' : 'var(--foreground)',
+                        fontSize: '11.5px',
                         fontWeight: '700',
                         cursor: 'pointer',
                       }}
                     >
-                      {copiedConf ? <Check size={14} /> : <Copy size={14} />}
-                      {copiedConf ? t('common.copied') || 'Copied!' : t('vpnModal.copyConfig') || 'Copy Config Text'}
+                      {copiedConf ? <Check size={13} /> : <Copy size={13} />}
+                      {copiedConf ? t('common.copied') || 'Copied!' : t('vpnModal.copyConfig') || 'Copy Config'}
                     </button>
                     <button
                       onClick={handleDownloadConf}
@@ -476,149 +440,66 @@ export default function VpnAccessModal({
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '6px',
-                        padding: '10px 14px',
-                        borderRadius: '10px',
+                        padding: '9px 12px',
+                        borderRadius: '9px',
                         background: 'var(--primary)',
                         border: 'none',
                         color: '#fff',
-                        fontSize: '12px',
+                        fontSize: '11.5px',
                         fontWeight: '700',
                         cursor: 'pointer',
                       }}
                     >
-                      <Download size={14} />
+                      <Download size={13} />
                       {t('vpnModal.downloadConf') || 'Download .conf'}
                     </button>
+                  </div>
+
+                  {/* Concise Guide */}
+                  <div
+                    style={{
+                      width: '100%',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, marginBottom: '4px', color: 'var(--primary)', fontSize: '11.5px' }}>
+                      📱 {t('vpnModal.mobileInstructionsTitle') || 'How to connect on iOS & Android:'}
+                    </div>
+                    <ol style={{ margin: 0, paddingLeft: isRtl ? 0 : '16px', paddingRight: isRtl ? '16px' : 0 }}>
+                      <li>{t('vpnModal.step1Mobile') || 'Install official WireGuard from App Store / Google Play.'}</li>
+                      <li>{t('vpnModal.step2Mobile') || 'Tap "+" and select "Scan from QR code".'}</li>
+                      <li>{t('vpnModal.step4Mobile') || 'Toggle VPN ON to access all your routers directly!'}</li>
+                    </ol>
                   </div>
                 </div>
               )}
 
-              {/* TAB 2: PC / WinBox (.conf) */}
+              {/* TAB 2: PC / WinBox */}
               {activeTab === 'pc' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '10px',
-                    }}
-                  >
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
-                        {t('vpnModal.pcConfigTitle') || 'WireGuard Tunnel File'}
-                      </h4>
-                      <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {t('vpnModal.pcConfigSubtitle') || 'Import this profile into WireGuard for Windows, macOS, or Linux.'}
-                      </p>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={handleCopyConf}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '7px 12px',
-                          borderRadius: '8px',
-                          background: copiedConf ? '#16a34a20' : 'var(--input-bg)',
-                          border: '1px solid var(--glass-border)',
-                          color: copiedConf ? '#16a34a' : 'var(--foreground)',
-                          fontSize: '11px',
-                          fontWeight: '700',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {copiedConf ? <Check size={13} /> : <Copy size={13} />}
-                        {copiedConf ? t('common.copied') || 'Copied!' : t('common.copy') || 'Copy'}
-                      </button>
-                      <button
-                        onClick={handleDownloadConf}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '7px 14px',
-                          borderRadius: '8px',
-                          background: 'var(--primary)',
-                          border: 'none',
-                          color: '#fff',
-                          fontSize: '11px',
-                          fontWeight: '700',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Download size={13} />
-                        {t('vpnModal.download') || 'Download'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Conf Preview Box */}
-                  <div
-                    style={{
-                      background: 'var(--input-bg)',
-                      border: '1px solid var(--glass-border)',
-                      borderRadius: '12px',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <div
-                      style={{
-                        padding: '8px 12px',
-                        background: 'var(--glass-bg)',
-                        borderBottom: '1px solid var(--glass-border)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: '11px',
-                        color: 'var(--text-muted)',
-                        fontWeight: 600,
-                      }}
-                    >
-                      <span style={{ fontFamily: 'monospace' }}>mikman-vpn.conf</span>
-                      <span>AllowedIPs: {vpnConfig?.allowedIps || '10.8.0.0/16'}</span>
-                    </div>
-                    <pre
-                      style={{
-                        margin: 0,
-                        padding: '12px 14px',
-                        fontSize: '11.5px',
-                        lineHeight: '1.5',
-                        color: 'var(--foreground)',
-                        overflowX: 'auto',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
-                        maxHeight: '220px',
-                        overflowY: 'auto',
-                        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                      }}
-                    >
-                      {vpnConfig?.confText || '# Loading configuration...'}
-                    </pre>
-                  </div>
-
-                  {/* Linux / Ubuntu Instant Setup Command */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Linux / Ubuntu 1-Click Auto-Connect */}
                   <div
                     style={{
                       background: 'rgba(59, 130, 246, 0.08)',
                       border: '1px solid rgba(59, 130, 246, 0.25)',
                       borderRadius: '12px',
                       padding: '12px 14px',
-                      fontSize: '12px',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontWeight: 700, color: '#38bdf8', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Terminal size={14} />
-                        🐧 {t('vpnModal.linuxQuickTitle') || 'Linux / Ubuntu Quick Auto-Connect (1-Command):'}
+                        🐧 {t('vpnModal.linuxQuickTitle') || 'Linux / Ubuntu (1-Command Auto-Connect):'}
                       </span>
                       <button
                         onClick={async () => {
-                          const cmd = 'sudo wg-quick down mikman 2>/dev/null; sudo install -m 600 ~/Downloads/mikman.conf /etc/wireguard/mikman.conf && sudo wg-quick up mikman';
-                          await navigator.clipboard.writeText(cmd);
+                          await navigator.clipboard.writeText(linuxQuickCmd);
                           setCopiedLinuxCmd(true);
                           setTimeout(() => setCopiedLinuxCmd(false), 2000);
                         }}
@@ -643,73 +524,159 @@ export default function VpnAccessModal({
 
                     <div
                       style={{
-                        background: 'rgba(0, 0, 0, 0.35)',
+                        background: 'rgba(0, 0, 0, 0.4)',
                         border: '1px solid rgba(255, 255, 255, 0.08)',
                         borderRadius: '8px',
                         padding: '8px 10px',
                         fontFamily: 'monospace',
-                        fontSize: '11px',
+                        fontSize: '10.5px',
                         color: '#38bdf8',
                         overflowX: 'auto',
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {'sudo wg-quick down mikman 2>/dev/null; sudo install -m 600 ~/Downloads/mikman.conf /etc/wireguard/mikman.conf && sudo wg-quick up mikman'}
+                      {linuxQuickCmd}
                     </div>
-                    <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
-                      💡 {t('vpnModal.linuxQuickNote') || 'This sets up the VPN to auto-start automatically with zero interaction.'}
-                    </p>
                   </div>
 
-                  {/* Windows & Mac Steps Card */}
+                  {/* Windows / macOS .conf Download & Instructions */}
                   <div
                     style={{
-                      background: 'var(--card-bg)',
+                      background: 'var(--input-bg)',
                       border: '1px solid var(--glass-border)',
                       borderRadius: '12px',
                       padding: '12px 14px',
-                      fontSize: '12px',
-                      color: 'var(--foreground)',
                     }}
                   >
-                    <div style={{ fontWeight: 700, marginBottom: '6px', color: 'var(--primary)' }}>
-                      🪟 {t('vpnModal.windowsInstructionsTitle') || 'Windows 11 / 10 & macOS Setup:'}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--foreground)', fontSize: '12px' }}>
+                        🪟 {t('vpnModal.windowsInstructionsTitle') || 'Windows & macOS Setup:'}
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          onClick={handleCopyConf}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            background: copiedConf ? 'rgba(16, 185, 129, 0.15)' : 'var(--card-bg)',
+                            border: '1px solid var(--glass-border)',
+                            color: copiedConf ? '#10b981' : 'var(--foreground)',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {copiedConf ? <Check size={12} /> : <Copy size={12} />}
+                          {copiedConf ? t('common.copied') || 'Copied!' : t('common.copy') || 'Copy'}
+                        </button>
+                        <button
+                          onClick={handleDownloadConf}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            background: 'var(--primary)',
+                            border: 'none',
+                            color: '#fff',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Download size={12} />
+                          {t('vpnModal.download') || 'Download'}
+                        </button>
+                      </div>
                     </div>
-                    <ol style={{ margin: 0, paddingLeft: isRtl ? 0 : '18px', paddingRight: isRtl ? '18px' : 0, lineHeight: 1.6 }}>
-                      <li>{t('vpnModal.step1Pc') || 'Download and install WireGuard for Windows / Mac.'}</li>
-                      <li>{t('vpnModal.step2Pc') || 'Click "Import tunnel(s) from file" (Ctrl+O) and pick the downloaded mikman.conf file.'}</li>
-                      <li>{t('vpnModal.step3Pc') || 'Click "Activate" to establish the connection.'}</li>
-                      <li>{t('vpnModal.step4Pc') || 'Open WinBox, paste your router\'s VPN IP (see "Accessible Routers" tab), and log in directly!'}</li>
+
+                    <ol style={{ margin: 0, paddingLeft: isRtl ? 0 : '16px', paddingRight: isRtl ? '16px' : 0, fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                      <li>{t('vpnModal.step1Pc') || 'Install official WireGuard for Windows / Mac.'}</li>
+                      <li>{t('vpnModal.step2Pc') || 'Import the downloaded mikman.conf and click "Activate".'}</li>
+                      <li>{t('vpnModal.step4Pc') || 'Open WinBox and log in directly using your router\'s VPN IP!'}</li>
                     </ol>
+                  </div>
+
+                  {/* Collapsible Raw .conf Config Preview */}
+                  <div
+                    style={{
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <button
+                      onClick={() => setShowRawConf(!showRawConf)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        background: 'rgba(0,0,0,0.2)',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        color: 'var(--text-muted)',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <FileCode size={13} />
+                        mikman.conf (AllowedIPs: {vpnConfig?.allowedIps || '10.8.0.0/16'})
+                      </span>
+                      {showRawConf ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+
+                    {showRawConf && (
+                      <pre
+                        style={{
+                          margin: 0,
+                          padding: '10px 12px',
+                          fontSize: '11px',
+                          lineHeight: '1.4',
+                          color: 'var(--foreground)',
+                          background: 'rgba(0,0,0,0.35)',
+                          maxHeight: '160px',
+                          overflowY: 'auto',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                        }}
+                      >
+                        {vpnConfig?.confText || '# Loading configuration...'}
+                      </pre>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* TAB 3: Accessible Routers List */}
               {activeTab === 'routers' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>
                     {t('vpnModal.routersNotice') ||
-                      'Once connected to WireGuard, you can use these VPN IPs directly in WinBox, WebFig, or SSH:'}
+                      'Connected WireGuard routers (use these VPN IPs in WinBox, WebFig, or SSH):'}
                   </div>
 
                   {userRouters.length === 0 ? (
                     <div
                       style={{
-                        padding: '30px 20px',
+                        padding: '24px 16px',
                         textAlign: 'center',
                         background: 'var(--input-bg)',
-                        borderRadius: '12px',
+                        borderRadius: '10px',
                         border: '1px solid var(--glass-border)',
                       }}
                     >
-                      <Router size={32} style={{ color: 'var(--text-muted)', margin: '0 auto 8px' }} />
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--foreground)' }}>
+                      <Router size={28} style={{ color: 'var(--text-muted)', margin: '0 auto 6px' }} />
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--foreground)' }}>
                         {t('vpnModal.noRouters') || 'No Routers Connected Yet'}
                       </div>
-                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
-                        {t('vpnModal.noRoutersDesc') || 'Register a router in Mikman to get its secure VPN IP.'}
-                      </p>
                     </div>
                   ) : (
                     userRouters.map((r) => {
@@ -724,58 +691,56 @@ export default function VpnAccessModal({
                           style={{
                             background: isSelected ? 'rgba(var(--primary-rgb), 0.08)' : 'var(--input-bg)',
                             border: isSelected ? '1.5px solid var(--primary)' : '1px solid var(--glass-border)',
-                            borderRadius: '12px',
-                            padding: '12px 14px',
+                            borderRadius: '10px',
+                            padding: '10px 12px',
                             display: 'flex',
-                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
                             gap: '8px',
                           }}
                         >
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              flexWrap: 'wrap',
-                              gap: '6px',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <Router size={16} style={{ color: 'var(--primary)' }} />
-                              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--foreground)' }}>
-                                {r.name || 'MikroTik Router'}
-                              </span>
-                              {r.model && (
-                                <span
-                                  style={{
-                                    fontSize: '10px',
-                                    fontWeight: 700,
-                                    padding: '2px 6px',
-                                    borderRadius: '6px',
-                                    background: 'var(--card-bg)',
-                                    color: 'var(--text-muted)',
-                                    border: '1px solid var(--glass-border)',
-                                  }}
-                                >
-                                  {r.model.toUpperCase()}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                            <Router size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {r.name || 'MikroTik Router'}
                                 </span>
-                              )}
+                                {r.model && (
+                                  <span
+                                    style={{
+                                      fontSize: '9px',
+                                      fontWeight: 700,
+                                      padding: '1px 5px',
+                                      borderRadius: '4px',
+                                      background: 'var(--card-bg)',
+                                      color: 'var(--text-muted)',
+                                      border: '1px solid var(--glass-border)',
+                                    }}
+                                  >
+                                    {r.model.toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
                             </div>
+                          </div>
 
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <div
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '6px',
-                                background: 'var(--card-bg)',
+                                gap: '4px',
+                                background: 'rgba(0,0,0,0.25)',
                                 border: '1px solid var(--glass-border)',
-                                borderRadius: '8px',
-                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                padding: '3px 6px',
                               }}
                             >
                               <span
                                 style={{
-                                  fontSize: '12px',
+                                  fontSize: '11px',
                                   fontWeight: 700,
                                   fontFamily: 'monospace',
                                   color: 'var(--primary)',
@@ -788,92 +753,61 @@ export default function VpnAccessModal({
                                 style={{
                                   background: 'transparent',
                                   border: 'none',
-                                  color: isCopied ? '#16a34a' : 'var(--text-muted)',
+                                  color: isCopied ? '#10b981' : 'var(--text-muted)',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  padding: '2px',
+                                  padding: '1px',
                                 }}
                                 title="Copy WinBox IP"
                               >
-                                {isCopied ? <Check size={13} /> : <Copy size={13} />}
+                                {isCopied ? <Check size={11} /> : <Copy size={11} />}
                               </button>
                             </div>
-                          </div>
-
-                          {/* Quick Actions */}
-                          <div
-                            style={{
-                              display: 'flex',
-                              gap: '8px',
-                              flexWrap: 'wrap',
-                              alignItems: 'center',
-                              paddingTop: '6px',
-                              borderTop: '1px dashed var(--glass-border)',
-                            }}
-                          >
-                            <button
-                              onClick={() => handleCopyIp(vpnIp, r.id || vpnIp)}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '4px 8px',
-                                borderRadius: '6px',
-                                background: isCopied ? '#16a34a20' : 'var(--card-bg)',
-                                border: '1px solid var(--glass-border)',
-                                color: isCopied ? '#16a34a' : 'var(--foreground)',
-                                fontSize: '10.5px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {isCopied ? <Check size={11} /> : <Copy size={11} />}
-                              {isCopied ? t('common.copied') || 'Copied!' : t('vpnModal.copyWinboxIp') || 'Copy WinBox IP'}
-                            </button>
 
                             {vpnIp && (
                               <a
                                 href={`http://${vpnIp}`}
                                 target="_blank"
-                                rel="noreferrer"
+                                rel="noopener noreferrer"
                                 style={{
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: '4px',
+                                  gap: '3px',
                                   padding: '4px 8px',
                                   borderRadius: '6px',
-                                  background: 'var(--card-bg)',
-                                  border: '1px solid var(--glass-border)',
-                                  color: 'var(--foreground)',
+                                  background: 'rgba(var(--primary-rgb), 0.12)',
+                                  border: '1px solid rgba(var(--primary-rgb), 0.3)',
+                                  color: 'var(--primary)',
                                   fontSize: '10.5px',
-                                  fontWeight: 600,
+                                  fontWeight: 700,
                                   textDecoration: 'none',
                                 }}
                               >
-                                <ExternalLink size={11} />
-                                {t('vpnModal.openWebFig') || 'Open WebFig'}
+                                <ExternalLink size={10} />
+                                WebFig
                               </a>
                             )}
 
                             <button
-                              onClick={() => handleCopySsh(vpnIp, r.user, r.id || vpnIp)}
+                              onClick={() => handleCopySsh(vpnIp, r.user || 'admin', r.id || vpnIp)}
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px',
-                                padding: '4px 8px',
+                                gap: '3px',
+                                padding: '4px 7px',
                                 borderRadius: '6px',
-                                background: isSshCopied ? '#16a34a20' : 'var(--card-bg)',
+                                background: isSshCopied ? 'rgba(16, 185, 129, 0.15)' : 'var(--card-bg)',
                                 border: '1px solid var(--glass-border)',
-                                color: isSshCopied ? '#16a34a' : 'var(--foreground)',
+                                color: isSshCopied ? '#10b981' : 'var(--text-muted)',
                                 fontSize: '10.5px',
                                 fontWeight: 600,
                                 cursor: 'pointer',
                               }}
+                              title="Copy SSH command"
                             >
-                              {isSshCopied ? <Check size={11} /> : <Terminal size={11} />}
-                              {isSshCopied ? t('common.copied') || 'Copied SSH!' : 'SSH Command'}
+                              <Terminal size={10} />
+                              {isSshCopied ? (t('common.copied') || 'Copied!') : 'SSH'}
                             </button>
                           </div>
                         </div>
@@ -884,39 +818,6 @@ export default function VpnAccessModal({
               )}
             </>
           )}
-        </div>
-
-        {/* Modal Footer */}
-        <div
-          style={{
-            padding: '12px 20px',
-            borderTop: '1px solid var(--glass-border)',
-            background: 'var(--glass-bg)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
-            <Info size={13} />
-            <span>{t('vpnModal.splitTunnelTip') || 'Split Tunneling: Only router traffic goes through the VPN.'}</span>
-          </div>
-
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              background: 'var(--card-bg)',
-              border: '1px solid var(--glass-border)',
-              color: 'var(--foreground)',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            {t('common.close') || 'Close'}
-          </button>
         </div>
       </div>
     </div>

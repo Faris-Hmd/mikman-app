@@ -423,27 +423,6 @@ export default function AccountPage() {
             </button>
           </div>
         </div>
-
-        {/* Tenant Isolation Banner */}
-        <div
-          style={{
-            padding: '8px 12px',
-            borderRadius: '8px',
-            background: 'rgba(16, 185, 129, 0.08)',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '11.5px',
-            color: 'var(--foreground)',
-          }}
-        >
-          <Lock size={14} style={{ color: '#10b981', flexShrink: 0 }} />
-          <span>
-            <strong style={{ color: '#10b981' }}>{t('vpnModal.isolatedBadge') || 'Tenant Isolation Active:'}</strong>{' '}
-            {t('vpnModal.isolatedText') || 'Your tunnel strictly routes traffic to your owned routers only.'}
-          </span>
-        </div>
       </div>
 
       {/* Password Management Form Card */}

@@ -42,9 +42,25 @@ html[dir="ltr"] {
 :root[lang="ar"],
 :root[dir="rtl"],
 html[lang="ar"],
-html[dir="rtl"] {
-  --font-family: 'Cairo', 'Nunito', system-ui, -apple-system, sans-serif;
+html[dir="rtl"],
+[dir="rtl"] {
+  --font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+  letter-spacing: normal !important;
 }
+
+[dir="rtl"] *,
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] p,
+[dir="rtl"] span,
+[dir="rtl"] strong,
+[dir="rtl"] button,
+[dir="rtl"] a,
+[dir="rtl"] input {
+  letter-spacing: normal !important;
+}
+
 
 :root[data-theme='light'] {
   --background: #f8fafc;

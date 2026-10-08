@@ -897,9 +897,10 @@ export const updateRouterProfileAPI = async (
     supportPhone?: string;
     timezone?: string;
     hotspotWifiName?: string;
-    cardPrintLabel?: string;
     useCustomHotspotName?: boolean;
+    cardPrintLabel?: string;
     useCustomPrintLabel?: boolean;
+    portApMap?: Record<string, string>;
   }
 ): Promise<{ success: boolean; message: string; updates?: string[]; errors?: string[] }> => {
   return apiCall(`/routers/${id}`, {
@@ -907,6 +908,27 @@ export const updateRouterProfileAPI = async (
     body: data,
     timeoutMs: 270_000,
   });
+};
+
+export interface RouterInterfaceItem {
+  id: string;
+  name: string;
+  type: string;
+  running: boolean;
+  disabled: boolean;
+  comment?: string;
+  apName?: string;
+  clientCount?: number;
+  macAddress?: string;
+}
+
+export interface RouterInterfacesResponse {
+  interfaces: RouterInterfaceItem[];
+  portApMap: Record<string, string>;
+}
+
+export const fetchRouterInterfacesAPI = async (routerId: string): Promise<RouterInterfacesResponse> => {
+  return apiCall<RouterInterfacesResponse>(`/routers/${routerId}/interfaces`, { cache: 'no-store' });
 };
 
 export interface UploadJobStatus {

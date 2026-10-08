@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import { fetchNetworkClientsAPI, removeActiveSessionAPI } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
+import PortApModal from '../../components/PortApModal';
 
 import {
   Users,
@@ -25,7 +26,9 @@ import {
   Shield,
   Activity,
   LogOut,
-  MessageSquare
+  MessageSquare,
+  Radio,
+  Network
 } from 'lucide-react';
 
 interface NetworkClient {
@@ -47,6 +50,11 @@ interface NetworkClient {
   bytesIn?: number;
   bytesOut?: number;
   comment?: string;
+  port?: string;
+  bridgePort?: string;
+  isWireless?: boolean;
+  signalStrength?: string | number;
+  apName?: string;
 }
 
 // Utility to format bytes into readable strings
@@ -104,6 +112,9 @@ export default function UsersPage() {
 
   const [activeTab, setActiveTab] = useState<'signedIn' | 'waiting' | 'all'>('signedIn');
   const [searchTerm, setSearchTerm] = useState('');
+  const [groupBy, setGroupBy] = useState<'port' | 'profile'>('port');
+  const [selectedPortFilter, setSelectedPortFilter] = useState<string>('all');
+  const [isPortModalOpen, setIsPortModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<NetworkClient | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
@@ -123,6 +134,29 @@ export default function UsersPage() {
     }
     return [];
   }, [clients]);
+
+  // Extract distinct ports & their assigned APs from active clients
+  const availablePorts = useMemo(() => {
+    const map = new Map<string, { port: string; apName?: string; count: number; isWireless?: boolean }>();
+    rawClientList.forEach((c) => {
+      const p = c.port || c.bridgePort || (c.isWireless ? 'wlan1' : '');
+      if (p) {
+        const existing = map.get(p);
+        if (existing) {
+          existing.count += 1;
+          if (!existing.apName && c.apName) existing.apName = c.apName;
+        } else {
+          map.set(p, {
+            port: p,
+            apName: c.apName,
+            count: 1,
+            isWireless: c.isWireless || p.startsWith('wlan') || p.startsWith('wifi'),
+          });
+        }
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.port.localeCompare(b.port, undefined, { numeric: true }));
+  }, [rawClientList]);
 
   // Separate clients into signed-in voucher users and waiting/unauthenticated clients
   const { signedInClients, waitingClients } = useMemo(() => {
@@ -147,51 +181,112 @@ export default function UsersPage() {
     return rawClientList;
   }, [activeTab, signedInClients, waitingClients, rawClientList]);
 
-  // Filter clients based on search input
+  // Filter clients based on search input AND selected port
   const filteredClients = useMemo(() => {
-    if (!searchTerm.trim()) return currentTabList;
+    let list = currentTabList;
+
+    // Filter by Port / AP if selected
+    if (selectedPortFilter !== 'all') {
+      list = list.filter((c) => {
+        const p = c.port || c.bridgePort || (c.isWireless ? 'wlan1' : '');
+        return p === selectedPortFilter;
+      });
+    }
+
+    if (!searchTerm.trim()) return list;
     const term = searchTerm.toLowerCase().trim();
-    return currentTabList.filter(c => {
+    return list.filter(c => {
       const nameMatch = (c.name || c.user || '').toLowerCase().includes(term);
       const macMatch = (c.mac || '').toLowerCase().includes(term);
       const ipMatch = (c.ip || '').toLowerCase().includes(term);
       const profileMatch = (c.profile || '').toLowerCase().includes(term);
-      return nameMatch || macMatch || ipMatch || profileMatch;
+      const portMatch = (c.port || c.bridgePort || '').toLowerCase().includes(term);
+      const apMatch = (c.apName || '').toLowerCase().includes(term);
+      return nameMatch || macMatch || ipMatch || profileMatch || portMatch || apMatch;
     });
-  }, [currentTabList, searchTerm]);
+  }, [currentTabList, selectedPortFilter, searchTerm]);
 
-  // Group clients by profile name
-  const groupedClients = useMemo(() => {
-    const groups: { [profileName: string]: NetworkClient[] } = {};
+  // Group clients by either connected Port/AP OR Profile
+  const clientGroups = useMemo(() => {
+    if (groupBy === 'port') {
+      const map = new Map<string, { key: string; title: string; iconType: 'ap' | 'wifi' | 'ether'; port?: string; clients: NetworkClient[] }>();
 
-    filteredClients.forEach((client) => {
-      const isSigned = checkIsSignedUser(client);
-      const groupKey = client.profile
-        ? client.profile
-        : isSigned
-        ? (t('users.defaultProfile') || 'افتراضي')
-        : (t('users.waiting') || 'في الانتظار');
+      filteredClients.forEach((client) => {
+        const portName = client.port || client.bridgePort || (client.isWireless ? 'wlan1' : '');
+        const apName = client.apName || '';
 
-      if (!groups[groupKey]) {
-        groups[groupKey] = [];
-      }
-      groups[groupKey].push(client);
-    });
+        let key = portName || (client.isWireless ? 'wlan1' : 'unknown');
+        let title = '';
+        let iconType: 'ap' | 'wifi' | 'ether' = 'ether';
 
-    const waitingStr = (t('users.waiting') || 'في الانتظار').toLowerCase();
-    const sortedKeys = Object.keys(groups).sort((a, b) => {
-      if (a.toLowerCase() === waitingStr) return 1;
-      if (b.toLowerCase() === waitingStr) return -1;
-      return a.localeCompare(b);
-    });
+        if (apName && portName) {
+          title = `${apName} (${portName})`;
+          iconType = 'ap';
+        } else if (apName) {
+          title = apName;
+          iconType = 'ap';
+        } else if (portName) {
+          const isWifi = portName.startsWith('wlan') || portName.startsWith('wifi') || client.isWireless;
+          title = isWifi ? `Wi-Fi (${portName})` : portName;
+          iconType = isWifi ? 'wifi' : 'ether';
+        } else if (client.isWireless) {
+          title = 'Wi-Fi (Wireless)';
+          iconType = 'wifi';
+        } else {
+          title = t('users.noPortDetected') || 'منفذ غير محدد / الراوتر';
+          iconType = 'ether';
+        }
 
-    const sortedGroups: { [profileName: string]: NetworkClient[] } = {};
-    sortedKeys.forEach((key) => {
-      sortedGroups[key] = groups[key];
-    });
+        if (!map.has(key)) {
+          map.set(key, {
+            key,
+            title,
+            iconType,
+            port: portName,
+            clients: [],
+          });
+        }
+        map.get(key)!.clients.push(client);
+      });
 
-    return sortedGroups;
-  }, [filteredClients, t]);
+      return Array.from(map.values()).sort((a, b) => {
+        if (a.key === 'unknown') return 1;
+        if (b.key === 'unknown') return -1;
+        return a.title.localeCompare(b.title, undefined, { numeric: true });
+      });
+    } else {
+      // Group by Profile
+      const map = new Map<string, { key: string; title: string; iconType: 'profile' | 'waiting'; clients: NetworkClient[] }>();
+
+      filteredClients.forEach((client) => {
+        const isSigned = checkIsSignedUser(client);
+        const groupKey = client.profile
+          ? client.profile
+          : isSigned
+          ? (t('users.defaultProfile') || 'افتراضي')
+          : (t('users.waiting') || 'في الانتظار');
+
+        const isWaiting = !isSigned && !client.profile;
+
+        if (!map.has(groupKey)) {
+          map.set(groupKey, {
+            key: groupKey,
+            title: groupKey,
+            iconType: isWaiting ? 'waiting' : 'profile',
+            clients: [],
+          });
+        }
+        map.get(groupKey)!.clients.push(client);
+      });
+
+      const waitingStr = (t('users.waiting') || 'في الانتظار').toLowerCase();
+      return Array.from(map.values()).sort((a, b) => {
+        if (a.title.toLowerCase() === waitingStr) return 1;
+        if (b.title.toLowerCase() === waitingStr) return -1;
+        return a.title.localeCompare(b.title);
+      });
+    }
+  }, [filteredClients, groupBy, t]);
 
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -240,13 +335,30 @@ export default function UsersPage() {
           </div>
         </div>
 
-        <button
-          onClick={() => mutate()}
-          className="page-header-btn"
-        >
-          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-          <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <button
+            onClick={() => setIsPortModalOpen(true)}
+            className="page-header-btn"
+            style={{
+              background: 'rgba(6, 182, 212, 0.12)',
+              border: '1px solid rgba(6, 182, 212, 0.3)',
+              color: '#06b6d4'
+            }}
+            title={t('users.assignAps') || 'Ports & APs Mapping'}
+          >
+            <Radio size={14} />
+            <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>
+              {t('users.assignAps') || 'تعيين المنافذ'}
+            </span>
+          </button>
+          <button
+            onClick={() => mutate()}
+            className="page-header-btn"
+          >
+            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+            <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
+          </button>
+        </div>
       </div>
 
       {/* ─── 2. Overview Stat Cards / Interactive Group Tabs ─── */}
@@ -387,61 +499,228 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Search Input Filter Bar */}
+      {/* Search Input & Grouping Mode Control */}
       <div style={{
-        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
         width: '100%',
       }}>
-        <Search
-          size={14}
-          style={{
-            position: 'absolute',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            [isRtl ? 'right' : 'left']: '10px',
-            color: 'var(--text-muted)',
-            pointerEvents: 'none'
-          }}
-        />
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={t('users.searchPlaceholder')}
-          style={{
-            width: '100%',
-            padding: `8px ${isRtl ? '30px' : '30px'} 8px ${isRtl ? '30px' : '30px'}`,
-            background: 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '8px',
-            color: 'var(--foreground)',
-            fontSize: '12px',
-            outline: 'none',
-            boxSizing: 'border-box',
-            transition: 'border-color 0.2s ease',
-          }}
-        />
-        {searchTerm && (
-          <button
-            onClick={() => setSearchTerm('')}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          width: '100%',
+        }}>
+          {/* Search Input */}
+          <div style={{
+            position: 'relative',
+            flex: 1,
+            minWidth: 0,
+          }}>
+            <Search
+              size={14}
+              style={{
+                position: 'absolute',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                [isRtl ? 'right' : 'left']: '10px',
+                color: 'var(--text-muted)',
+                pointerEvents: 'none'
+              }}
+            />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t('users.searchPlaceholder')}
+              style={{
+                width: '100%',
+                padding: `8px ${isRtl ? '30px' : '30px'} 8px ${isRtl ? '30px' : '30px'}`,
+                background: 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+                borderRadius: '8px',
+                color: 'var(--foreground)',
+                fontSize: '12px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.2s ease',
+              }}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  [isRtl ? 'left' : 'right']: '8px',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '2px',
+                }}
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          {/* Group By Mode Toggle Switch */}
+          <div
             style={{
-              position: 'absolute',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              [isRtl ? 'left' : 'right']: '8px',
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: '2px',
+              background: 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+              border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+              borderRadius: '8px',
               padding: '2px',
+              flexShrink: 0,
             }}
           >
-            <X size={13} />
-          </button>
+            <button
+              onClick={() => setGroupBy('port')}
+              title={t('users.groupByPort') || 'Group by Connected Port / AP'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '6px 9px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: groupBy === 'port' ? 'linear-gradient(135deg, #06b6d4, #0891b2)' : 'transparent',
+                color: groupBy === 'port' ? '#ffffff' : 'var(--text-muted)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Radio size={12} />
+              <span className="hide-xs" style={{ whiteSpace: 'nowrap' }}>{t('users.groupByPort') || 'المنافذ'}</span>
+            </button>
+            <button
+              onClick={() => setGroupBy('profile')}
+              title={t('users.groupByProfile') || 'Group by Profile'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '6px 9px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: groupBy === 'profile' ? 'var(--primary, #3b82f6)' : 'transparent',
+                color: groupBy === 'profile' ? '#ffffff' : 'var(--text-muted)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Layers size={12} />
+              <span className="hide-xs" style={{ whiteSpace: 'nowrap' }}>{t('users.groupByProfile') || 'الباقات'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ─── Port / AP Quick Filter Pills ─── */}
+        {availablePorts.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              overflowX: 'auto',
+              paddingBottom: '2px',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
+            {/* All Ports Button */}
+            <button
+              onClick={() => setSelectedPortFilter('all')}
+              style={{
+                padding: '3px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: selectedPortFilter === 'all'
+                  ? 'var(--primary, #3b82f6)'
+                  : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+                color: selectedPortFilter === 'all' ? '#ffffff' : 'var(--text-muted)',
+                border: selectedPortFilter === 'all'
+                  ? '1px solid var(--primary, #3b82f6)'
+                  : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>{t('users.allPorts') || 'All Ports'}</span>
+              <span style={{
+                fontSize: '9.5px',
+                opacity: 0.9,
+                background: selectedPortFilter === 'all' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                padding: '0 4px',
+                borderRadius: '10px'
+              }}>
+                {rawClientList.length}
+              </span>
+            </button>
+
+            {availablePorts.map((item) => {
+              const isSelected = selectedPortFilter === item.port;
+              const Icon = item.apName ? Radio : item.isWireless ? Wifi : Network;
+              const iconColor = item.apName ? '#06b6d4' : item.isWireless ? '#10b981' : '#818cf8';
+
+              return (
+                <button
+                  key={item.port}
+                  onClick={() => setSelectedPortFilter(isSelected ? 'all' : item.port)}
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: isSelected
+                      ? (item.apName ? '#06b6d4' : item.isWireless ? '#10b981' : '#6366f1')
+                      : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+                    color: isSelected ? '#ffffff' : 'var(--foreground)',
+                    border: isSelected
+                      ? `1px solid ${item.apName ? '#06b6d4' : item.isWireless ? '#10b981' : '#6366f1'}`
+                      : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Icon size={12} style={{ color: isSelected ? '#ffffff' : iconColor }} />
+                  <span>{item.apName ? `${item.apName} (${item.port})` : item.port}</span>
+                  <span style={{
+                    fontSize: '9.5px',
+                    opacity: 0.9,
+                    background: isSelected ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                    padding: '0 4px',
+                    borderRadius: '10px'
+                  }}>
+                    {item.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 
@@ -497,45 +776,63 @@ export default function UsersPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {Object.entries(groupedClients).map(([profileGroup, clients]) => (
-            <div key={profileGroup} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {/* Profile Group Glass Header */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '5px 10px',
-                  background: 'rgba(99, 102, 241, 0.08)',
-                  border: '1px solid rgba(99, 102, 241, 0.2)',
-                  borderRadius: '8px',
-                  backdropFilter: 'blur(8px)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Layers size={13} style={{ color: '#818cf8' }} />
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
-                    {profileGroup}
-                  </span>
-                </div>
-                <span
+          {clientGroups.map((group) => {
+            const isAp = group.iconType === 'ap';
+            const isWifi = group.iconType === 'wifi';
+            const isWaiting = group.iconType === 'waiting';
+
+            const headerTheme = isAp
+              ? { bg: 'rgba(6, 182, 212, 0.1)', border: 'rgba(6, 182, 212, 0.3)', color: '#06b6d4', Icon: Radio }
+              : isWifi
+              ? { bg: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.3)', color: '#10b981', Icon: Wifi }
+              : isWaiting
+              ? { bg: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.3)', color: '#f59e0b', Icon: Clock }
+              : group.iconType === 'profile'
+              ? { bg: 'rgba(99, 102, 241, 0.08)', border: 'rgba(99, 102, 241, 0.25)', color: '#818cf8', Icon: Layers }
+              : { bg: 'rgba(148, 163, 184, 0.08)', border: 'rgba(148, 163, 184, 0.25)', color: '#94a3b8', Icon: Network };
+
+            const HeaderIcon = headerTheme.Icon;
+
+            return (
+              <div key={group.key} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {/* Group Glass Header */}
+                <div
                   style={{
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    color: '#818cf8',
-                    background: 'rgba(99, 102, 241, 0.15)',
-                    padding: '2px 8px',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(99, 102, 241, 0.25)'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '6px 12px',
+                    background: headerTheme.bg,
+                    border: `1px solid ${headerTheme.border}`,
+                    borderRadius: '8px',
+                    backdropFilter: 'blur(8px)'
                   }}
                 >
-                  {clients.length}
-                </span>
-              </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                    <HeaderIcon size={14} style={{ color: headerTheme.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {group.title}
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: headerTheme.color,
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      border: `1px solid ${headerTheme.border}`,
+                      flexShrink: 0
+                    }}
+                  >
+                    {group.clients.length}
+                  </span>
+                </div>
 
-              {/* Group Users List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {clients.map((client, idx) => {
+                {/* Group Users List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {group.clients.map((client, idx) => {
                   const isSignedUser = checkIsSignedUser(client);
                   const rawUser = (client.user || (client as any).voucherCode || '').trim();
 
@@ -731,6 +1028,61 @@ export default function UsersPage() {
                                 </span>
                               ) : null}
                             </div>
+
+                            {/* Port / AP Ingress Badge Slot - Always visible on all screen sizes */}
+                            {(() => {
+                              const portDisplay = client.port || client.bridgePort;
+                              const isWlan = client.isWireless || (portDisplay && (portDisplay.startsWith('wlan') || portDisplay.startsWith('wifi')));
+                              const hasAp = !!client.apName;
+                              const label = client.apName || (portDisplay ? (isWlan ? `WiFi (${portDisplay})` : portDisplay) : (isWlan ? 'WiFi' : ''));
+
+                              if (!label) return null;
+
+                              return (
+                                <div style={{ flexShrink: 0, display: 'flex' }}>
+                                  <span
+                                    className="item-badge"
+                                    title={`${t('users.connectedTo') || 'Connected To'}: ${hasAp ? `${client.apName} (${portDisplay || 'Port'})` : label}`}
+                                    style={{
+                                      background: hasAp
+                                        ? 'rgba(6, 182, 212, 0.15)'
+                                        : isWlan
+                                        ? 'rgba(16, 185, 129, 0.15)'
+                                        : 'rgba(255, 255, 255, 0.08)',
+                                      color: hasAp ? '#06b6d4' : isWlan ? '#10b981' : 'var(--text-muted)',
+                                      border: hasAp
+                                        ? '1px solid rgba(6, 182, 212, 0.3)'
+                                        : isWlan
+                                        ? '1px solid rgba(16, 185, 129, 0.3)'
+                                        : '1px solid var(--glass-border)',
+                                      fontSize: '9.5px',
+                                      fontWeight: 700,
+                                      padding: '0 5px',
+                                      borderRadius: '5px',
+                                      height: '19px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '3px',
+                                      whiteSpace: 'nowrap',
+                                      maxWidth: '110px',
+                                      boxSizing: 'border-box',
+                                    }}
+                                  >
+                                    {hasAp ? (
+                                      <Radio size={10} style={{ flexShrink: 0 }} />
+                                    ) : isWlan ? (
+                                      <Wifi size={10} style={{ flexShrink: 0 }} />
+                                    ) : (
+                                      <Network size={10} style={{ flexShrink: 0 }} />
+                                    )}
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {label}
+                                    </span>
+                                  </span>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -815,7 +1167,8 @@ export default function UsersPage() {
                 })}
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       )}
 
@@ -907,6 +1260,47 @@ export default function UsersPage() {
 
             {/* Modal Details Grid */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+              {/* Connected Port / AP Ingress Card */}
+              {(selectedClient.apName || selectedClient.port || selectedClient.bridgePort || selectedClient.isWireless) && (
+                <div style={{
+                  background: 'rgba(6, 182, 212, 0.08)',
+                  border: '1px solid rgba(6, 182, 212, 0.25)',
+                  borderRadius: '8px',
+                  padding: '7px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#06b6d4', flexShrink: 0 }}>
+                    {selectedClient.apName ? (
+                      <Radio size={13} style={{ color: '#06b6d4' }} />
+                    ) : selectedClient.isWireless ? (
+                      <Wifi size={13} style={{ color: '#10b981' }} />
+                    ) : (
+                      <Network size={13} style={{ color: '#06b6d4' }} />
+                    )}
+                    <span>{t('users.connectedTo') || 'Connected To'}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
+                    {selectedClient.apName ? (
+                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {selectedClient.apName}
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '0 4px' }}>
+                          ({selectedClient.port || selectedClient.bridgePort || 'Port'})
+                        </span>
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace' }}>
+                        {selectedClient.isWireless
+                          ? `Wi-Fi (${selectedClient.port || 'wlan1'})`
+                          : (selectedClient.port || selectedClient.bridgePort || t('users.noPortDetected') || 'Unknown Port')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Hotspot User / Voucher Code */}
               {(selectedClient.user || (selectedClient as any).voucherCode) && (
@@ -1264,6 +1658,13 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+      {/* ─── 5. Ports & APs Assignment Modal ─── */}
+      <PortApModal
+        isOpen={isPortModalOpen}
+        onClose={() => setIsPortModalOpen(false)}
+        routerId={routerId || ''}
+        onPortMapUpdated={() => mutate()}
+      />
     </div>
   );
 }
