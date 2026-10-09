@@ -5,7 +5,6 @@ import {
   fetchRouterProfilesWithUserAPI,
   fetchAllRoutersStatusAPI,
   formatUptimeAPI,
-  fetchUserVpnConfigAPI,
   fetchUserVpnPeersStatusAPI,
   deleteUserVpnPeerAPI,
   UserPeerStatusItem,
@@ -14,7 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getRemainingDays, getTemperature, getRouterImage, skeletonStyle, getQuotaName, getRouterVpnIp } from '../lib/helpers';
-import { getOrCreateUserPrivateKey, getPublicKeyFromPrivateKey } from '../lib/wireguardVpn';
+import { getPublicKeyFromPrivateKey } from '../lib/wireguardVpn';
 import {
   Server,
   Plus,
@@ -165,26 +164,29 @@ export default function LandingPage() {
 
   const userName = userData?.name || currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0] : '');
 
-  const { data: vpnServerConfig } = useSWR(
-    currentUser?.email ? ['user-vpn-config-landing', currentUser.email] : null,
-    async () => {
-      try {
-        const privKey = getOrCreateUserPrivateKey(currentUser?.email || 'admin');
-        const pubKey = getPublicKeyFromPrivateKey(privKey);
-        return await fetchUserVpnConfigAPI(pubKey);
-      } catch {
-        return null;
-      }
-    },
-    { revalidateOnFocus: false, dedupingInterval: 60000 }
-  );
+  // Read existing VPN client IP from localStorage without calling the server.
+  // Calling fetchUserVpnConfigAPI here would re-register the peer on the VPS,
+  // which undoes any deletion the user just performed.
+  const vpnServerConfig = React.useMemo(() => {
+    const email = (currentUser?.email || '').toLowerCase().trim();
+    if (!email) return null;
+    const existingPriv = localStorage.getItem(`@wg_user_privkey_${email}_pc`) || localStorage.getItem(`@wg_user_privkey_${email}`);
+    if (!existingPriv) return null;
+    return { clientIp: null as string | null };
+  }, [currentUser?.email]);
 
   const { data: peerTelemetryList, mutate: mutatePeers } = useSWR(
     currentUser?.email ? ['user-vpn-peers-telemetry', currentUser.email] : null,
     async () => {
       try {
-        const privKey = getOrCreateUserPrivateKey(currentUser?.email || 'admin');
-        const pubKey = getPublicKeyFromPrivateKey(privKey);
+        // ONLY read existing keys — never auto-create. Peer creation is handled
+        // exclusively by VpnAccessModal.  If no key exists yet, just call
+        // the status endpoint without a key filter to get all user peers.
+        const email = (currentUser?.email || '').toLowerCase().trim();
+        const existingPriv = email
+          ? (localStorage.getItem(`@wg_user_privkey_${email}_pc`) || localStorage.getItem(`@wg_user_privkey_${email}`))
+          : null;
+        const pubKey = existingPriv ? getPublicKeyFromPrivateKey(existingPriv) : undefined;
         return await fetchUserVpnPeersStatusAPI(pubKey);
       } catch {
         return [];
@@ -214,7 +216,15 @@ export default function LandingPage() {
             localStorage.removeItem(`@wg_user_privkey_${email}`);
           }
         }
-        await mutatePeers();
+        // Optimistically remove the deleted peer from the local list
+        // instead of re-fetching (which would re-derive keys and potentially
+        // re-register a new peer on the VPS).
+        const deletedPubKey = peerToDelete.publicKey;
+        await mutatePeers(
+          (currentPeers: UserPeerStatusItem[] | undefined) =>
+            (currentPeers || []).filter((p) => p.publicKey !== deletedPubKey),
+          false // Don't revalidate immediately — let the next 10s poll pick it up
+        );
         setPeerToDelete(null);
       } else {
         showAlert(t('common.error') || 'Error', t('dashboard.deletePeerFailed') || 'Failed to delete peer from server', 'error');
@@ -226,35 +236,12 @@ export default function LandingPage() {
     }
   };
 
-  const baseVpnIp = vpnServerConfig?.clientIp || '10.8.250.2';
-  const phoneVpnIp = baseVpnIp.includes('.') ? baseVpnIp.replace(/\.\d+$/, '.3') : '10.8.250.3';
-
-  const livePeers = peerTelemetryList && peerTelemetryList.length > 0
-    ? peerTelemetryList
-    : [
-        {
-          publicKey: '',
-          clientIp: baseVpnIp,
-          name: 'Admin PC',
-          deviceType: 'pc' as const,
-          lastHandshakeHuman: 'Never',
-          isOnline: false,
-          transferRx: 0,
-          transferTx: 0,
-          latestHandshake: 0,
-        },
-        {
-          publicKey: '',
-          clientIp: phoneVpnIp,
-          name: 'Admin Phone',
-          deviceType: 'phone' as const,
-          lastHandshakeHuman: 'Never',
-          isOnline: false,
-          transferRx: 0,
-          transferTx: 0,
-          latestHandshake: 0,
-        }
-      ];
+  // peerTelemetryList states:
+  //  undefined = SWR still loading (show skeleton)
+  //  []        = server confirmed zero peers (show empty state)
+  //  [...]     = real peers to render
+  const isPeersLoading = peerTelemetryList === undefined;
+  const livePeers = peerTelemetryList || [];
 
   return (
     <div className="app-container" style={{ padding: '16px 20px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
@@ -446,7 +433,50 @@ export default function LandingPage() {
           {t('dashboard.vpnPeersTitle') || 'WireGuard Peers'}
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px' }}>
-          {livePeers.map((peer, idx) => {
+          {isPeersLoading ? (
+            /* Loading skeleton */
+            [1, 2].map(n => (
+              <div
+                key={n}
+                style={{
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '10px',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ width: '15px', height: '15px', borderRadius: '4px', ...skeletonStyle('15px') }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ height: '12px', width: '60%', borderRadius: '3px', ...skeletonStyle('100%') }} />
+                </div>
+                <div style={{ height: '12px', width: '40px', borderRadius: '3px', ...skeletonStyle('40px') }} />
+              </div>
+            ))
+          ) : livePeers.length === 0 ? (
+            /* Empty state — no peers configured */
+            <div
+              style={{
+                gridColumn: '1 / -1',
+                background: 'var(--card-bg)',
+                border: '1px dashed var(--glass-border)',
+                borderRadius: '10px',
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <Laptop size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
+              <span style={{ fontSize: '11.5px' }}>
+                {t('dashboard.noPeersDesc') || 'No WireGuard peers configured. Open VPN Access to set up a tunnel.'}
+              </span>
+            </div>
+          ) : (
+          livePeers.map((peer, idx) => {
             const isPhone = peer.deviceType === 'phone' || peer.name.toLowerCase().includes('phone');
             const Icon = isPhone ? Smartphone : Laptop;
             const iconColor = isPhone ? '#10b981' : 'var(--primary)';
@@ -515,7 +545,8 @@ export default function LandingPage() {
                 </div>
               </div>
             );
-          })}
+          }))
+          }
         </div>
       </div>
 

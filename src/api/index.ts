@@ -1122,8 +1122,10 @@ export const deleteUserVpnPeerAPI = async (publicKey: string): Promise<boolean> 
       body: { publicKey },
     });
     return Boolean(res?.success);
-  } catch (e) {
-    return false;
+  } catch (e: any) {
+    // Re-throw with server error message so the UI can display it
+    const msg = e?.message || 'Failed to delete peer';
+    throw new Error(msg);
   }
 };
 
