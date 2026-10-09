@@ -124,7 +124,7 @@ export const apiCall = async <T = unknown>(
     const fetchOptions: RequestInit = {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
       cache,
     };
 
@@ -1089,12 +1089,56 @@ export interface ServerVpnConfigResponse {
   routers?: Array<{ id: string; name: string; vpnIp: string; model?: string }>;
 }
 
-export const fetchUserVpnConfigAPI = async (clientPublicKey?: string): Promise<ServerVpnConfigResponse | null> => {
+export interface UserPeerStatusItem {
+  publicKey: string;
+  clientIp: string;
+  name: string;
+  deviceType: 'pc' | 'phone' | 'device';
+  endpoint?: string;
+  latestHandshake: number;
+  lastHandshakeHuman: string;
+  isOnline: boolean;
+  transferRx: number;
+  transferTx: number;
+}
+
+export const fetchUserVpnPeersStatusAPI = async (clientPublicKey?: string): Promise<UserPeerStatusItem[]> => {
   try {
-    let path = '/user/vpn-config';
+    let path = '/user/vpn-peers/status';
     if (clientPublicKey) {
       path += `?clientPublicKey=${encodeURIComponent(clientPublicKey)}`;
     }
+    const res = await apiCall<{ success: boolean; peers: UserPeerStatusItem[] }>(path, { cache: 'no-store' });
+    return res.peers || [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const deleteUserVpnPeerAPI = async (publicKey: string): Promise<boolean> => {
+  try {
+    const res = await apiCall<{ success: boolean; message: string }>('/user/vpn-peers/delete', {
+      method: 'POST',
+      body: { publicKey },
+    });
+    return Boolean(res?.success);
+  } catch (e) {
+    return false;
+  }
+};
+
+export const fetchUserVpnConfigAPI = async (
+  clientPublicKey?: string,
+  deviceName?: string,
+  deviceType?: 'pc' | 'phone' | 'device'
+): Promise<ServerVpnConfigResponse | null> => {
+  try {
+    const params = new URLSearchParams();
+    if (clientPublicKey) params.append('clientPublicKey', clientPublicKey);
+    if (deviceName) params.append('deviceName', deviceName);
+    if (deviceType) params.append('deviceType', deviceType);
+    const queryString = params.toString();
+    const path = `/user/vpn-config${queryString ? `?${queryString}` : ''}`;
     return await apiCall<ServerVpnConfigResponse>(path, { cache: 'no-store' });
   } catch (e) {
     // Graceful fallback to client generation

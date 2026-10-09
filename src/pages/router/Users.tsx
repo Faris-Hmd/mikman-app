@@ -1,8 +1,25 @@
-import { useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchNetworkClientsAPI, removeActiveSessionAPI } from '../../api';
+import {
+  fetchNetworkClientsAPI,
+  removeActiveSessionAPI,
+  fetchRouterInterfacesAPI,
+  fetchRouterProfilesWithUserAPI,
+  fetchIpBindingsAPI,
+} from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
+import {
+  NetworkClient,
+  formatBytes,
+  getSignalColor,
+  getLeaseDeviceName,
+  getRemainingTime,
+  getRemainingBytes,
+  checkIsSignedUser,
+  getClientApName,
+  resolveClientPortAndAp,
+} from '../../lib/clientPortDetection';
 
 import {
   Users,
@@ -22,101 +39,115 @@ import {
   Layers,
   Smartphone,
   Info,
-  Shield,
   Activity,
-  LogOut,
   MessageSquare,
   Radio,
-  Network
+  Network,
+  Database,
+  Tag,
 } from 'lucide-react';
-
-interface NetworkClient {
-  id?: string;
-  name?: string;
-  user?: string;
-  mac?: string;
-  ip?: string;
-  uptime?: string;
-  sessionTimeLeft?: string;
-  timeLeft?: string;
-  remainingTime?: string;
-  session_time_left?: string;
-  limitUptime?: string;
-  signal?: number;
-  profile?: string;
-  rxBytes?: number;
-  txBytes?: number;
-  bytesIn?: number;
-  bytesOut?: number;
-  comment?: string;
-  port?: string;
-  bridgePort?: string;
-  isWireless?: boolean;
-  signalStrength?: string | number;
-  apName?: string;
-}
-
-// Utility to format bytes into readable strings
-const formatBytes = (bytes?: number): string => {
-  if (!bytes || bytes <= 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
-};
-
-// Signal strength color helper
-const getSignalColor = (signal?: number) => {
-  if (signal === undefined || signal === null) return { text: '#9ca3af', bg: 'rgba(156, 163, 175, 0.12)', border: 'rgba(156, 163, 175, 0.25)' };
-  if (signal >= 70) return { text: '#10b981', bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.25)' };
-  if (signal >= 40) return { text: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.25)' };
-  return { text: '#ef4444', bg: 'rgba(239, 68, 68, 0.12)', border: 'rgba(239, 68, 68, 0.25)' };
-};
-
-// Helper to reliably check if a client is an active authenticated hotspot voucher user
-const checkIsSignedUser = (client: NetworkClient): boolean => {
-  // Hotspot user must be in user or voucherCode (never fall back to device name)
-  const hotspotUser = (client.user || (client as any).voucherCode || '').trim();
-  if (!hotspotUser) return false;
-
-  const cleanUser = hotspotUser.toLowerCase().replace(/[:-]/g, '');
-  const cleanMac = client.mac ? client.mac.toLowerCase().replace(/[:-]/g, '') : '';
-  const cleanIp = client.ip ? client.ip.trim() : '';
-
-  // Exclude MAC or IP logins if they match raw credentials
-  if (cleanUser === cleanMac || hotspotUser === cleanIp) return false;
-
-  // Exclude bypassed bindings (check boolean & string formats)
-  const isBypassed = (client as any).bypassed === true ||
-                     (client as any).bypassed === 'true' ||
-                     (client as any).type === 'bypassed';
-  if (isBypassed) return false;
-
-  // Exclude AP devices by flag, comment, or device name keywords
-  const commentStr = (client.comment || '').toLowerCase();
-  const nameStr = (client.name || '').toLowerCase();
-  const isApDevice = (client as any).isAp === true ||
-                     (client as any).isAp === 'true' ||
-                     /\b(ap|access point|bypass|binding)\b/i.test(commentStr) ||
-                     (/\b(ap|access point|routerboard|tp-link|ubiquiti|mikrotik|tenda|netgear|cisco)\b/i.test(nameStr));
-  if (isApDevice) return false;
-
-  if ((client as any).authorized === false) return false;
-
-  return true;
-};
 
 export default function UsersPage() {
   const { routerId } = useParams<{ routerId: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const portParam = searchParams.get('port');
   const { t, isRtl } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'signedIn' | 'waiting' | 'all'>('signedIn');
   const [searchTerm, setSearchTerm] = useState('');
   const [groupBy, setGroupBy] = useState<'port' | 'profile'>('port');
-  const [selectedPortFilter, setSelectedPortFilter] = useState<string>('all');
+  const [selectedPortFilter, setSelectedPortFilter] = useState<string>(portParam || 'all');
   const [selectedClient, setSelectedClient] = useState<NetworkClient | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+
+  useEffect(() => {
+    if (portParam) {
+      setSelectedPortFilter(portParam);
+    }
+  }, [portParam]);
+
+  // Fetch router interfaces to get live portApMap
+  const { data: ifaceData } = useSWR(
+    routerId ? `router-interfaces-${routerId}` : null,
+    () => fetchRouterInterfacesAPI(routerId!),
+    { dedupingInterval: 10000, revalidateOnFocus: false }
+  );
+
+  // Fetch IP Bindings to match AP devices and bypassed comments
+  const { data: bindingsData } = useSWR(
+    routerId ? `router-ip-bindings-${routerId}` : null,
+    () => fetchIpBindingsAPI(routerId!),
+    { dedupingInterval: 10000, revalidateOnFocus: false }
+  );
+
+  // Manual device-to-port assignments saved by the admin in this browser session/localStorage
+  const [clientPortOverrides, setClientPortOverrides] = useState<Record<string, string>>(() => {
+    try {
+      const cached = localStorage.getItem(`@router_client_ports_${routerId}`);
+      return cached ? JSON.parse(cached) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Fetch router profiles to fallback for portApMap
+  const { data: profilesResponse } = useSWR(
+    'router-profiles-with-user',
+    fetchRouterProfilesWithUserAPI,
+    { dedupingInterval: 10000, revalidateOnFocus: false }
+  );
+
+  const portApMap = useMemo(() => {
+    let map: Record<string, string> = {};
+    try {
+      const cached = localStorage.getItem(`@router_port_map_${routerId}`);
+      if (cached) map = { ...map, ...JSON.parse(cached) };
+    } catch {}
+
+    const profiles = Array.isArray(profilesResponse) ? profilesResponse : profilesResponse?.profiles || [];
+    const currentProfile = profiles.find((p: any) => p.id === routerId);
+    if (currentProfile?.portApMap && typeof currentProfile.portApMap === 'object') {
+      map = { ...map, ...currentProfile.portApMap };
+    }
+
+    if (ifaceData?.portApMap && typeof ifaceData.portApMap === 'object') {
+      map = { ...map, ...ifaceData.portApMap };
+    }
+    return map;
+  }, [routerId, profilesResponse, ifaceData]);
+
+  const bindingsMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (Array.isArray(bindingsData)) {
+      bindingsData.forEach((b: any) => {
+        const comment = (b.comment || '').toLowerCase().trim();
+        const mac = (b.macAddress || b.mac || '').toLowerCase().replace(/[^a-f0-9]/g, '');
+        const ip = (b.address || b.ip || '').trim();
+
+        // Check if binding comment matches a port in portApMap
+        let matchedPort = '';
+        for (const [k, v] of Object.entries(portApMap)) {
+          if (k !== 'bridge' && k !== 'all') {
+            const cleanK = k.toLowerCase().trim();
+            const cleanV = (v || '').toLowerCase().trim();
+            if ((cleanV && comment.includes(cleanV)) || (cleanK && comment.includes(cleanK))) {
+              matchedPort = k;
+              break;
+            }
+          }
+        }
+
+        if (matchedPort) {
+          if (mac) map.set(mac, matchedPort);
+          if (ip) map.set(ip, matchedPort);
+        }
+      });
+    }
+    return map;
+  }, [bindingsData, portApMap]);
 
   const { data: clients, isLoading, mutate } = useSWR(
     routerId ? `router-clients-${routerId}` : null,
@@ -125,36 +156,88 @@ export default function UsersPage() {
   );
 
   const rawClientList: NetworkClient[] = useMemo(() => {
-    if (Array.isArray(clients)) return clients;
-    if (clients && typeof clients === 'object') {
-      if (Array.isArray((clients as any).clients)) return (clients as any).clients;
-      if (Array.isArray((clients as any).data)) return (clients as any).data;
+    let list: any[] = [];
+    if (Array.isArray(clients)) list = clients;
+    else if (clients && typeof clients === 'object') {
+      if (Array.isArray((clients as any).clients)) list = (clients as any).clients;
+      else if (Array.isArray((clients as any).data)) list = (clients as any).data;
     }
-    return [];
-  }, [clients]);
 
-  // Extract distinct ports & their assigned APs from active clients
+    return list.map((c: any) => {
+      const res = resolveClientPortAndAp(c, portApMap, clientPortOverrides, bindingsMap);
+      return {
+        ...c,
+        port: res.port || '',
+        apName: res.apName || '',
+        dhcpServer: res.dhcpServer || c.dhcpServer || c.server || '',
+        dhcpHostName: res.dhcpHostName || c.hostName || c['host-name'] || '',
+        agentCircuitId: res.agentCircuitId || c.agentCircuitId || c['agent-circuit-id'] || '',
+        detectionSource: res.detectionSource,
+      };
+    });
+  }, [clients, portApMap, clientPortOverrides, bindingsMap]);
+
+  // Extract distinct ports & their assigned APs from active clients and router interfaces
   const availablePorts = useMemo(() => {
     const map = new Map<string, { port: string; apName?: string; count: number; isWireless?: boolean }>();
+
+    // Seed with known router interfaces (excluding generic bridge)
+    const ifaces = ifaceData?.interfaces || [];
+    ifaces.forEach((iface: any) => {
+      const p = (iface.name || '').trim();
+      if (p && p !== 'bridge' && !map.has(p)) {
+        const ap = iface.apName || portApMap[p] || '';
+        const isWireless = iface.type === 'wlan' || p.startsWith('wlan') || p.startsWith('wifi');
+        map.set(p, {
+          port: p,
+          apName: ap,
+          count: 0,
+          isWireless,
+        });
+      }
+    });
+
+    // Seed with any configured ports in portApMap (excluding bridge)
+    Object.entries(portApMap).forEach(([p, ap]) => {
+      if (p && p !== 'bridge' && !map.has(p)) {
+        const isWireless = p.startsWith('wlan') || p.startsWith('wifi');
+        map.set(p, {
+          port: p,
+          apName: ap || '',
+          count: 0,
+          isWireless,
+        });
+      }
+    });
+
+    // Count clients for each port
     rawClientList.forEach((c) => {
-      const p = c.port || c.bridgePort || (c.isWireless ? 'wlan1' : '');
-      if (p) {
+      const p = c.port || (c.isWireless ? 'wlan1' : '');
+      if (p && p !== 'bridge') {
+        const ap = c.apName || portApMap[p] || '';
         const existing = map.get(p);
         if (existing) {
           existing.count += 1;
-          if (!existing.apName && c.apName) existing.apName = c.apName;
+          if (!existing.apName && ap) existing.apName = ap;
         } else {
           map.set(p, {
             port: p,
-            apName: c.apName,
+            apName: ap,
             count: 1,
             isWireless: c.isWireless || p.startsWith('wlan') || p.startsWith('wifi'),
           });
         }
       }
     });
-    return Array.from(map.values()).sort((a, b) => a.port.localeCompare(b.port, undefined, { numeric: true }));
-  }, [rawClientList]);
+
+    return Array.from(map.values()).sort((a, b) => {
+      const isEthA = a.port.startsWith('ether');
+      const isEthB = b.port.startsWith('ether');
+      if (isEthA && !isEthB) return -1;
+      if (!isEthA && isEthB) return 1;
+      return a.port.localeCompare(b.port, undefined, { numeric: true });
+    });
+  }, [rawClientList, portApMap, ifaceData]);
 
   // Separate clients into signed-in voucher users and waiting/unauthenticated clients
   const { signedInClients, waitingClients } = useMemo(() => {
@@ -183,26 +266,34 @@ export default function UsersPage() {
   const filteredClients = useMemo(() => {
     let list = currentTabList;
 
-    // Filter by Port / AP if selected
     if (selectedPortFilter !== 'all') {
+      const targetFilter = selectedPortFilter.toLowerCase().trim();
       list = list.filter((c) => {
-        const p = c.port || c.bridgePort || (c.isWireless ? 'wlan1' : '');
-        return p === selectedPortFilter;
+        const p = (c.port || (c.isWireless ? 'wlan1' : '')).toLowerCase().trim();
+        const ap = (c.apName || portApMap[c.port || ''] || '').toLowerCase().trim();
+        const mappedAp = (portApMap[selectedPortFilter] || '').toLowerCase().trim();
+
+        return (
+          p === targetFilter ||
+          ap === targetFilter ||
+          (mappedAp && ap === mappedAp) ||
+          p.includes(targetFilter) ||
+          ap.includes(targetFilter)
+        );
       });
     }
 
     if (!searchTerm.trim()) return list;
     const term = searchTerm.toLowerCase().trim();
     return list.filter(c => {
-      const nameMatch = (c.name || c.user || '').toLowerCase().includes(term);
-      const macMatch = (c.mac || '').toLowerCase().includes(term);
+      const devName = getLeaseDeviceName(c).toLowerCase();
       const ipMatch = (c.ip || '').toLowerCase().includes(term);
       const profileMatch = (c.profile || '').toLowerCase().includes(term);
-      const portMatch = (c.port || c.bridgePort || '').toLowerCase().includes(term);
+      const portMatch = (c.port || '').toLowerCase().includes(term);
       const apMatch = (c.apName || '').toLowerCase().includes(term);
-      return nameMatch || macMatch || ipMatch || profileMatch || portMatch || apMatch;
+      return devName.includes(term) || ipMatch || profileMatch || portMatch || apMatch;
     });
-  }, [currentTabList, selectedPortFilter, searchTerm]);
+  }, [currentTabList, selectedPortFilter, searchTerm, portApMap]);
 
   // Group clients by either connected Port/AP OR Profile
   const clientGroups = useMemo(() => {
@@ -210,16 +301,24 @@ export default function UsersPage() {
       const map = new Map<string, { key: string; title: string; iconType: 'ap' | 'wifi' | 'ether'; port?: string; clients: NetworkClient[] }>();
 
       filteredClients.forEach((client) => {
-        const portName = client.port || client.bridgePort || (client.isWireless ? 'wlan1' : '');
-        const apName = client.apName || '';
+        const portName = client.port || (client.isWireless ? 'wlan1' : '');
+        const apName = client.apName || (portName && portApMap[portName] ? portApMap[portName] : '') || getClientApName(client, portName, portApMap) || '';
 
-        let key = portName || (client.isWireless ? 'wlan1' : 'unknown');
+        const isUnassigned = !portName || portName === 'bridge' || portName === 'unknown' || portName === 'all';
+
+        const key = isUnassigned
+          ? 'unassigned'
+          : (portName && apName ? `${portName}_${apName}` : portName || apName);
+
         let title = '';
         let iconType: 'ap' | 'wifi' | 'ether' = 'ether';
 
-        if (apName && portName) {
+        if (isUnassigned) {
+          title = t('users.noPortDetected') || 'غير محدد / منفذ عام';
+          iconType = 'ether';
+        } else if (apName && portName) {
           title = `${apName} (${portName})`;
-          iconType = 'ap';
+          iconType = portName.startsWith('wlan') || portName.startsWith('wifi') ? 'wifi' : 'ap';
         } else if (apName) {
           title = apName;
           iconType = 'ap';
@@ -227,12 +326,6 @@ export default function UsersPage() {
           const isWifi = portName.startsWith('wlan') || portName.startsWith('wifi') || client.isWireless;
           title = isWifi ? `Wi-Fi (${portName})` : portName;
           iconType = isWifi ? 'wifi' : 'ether';
-        } else if (client.isWireless) {
-          title = 'Wi-Fi (Wireless)';
-          iconType = 'wifi';
-        } else {
-          title = t('users.noPortDetected') || 'منفذ غير محدد / الراوتر';
-          iconType = 'ether';
         }
 
         if (!map.has(key)) {
@@ -240,7 +333,7 @@ export default function UsersPage() {
             key,
             title,
             iconType,
-            port: portName,
+            port: isUnassigned ? '' : portName,
             clients: [],
           });
         }
@@ -248,8 +341,8 @@ export default function UsersPage() {
       });
 
       return Array.from(map.values()).sort((a, b) => {
-        if (a.key === 'unknown') return 1;
-        if (b.key === 'unknown') return -1;
+        if (a.key === 'unassigned') return 1;
+        if (b.key === 'unassigned') return -1;
         return a.title.localeCompare(b.title, undefined, { numeric: true });
       });
     } else {
@@ -284,12 +377,48 @@ export default function UsersPage() {
         return a.title.localeCompare(b.title);
       });
     }
-  }, [filteredClients, groupBy, t]);
+  }, [filteredClients, groupBy, portApMap, t]);
 
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleAssignClientPort = (client: NetworkClient, targetPort: string) => {
+    if (!routerId || !client) return;
+    const cleanMac = (client.mac || '').toLowerCase().replace(/[^a-f0-9]/g, '');
+    const cleanIp = (client.ip || '').trim();
+    const cleanUser = (client.user || '').trim();
+
+    setClientPortOverrides((prev) => {
+      const updated = { ...prev };
+      if (!targetPort || targetPort === 'auto') {
+        if (cleanMac) delete updated[cleanMac];
+        if (cleanIp) delete updated[cleanIp];
+        if (cleanUser) delete updated[cleanUser];
+      } else {
+        if (cleanMac) updated[cleanMac] = targetPort;
+        if (cleanIp) updated[cleanIp] = targetPort;
+        if (cleanUser) updated[cleanUser] = targetPort;
+      }
+      try {
+        localStorage.setItem(`@router_client_ports_${routerId}`, JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save client port override:', e);
+      }
+      return updated;
+    });
+
+    setSelectedClient((prev) => {
+      if (!prev) return null;
+      const ap = portApMap[targetPort] || '';
+      return {
+        ...prev,
+        port: targetPort,
+        apName: ap,
+      };
+    });
   };
 
   const handleDisconnect = async () => {
@@ -333,13 +462,26 @@ export default function UsersPage() {
           </div>
         </div>
 
-        <button
-          onClick={() => mutate()}
-          className="page-header-btn"
-        >
-          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-          <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {/* Port & AP Settings Link Button */}
+          <button
+            onClick={() => navigate(`/${routerId}/settings#ports`)}
+            title={t('users.assignAps') || 'Port & AP Settings'}
+            className="page-header-btn page-header-btn-primary"
+          >
+            <Radio size={14} />
+            <span>{t('users.assignAps') || 'تسمية وتعيين المنافذ'}</span>
+            <ArrowUpRight size={13} />
+          </button>
+
+          <button
+            onClick={() => mutate()}
+            className="page-header-btn"
+          >
+            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+            <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
+          </button>
+        </div>
       </div>
 
       {/* ─── 2. Overview Stat Cards / Interactive Group Tabs ─── */}
@@ -578,7 +720,7 @@ export default function UsersPage() {
                 fontWeight: 700,
                 border: 'none',
                 cursor: 'pointer',
-                background: groupBy === 'port' ? 'linear-gradient(135deg, #06b6d4, #0891b2)' : 'transparent',
+                background: groupBy === 'port' ? 'var(--primary, #3b82f6)' : 'transparent',
                 color: groupBy === 'port' ? '#ffffff' : 'var(--text-muted)',
                 transition: 'all 0.15s ease',
               }}
@@ -610,97 +752,54 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* ─── Port / AP Quick Filter Pills ─── */}
-        {availablePorts.length > 0 && (
+        {/* Active Port Filter Indicator Tag */}
+        {selectedPortFilter !== 'all' && (
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              overflowX: 'auto',
-              paddingBottom: '2px',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
+              justifyContent: 'space-between',
+              gap: '8px',
+              padding: '6px 10px',
+              background: 'rgba(59, 130, 246, 0.1)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '8px',
+              backdropFilter: 'blur(8px)',
             }}
           >
-            {/* All Ports Button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+              <Radio size={13} style={{ color: '#3b82f6', flexShrink: 0 }} />
+              <span style={{ fontSize: '11px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {t('users.filterByPort') || 'تصفية حسب المنفذ'}:{' '}
+                <strong style={{ color: '#3b82f6' }}>
+                  {portApMap[selectedPortFilter] ? `${portApMap[selectedPortFilter]} (${selectedPortFilter})` : selectedPortFilter}
+                </strong>
+              </span>
+            </div>
             <button
-              onClick={() => setSelectedPortFilter('all')}
+              onClick={() => {
+                setSelectedPortFilter('all');
+                navigate(`/${routerId}/users`, { replace: true });
+              }}
               style={{
-                padding: '3px 8px',
-                borderRadius: '6px',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
-                background: selectedPortFilter === 'all'
-                  ? 'var(--primary, #3b82f6)'
-                  : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-                color: selectedPortFilter === 'all' ? '#ffffff' : 'var(--text-muted)',
-                border: selectedPortFilter === 'all'
-                  ? '1px solid var(--primary, #3b82f6)'
-                  : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+                background: 'rgba(59, 130, 246, 0.2)',
+                border: 'none',
+                color: '#3b82f6',
+                borderRadius: '6px',
+                padding: '3px 8px',
+                fontSize: '10.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                flexShrink: 0,
                 transition: 'all 0.15s ease',
               }}
             >
-              <span>{t('users.allPorts') || 'All Ports'}</span>
-              <span style={{
-                fontSize: '9.5px',
-                opacity: 0.9,
-                background: selectedPortFilter === 'all' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
-                padding: '0 4px',
-                borderRadius: '10px'
-              }}>
-                {rawClientList.length}
-              </span>
+              <X size={11} />
+              <span>{t('users.clearFilter') || 'عرض كل المنافذ'}</span>
             </button>
-
-            {availablePorts.map((item) => {
-              const isSelected = selectedPortFilter === item.port;
-              const Icon = item.apName ? Radio : item.isWireless ? Wifi : Network;
-              const iconColor = item.apName ? '#06b6d4' : item.isWireless ? '#10b981' : '#818cf8';
-
-              return (
-                <button
-                  key={item.port}
-                  onClick={() => setSelectedPortFilter(isSelected ? 'all' : item.port)}
-                  style={{
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    background: isSelected
-                      ? (item.apName ? '#06b6d4' : item.isWireless ? '#10b981' : '#6366f1')
-                      : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-                    color: isSelected ? '#ffffff' : 'var(--foreground)',
-                    border: isSelected
-                      ? `1px solid ${item.apName ? '#06b6d4' : item.isWireless ? '#10b981' : '#6366f1'}`
-                      : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <Icon size={12} style={{ color: isSelected ? '#ffffff' : iconColor }} />
-                  <span>{item.apName ? `${item.apName} (${item.port})` : item.port}</span>
-                  <span style={{
-                    fontSize: '9.5px',
-                    opacity: 0.9,
-                    background: isSelected ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
-                    padding: '0 4px',
-                    borderRadius: '10px'
-                  }}>
-                    {item.count}
-                  </span>
-                </button>
-              );
-            })}
           </div>
         )}
       </div>
@@ -713,8 +812,8 @@ export default function UsersPage() {
               key={n}
               className="skeleton"
               style={{
-                height: '84px',
-                borderRadius: '16px',
+                height: '60px',
+                borderRadius: '10px',
                 width: '100%'
               }}
             />
@@ -763,7 +862,7 @@ export default function UsersPage() {
             const isWaiting = group.iconType === 'waiting';
 
             const headerTheme = isAp
-              ? { bg: 'rgba(6, 182, 212, 0.1)', border: 'rgba(6, 182, 212, 0.3)', color: '#06b6d4', Icon: Radio }
+              ? { bg: 'rgba(59, 130, 246, 0.08)', border: 'rgba(59, 130, 246, 0.25)', color: '#3b82f6', Icon: Radio }
               : isWifi
               ? { bg: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.3)', color: '#10b981', Icon: Wifi }
               : isWaiting
@@ -814,105 +913,68 @@ export default function UsersPage() {
                 {/* Group Users List */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {group.clients.map((client, idx) => {
-                  const isSignedUser = checkIsSignedUser(client);
-                  const rawUser = (client.user || (client as any).voucherCode || '').trim();
+                    const isSignedUser = checkIsSignedUser(client);
+                    const leaseDeviceName = getLeaseDeviceName(client, t('aps.networkDevice') || 'Device');
+                    const sigStyle = getSignalColor(client.signal);
 
-                  const deviceNameCandidate = (() => {
-                    const rawDevName = (
-                      client.name ||
-                      (client as any).hostName ||
-                      (client as any)['host-name'] ||
-                      (client as any).dhcpName ||
-                      client.comment ||
-                      ''
-                    ).trim();
+                    const remainingTime = getRemainingTime(client);
+                    const remainingBytes = getRemainingBytes(client);
 
-                    if (!rawDevName) return '';
-                    const lowerDev = rawDevName.toLowerCase();
-                    const lowerUser = rawUser.toLowerCase();
-                    const lowerMac = (client.mac || '').toLowerCase();
-                    const lowerIp = (client.ip || '').toLowerCase();
-
-                    if (
-                      lowerDev === lowerUser ||
-                      lowerDev === lowerMac ||
-                      lowerDev === lowerIp ||
-                      lowerDev === 'active client' ||
-                      lowerDev === 'offline client' ||
-                      lowerDev === 'unnamed client'
-                    ) {
-                      return '';
-                    }
-
-                    return rawDevName;
-                  })();
-
-                  const clientName = isSignedUser
-                    ? rawUser
-                    : (client.name && client.name !== client.mac ? client.name : (client.ip || client.mac || t('users.waiting')));
-
-                  const sigStyle = getSignalColor(client.signal);
-                  const rx = client.rxBytes || client.bytesIn || 0;
-                  const tx = client.txBytes || client.bytesOut || 0;
-                  const remainingTime = client.sessionTimeLeft || client.timeLeft || client.remainingTime || client.session_time_left || client.limitUptime || client.uptime;
-
-                  return (
-                    <div
-                      key={client.id || idx}
-                      onClick={() => setSelectedClient(client)}
-                      style={{
-                        border: isSignedUser
-                          ? '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))'
-                          : '1px solid rgba(245, 158, 11, 0.25)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '6px',
-                        padding: '6px 10px',
-                        cursor: 'pointer',
-                        transition: 'transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                      }}
-                      className="list-item-card hover-card"
-                    >
-                      {/* Left: Device / User Avatar & Identifiers */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
-                        {/* Avatar Icon + Online Pulse Dot */}
-                        <div style={{ position: 'relative', flexShrink: 0 }}>
-                          <div
-                            className="item-icon"
-                            style={{
-                              width: '26px',
-                              height: '26px',
-                              borderRadius: '6px',
-                              background: isSignedUser
-                                ? 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.3) 100%)'
-                                : 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(217,119,6,0.3) 100%)',
-                              color: isSignedUser ? 'var(--primary, #3b82f6)' : '#f59e0b',
-                              border: isSignedUser ? '1px solid rgba(59,130,246,0.25)' : '1px solid rgba(245,158,11,0.3)'
-                            }}
-                          >
-                            {isSignedUser ? <Smartphone size={13} /> : <UserX size={13} />}
+                    return (
+                      <div
+                        key={client.id || idx}
+                        onClick={() => setSelectedClient(client)}
+                        style={{
+                          border: isSignedUser
+                            ? '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))'
+                            : '1px solid rgba(245, 158, 11, 0.25)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '6px',
+                          padding: '6px 10px',
+                          cursor: 'pointer',
+                          transition: 'transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                        }}
+                        className="list-item-card hover-card"
+                      >
+                        {/* Left: Device Avatar & Lease Device Name (IP hidden) */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                          {/* Avatar Icon + Online Pulse Dot */}
+                          <div style={{ position: 'relative', flexShrink: 0 }}>
+                            <div
+                              className="item-icon"
+                              style={{
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '6px',
+                                background: isSignedUser
+                                  ? 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.3) 100%)'
+                                  : 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(217,119,6,0.3) 100%)',
+                                color: isSignedUser ? 'var(--primary, #3b82f6)' : '#f59e0b',
+                                border: isSignedUser ? '1px solid rgba(59,130,246,0.25)' : '1px solid rgba(245,158,11,0.3)'
+                              }}
+                            >
+                              {isSignedUser ? <Smartphone size={13} /> : <UserX size={13} />}
+                            </div>
+                            <span style={{
+                              position: 'absolute',
+                              bottom: '-1px',
+                              [isRtl ? 'left' : 'right']: '-1px',
+                              width: '7px',
+                              height: '7px',
+                              borderRadius: '50%',
+                              background: isSignedUser ? '#10b981' : '#f59e0b',
+                              border: '1.5px solid var(--card-bg, #1a1a1a)',
+                              boxShadow: isSignedUser ? '0 0 4px rgba(16,185,129,0.8)' : '0 0 4px rgba(245,158,11,0.8)'
+                            }} />
                           </div>
-                          <span style={{
-                            position: 'absolute',
-                            bottom: '-1px',
-                            [isRtl ? 'left' : 'right']: '-1px',
-                            width: '7px',
-                            height: '7px',
-                            borderRadius: '50%',
-                            background: isSignedUser ? '#10b981' : '#f59e0b',
-                            border: '1.5px solid var(--card-bg, #1a1a1a)',
-                            boxShadow: isSignedUser ? '0 0 4px rgba(16,185,129,0.8)' : '0 0 4px rgba(245,158,11,0.8)'
-                          }} />
-                        </div>
 
-                        {/* Name, PIN Badge & Profile Badge in Vertically Aligned Column Slots */}
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
-                            {/* Device Name Column Slot */}
+                          {/* Primary Lease Device Name (PIN and IP hidden) */}
+                          <div style={{ minWidth: 0, flex: 1 }}>
                             <strong
-                              title={isSignedUser && deviceNameCandidate ? deviceNameCandidate : clientName}
+                              title={leaseDeviceName}
                               className="item-title"
                               style={{
                                 fontSize: '12.5px',
@@ -921,235 +983,167 @@ export default function UsersPage() {
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
-                                width: '76px',
-                                flexShrink: 0,
+                                display: 'block'
                               }}
                             >
-                              {isSignedUser && deviceNameCandidate ? deviceNameCandidate : clientName}
+                              {leaseDeviceName}
                             </strong>
 
-                            {/* PIN / Username Badge Slot */}
-                            <div style={{ width: '56px', flexShrink: 0, display: 'flex' }}>
-                              {isSignedUser && rawUser && (
-                                <span
-                                  className="item-badge"
-                                  style={{
-                                    width: '100%',
-                                    background: 'rgba(255, 255, 255, 0.08)',
-                                    color: 'var(--text-muted)',
-                                    border: '1px solid var(--glass-border)',
-                                    fontSize: '9.5px',
-                                    fontWeight: 600,
-                                    padding: '0 2px',
-                                    borderRadius: '5px',
-                                    height: '19px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '2px',
-                                    whiteSpace: 'nowrap',
-                                    boxSizing: 'border-box',
-                                  }}
-                                >
-                                  <Shield size={9.5} style={{ opacity: 0.8, flexShrink: 0 }} />
-                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{rawUser}</span>
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Profile / Status Badge Slot */}
-                            <div style={{ width: '56px', flexShrink: 0, display: 'flex' }}>
-                              {client.profile ? (
-                                <span
-                                  className="item-badge"
-                                  style={{
-                                    width: '100%',
-                                    background: 'rgba(99, 102, 241, 0.12)',
-                                    color: '#818cf8',
-                                    border: '1px solid rgba(99, 102, 241, 0.25)',
-                                    fontSize: '9.5px',
-                                    fontWeight: 600,
-                                    padding: '0 2px',
-                                    borderRadius: '5px',
-                                    height: '19px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '2px',
-                                    whiteSpace: 'nowrap',
-                                    boxSizing: 'border-box',
-                                  }}
-                                >
-                                  <Layers size={9.5} style={{ flexShrink: 0 }} />
-                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.profile}</span>
-                                </span>
-                              ) : !isSignedUser ? (
-                                <span
-                                  className="item-badge"
-                                  style={{
-                                    width: '100%',
-                                    background: 'rgba(245, 158, 11, 0.12)',
-                                    color: '#fbbf24',
-                                    border: '1px solid rgba(245, 158, 11, 0.25)',
-                                    fontSize: '9.5px',
-                                    fontWeight: 600,
-                                    padding: '0 2px',
-                                    borderRadius: '5px',
-                                    height: '19px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '2px',
-                                    whiteSpace: 'nowrap',
-                                    boxSizing: 'border-box',
-                                  }}
-                                >
-                                  <Clock size={9.5} style={{ flexShrink: 0 }} />
-                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('users.waiting')}</span>
-                                </span>
-                              ) : null}
-                            </div>
-
-                            {/* Port / AP Ingress Badge Slot - Always visible on all screen sizes */}
-                            {(() => {
-                              const portDisplay = client.port || client.bridgePort;
-                              const isWlan = client.isWireless || (portDisplay && (portDisplay.startsWith('wlan') || portDisplay.startsWith('wifi')));
-                              const hasAp = !!client.apName;
-                              const label = client.apName || (portDisplay ? (isWlan ? `WiFi (${portDisplay})` : portDisplay) : (isWlan ? 'WiFi' : ''));
-
-                              if (!label) return null;
-
-                              return (
-                                <div style={{ flexShrink: 0, display: 'flex' }}>
-                                  <span
-                                    className="item-badge"
-                                    title={`${t('users.connectedTo') || 'Connected To'}: ${hasAp ? `${client.apName} (${portDisplay || 'Port'})` : label}`}
-                                    style={{
-                                      background: hasAp
-                                        ? 'rgba(6, 182, 212, 0.15)'
-                                        : isWlan
-                                        ? 'rgba(16, 185, 129, 0.15)'
-                                        : 'rgba(255, 255, 255, 0.08)',
-                                      color: hasAp ? '#06b6d4' : isWlan ? '#10b981' : 'var(--text-muted)',
-                                      border: hasAp
-                                        ? '1px solid rgba(6, 182, 212, 0.3)'
-                                        : isWlan
-                                        ? '1px solid rgba(16, 185, 129, 0.3)'
-                                        : '1px solid var(--glass-border)',
-                                      fontSize: '9.5px',
-                                      fontWeight: 700,
-                                      padding: '0 5px',
-                                      borderRadius: '5px',
-                                      height: '19px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      gap: '3px',
-                                      whiteSpace: 'nowrap',
-                                      maxWidth: '110px',
-                                      boxSizing: 'border-box',
-                                    }}
-                                  >
-                                    {hasAp ? (
-                                      <Radio size={10} style={{ flexShrink: 0 }} />
-                                    ) : isWlan ? (
-                                      <Wifi size={10} style={{ flexShrink: 0 }} />
-                                    ) : (
-                                      <Network size={10} style={{ flexShrink: 0 }} />
-                                    )}
-                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {label}
-                                    </span>
-                                  </span>
-                                </div>
-                              );
-                            })()}
+                            {client.apName && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '1px', fontSize: '10px', color: '#3b82f6' }}>
+                                <Radio size={9} />
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.apName}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
 
-                      {/* Right: Uptime, Signal Strength & Traffic */}
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        flexShrink: 0
-                      }}>
-                        {/* Traffic Down / Up (Hidden on sm screens) */}
-                        {(rx > 0 || tx > 0) && (
-                          <div className="hide-sm" style={{ textAlign: 'right', fontSize: '9.5px', color: 'var(--text-muted)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#10b981' }}>
-                              <ArrowDownRight size={10} />
-                              <span>{formatBytes(rx)}</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#6366f1' }}>
-                              <ArrowUpRight size={10} />
-                              <span>{formatBytes(tx)}</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Remaining Time Badge */}
-                        {remainingTime && (
-                          <div style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '2px',
-                            fontSize: '9.5px',
-                            color: 'var(--text-muted)',
-                            background: 'rgba(255,255,255,0.04)',
-                            padding: '0 4px',
-                            borderRadius: '5px',
-                            border: '1px solid var(--glass-border)',
-                            height: '19px',
-                            whiteSpace: 'nowrap',
-                            boxSizing: 'border-box'
-                          }}>
-                            <Clock size={9.5} style={{ flexShrink: 0 }} />
-                            <span>{remainingTime}</span>
-                          </div>
-                        )}
-
-                        {/* Signal Strength Badge */}
-                        {client.signal != null && (
-                          <div style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '2px',
-                            fontSize: '9.5px',
-                            fontWeight: 700,
-                            color: sigStyle.text,
-                            background: sigStyle.bg,
-                            padding: '0 4px',
-                            borderRadius: '5px',
-                            border: `1px solid ${sigStyle.border}`,
-                            height: '19px',
-                            whiteSpace: 'nowrap',
-                            boxSizing: 'border-box'
-                          }}>
-                            <Wifi size={9.5} style={{ flexShrink: 0 }} />
-                            <span>{client.signal}%</span>
-                          </div>
-                        )}
-
-                        {/* Info Icon Button */}
+                        {/* Right: Profile Badge, Remaining Data & Remaining Time (Aligned together) */}
                         <div style={{
-                          color: 'var(--text-muted)',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '2px'
+                          gap: '5px',
+                          flexShrink: 0
                         }}>
-                          <Info size={13} />
+                          {/* Profile Badge Slot (Aligned with data & time) */}
+                          {client.profile && (
+                            <span
+                              className="item-badge"
+                              title={`${t('users.profile')}: ${client.profile}`}
+                              style={{
+                                background: 'rgba(99, 102, 241, 0.12)',
+                                color: '#818cf8',
+                                border: '1px solid rgba(99, 102, 241, 0.25)',
+                                fontSize: '9.5px',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '5px',
+                                height: '19px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                whiteSpace: 'nowrap',
+                                boxSizing: 'border-box',
+                              }}
+                            >
+                              <Layers size={10} style={{ flexShrink: 0 }} />
+                              <span>{client.profile}</span>
+                            </span>
+                          )}
+
+                          {!isSignedUser && (
+                            <span
+                              className="item-badge"
+                              style={{
+                                background: 'rgba(245, 158, 11, 0.12)',
+                                color: '#fbbf24',
+                                border: '1px solid rgba(245, 158, 11, 0.25)',
+                                fontSize: '9.5px',
+                                fontWeight: 600,
+                                padding: '1px 6px',
+                                borderRadius: '5px',
+                                height: '19px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              <Clock size={10} style={{ flexShrink: 0 }} />
+                              <span>{t('users.waiting')}</span>
+                            </span>
+                          )}
+
+                          {/* Remaining Data Badge */}
+                          {remainingBytes !== null && (
+                            <div
+                              title={`${t('users.remainingData') || 'Remaining Data'}: ${formatBytes(remainingBytes)}`}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                color: '#10b981',
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                border: '1px solid rgba(16, 185, 129, 0.25)',
+                                padding: '1px 5px',
+                                borderRadius: '5px',
+                                height: '19px',
+                                whiteSpace: 'nowrap',
+                                boxSizing: 'border-box'
+                              }}
+                            >
+                              <Database size={9.5} style={{ flexShrink: 0 }} />
+                              <span>{formatBytes(remainingBytes)}</span>
+                            </div>
+                          )}
+
+                          {/* Remaining Time Badge */}
+                          {remainingTime && (
+                            <div
+                              title={`${t('users.remainingTime') || 'Remaining Time'}: ${remainingTime}`}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                color: '#f59e0b',
+                                background: 'rgba(245, 158, 11, 0.1)',
+                                border: '1px solid rgba(245, 158, 11, 0.25)',
+                                padding: '1px 5px',
+                                borderRadius: '5px',
+                                height: '19px',
+                                whiteSpace: 'nowrap',
+                                boxSizing: 'border-box'
+                              }}
+                            >
+                              <Clock size={9.5} style={{ flexShrink: 0 }} />
+                              <span>{remainingTime}</span>
+                            </div>
+                          )}
+
+                          {/* Signal Strength Badge */}
+                          {client.signal != null && (
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                              fontSize: '9.5px',
+                              fontWeight: 700,
+                              color: sigStyle.text,
+                              background: sigStyle.bg,
+                              padding: '0 4px',
+                              borderRadius: '5px',
+                              border: `1px solid ${sigStyle.border}`,
+                              height: '19px',
+                              whiteSpace: 'nowrap',
+                              boxSizing: 'border-box'
+                            }}>
+                              <Wifi size={9.5} style={{ flexShrink: 0 }} />
+                              <span>{client.signal}%</span>
+                            </div>
+                          )}
+
+                          {/* Info Icon Button */}
+                          <div style={{
+                            color: 'var(--text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '2px'
+                          }}>
+                            <Info size={13} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
         </div>
       )}
 
@@ -1213,7 +1207,7 @@ export default function UsersPage() {
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap'
                   }}>
-                    {selectedClient.name || selectedClient.user || 'Unnamed Client'}
+                    {getLeaseDeviceName(selectedClient, 'Unnamed Device')}
                   </h3>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
                     {t('users.clientDetails')}
@@ -1242,49 +1236,8 @@ export default function UsersPage() {
             {/* Modal Details Grid */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
-              {/* Connected Port / AP Ingress Card */}
-              {(selectedClient.apName || selectedClient.port || selectedClient.bridgePort || selectedClient.isWireless) && (
-                <div style={{
-                  background: 'rgba(6, 182, 212, 0.08)',
-                  border: '1px solid rgba(6, 182, 212, 0.25)',
-                  borderRadius: '8px',
-                  padding: '7px 10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#06b6d4', flexShrink: 0 }}>
-                    {selectedClient.apName ? (
-                      <Radio size={13} style={{ color: '#06b6d4' }} />
-                    ) : selectedClient.isWireless ? (
-                      <Wifi size={13} style={{ color: '#10b981' }} />
-                    ) : (
-                      <Network size={13} style={{ color: '#06b6d4' }} />
-                    )}
-                    <span>{t('users.connectedTo') || 'Connected To'}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
-                    {selectedClient.apName ? (
-                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {selectedClient.apName}
-                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '0 4px' }}>
-                          ({selectedClient.port || selectedClient.bridgePort || 'Port'})
-                        </span>
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace' }}>
-                        {selectedClient.isWireless
-                          ? `Wi-Fi (${selectedClient.port || 'wlan1'})`
-                          : (selectedClient.port || selectedClient.bridgePort || t('users.noPortDetected') || 'Unknown Port')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Hotspot User / Voucher Code */}
-              {(selectedClient.user || (selectedClient as any).voucherCode) && (
+              {/* Profile Card */}
+              {selectedClient.profile && (
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid var(--glass-border)',
@@ -1296,11 +1249,55 @@ export default function UsersPage() {
                   gap: '8px'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)', flexShrink: 0 }}>
-                    <Shield size={13} style={{ color: '#3b82f6' }} />
-                    <span>{t('users.user')}</span>
+                    <Layers size={13} style={{ color: '#a855f7' }} />
+                    <span>{t('users.profile')}</span>
                   </div>
-                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {selectedClient.user || (selectedClient as any).voucherCode}
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--primary, #3b82f6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {selectedClient.profile}
+                  </span>
+                </div>
+              )}
+
+              {/* Remaining Time Card */}
+              {getRemainingTime(selectedClient) && (
+                <div style={{
+                  background: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  borderRadius: '8px',
+                  padding: '7px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#f59e0b', flexShrink: 0 }}>
+                    <Clock size={13} />
+                    <span>{t('users.remainingTime')}</span>
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#f59e0b', whiteSpace: 'nowrap' }}>
+                    {getRemainingTime(selectedClient)}
+                  </span>
+                </div>
+              )}
+
+              {/* Remaining Data Card */}
+              {getRemainingBytes(selectedClient) !== null && (
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  borderRadius: '8px',
+                  padding: '7px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#10b981', flexShrink: 0 }}>
+                    <Database size={13} />
+                    <span>{t('users.remainingData') || 'Remaining Data'}</span>
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981', whiteSpace: 'nowrap' }}>
+                    {formatBytes(getRemainingBytes(selectedClient)!)}
                   </span>
                 </div>
               )}
@@ -1391,97 +1388,144 @@ export default function UsersPage() {
                 </div>
               )}
 
-              {/* Device Name Card */}
-              {(() => {
-                const modalUser = (selectedClient.user || (selectedClient as any).voucherCode || '').trim();
-                const rawDevName = (
-                  selectedClient.name ||
-                  (selectedClient as any).hostName ||
-                  (selectedClient as any)['host-name'] ||
-                  (selectedClient as any).dhcpName ||
-                  selectedClient.comment ||
-                  ''
-                ).trim();
-                if (!rawDevName) return null;
-                const lowerDev = rawDevName.toLowerCase();
-                const lowerUser = modalUser.toLowerCase();
-                const lowerMac = (selectedClient.mac || '').toLowerCase();
-                const lowerIp = (selectedClient.ip || '').toLowerCase();
-
-                if (
-                  lowerDev === lowerUser ||
-                  lowerDev === lowerMac ||
-                  lowerDev === lowerIp ||
-                  lowerDev === 'active client' ||
-                  lowerDev === 'offline client' ||
-                  lowerDev === 'unnamed client'
-                ) {
-                  return null;
-                }
-
-                return (
-                  <div style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid var(--glass-border)',
-                    borderRadius: '8px',
-                    padding: '7px 10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '8px'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)', flexShrink: 0 }}>
-                      <Smartphone size={13} style={{ color: '#3b82f6' }} />
-                      <span>{t('users.deviceName')}</span>
-                    </div>
-                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {rawDevName}
-                    </span>
-                  </div>
-                );
-              })()}
-
-              {/* Remaining Time Card */}
-              {(selectedClient.sessionTimeLeft || selectedClient.timeLeft || selectedClient.remainingTime || selectedClient.session_time_left || selectedClient.limitUptime || selectedClient.uptime) && (
+              {/* Connected Port / AP & Manual Assignment */}
+              <div style={{
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}>
                 <div style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '8px',
-                  padding: '7px 10px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '8px'
+                  gap: '8px',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)', flexShrink: 0 }}>
-                    <Clock size={13} style={{ color: '#f59e0b' }} />
-                    <span>{t('users.remainingTime')}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#3b82f6', flexShrink: 0 }}>
+                    {selectedClient.apName ? (
+                      <Radio size={13} style={{ color: '#3b82f6' }} />
+                    ) : selectedClient.isWireless ? (
+                      <Wifi size={13} style={{ color: '#10b981' }} />
+                    ) : (
+                      <Network size={13} style={{ color: '#3b82f6' }} />
+                    )}
+                    <span>{t('users.connectedTo') || 'متصل عبر'}</span>
                   </div>
-                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', whiteSpace: 'nowrap' }}>
-                    {selectedClient.sessionTimeLeft || selectedClient.timeLeft || selectedClient.remainingTime || selectedClient.session_time_left || selectedClient.limitUptime || selectedClient.uptime}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
+                    {selectedClient.apName ? (
+                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {selectedClient.apName}
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '0 4px' }}>
+                          ({selectedClient.port || 'Port'})
+                        </span>
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace' }}>
+                        {selectedClient.isWireless
+                          ? `Wi-Fi (${selectedClient.port || 'wlan1'})`
+                          : (selectedClient.port || t('users.noPortDetected') || 'غير محدد')}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              )}
 
-              {/* Profile Card */}
-              {selectedClient.profile && (
+                {/* Interactive Port / AP Assignment Dropdown */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  paddingTop: '6px',
+                  borderTop: '1px solid rgba(59, 130, 246, 0.15)',
+                }}>
+                  <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                    {t('users.assignPortLabel') || 'تعيين المنفذ / AP:'}
+                  </span>
+                  <select
+                    value={selectedClient.port || ''}
+                    onChange={(e) => handleAssignClientPort(selectedClient, e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      borderRadius: '6px',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      background: 'var(--card-bg, rgba(0, 0, 0, 0.2))',
+                      color: 'var(--foreground)',
+                      outline: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="">{t('users.autoDetected') || 'تلقائي (حسب الراوتر)'}</option>
+                    {availablePorts.filter(p => p.port && p.port !== 'bridge').map((p) => (
+                      <option key={p.port} value={p.port}>
+                        {p.port} {p.apName ? `(${p.apName})` : p.isWireless ? '(Wi-Fi)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* DHCP Lease Info Card */}
+              {(selectedClient.dhcpServer || selectedClient.dhcpHostName || selectedClient.agentCircuitId || selectedClient.detectionSource) && (
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid var(--glass-border)',
                   borderRadius: '8px',
                   padding: '7px 10px',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px'
+                  flexDirection: 'column',
+                  gap: '6px',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)', flexShrink: 0 }}>
-                    <Layers size={13} style={{ color: '#a855f7' }} />
-                    <span>{t('users.profile')}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                      <Database size={13} style={{ color: '#06b6d4' }} />
+                      <span>{t('users.dhcpServer') || 'خادم DHCP'}</span>
+                    </div>
+                    {selectedClient.dhcpServer && (
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace' }}>
+                        {selectedClient.dhcpServer}
+                      </span>
+                    )}
                   </div>
-                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--primary, #3b82f6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {selectedClient.profile}
-                  </span>
+
+                  {selectedClient.dhcpHostName && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', fontSize: '10.5px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('users.dhcpHostName') || 'اسم الجهاز في DHCP'}:</span>
+                      <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{selectedClient.dhcpHostName}</span>
+                    </div>
+                  )}
+
+                  {selectedClient.agentCircuitId && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', fontSize: '10.5px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('users.dhcpCircuitId') || 'معرف المنفذ / AP'}:</span>
+                      <span style={{ color: 'var(--foreground)', fontFamily: 'monospace' }}>{selectedClient.agentCircuitId}</span>
+                    </div>
+                  )}
+
+                  {selectedClient.detectionSource && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', fontSize: '10px', paddingTop: '4px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('users.detectionSource') || 'طريقة التعرف'}:</span>
+                      <span style={{
+                        color: selectedClient.detectionSource === 'override' ? '#a855f7' : selectedClient.detectionSource === 'wireless' ? '#10b981' : '#3b82f6',
+                        fontWeight: 600,
+                        background: 'rgba(255,255,255,0.05)',
+                        padding: '1px 5px',
+                        borderRadius: '4px'
+                      }}>
+                        {selectedClient.detectionSource === 'override' ? t('users.detectedViaOverride') || 'تعيين يدوي' :
+                         selectedClient.detectionSource === 'option82' ? t('users.detectedViaOption82') || 'Option 82' :
+                         selectedClient.detectionSource === 'dhcp-server' ? t('users.detectedViaServer') || 'خادم DHCP' :
+                         selectedClient.detectionSource === 'bridge-port' ? t('users.detectedViaBridge') || 'منفذ الجسر' :
+                         selectedClient.detectionSource === 'wireless' ? t('users.detectedViaWifi') || 'واجهة Wi-Fi' :
+                         selectedClient.detectionSource === 'binding' ? t('users.detectedViaBinding') || 'ربط IP' :
+                         t('users.detectedViaDhcp') || 'عقد DHCP'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1507,7 +1551,7 @@ export default function UsersPage() {
                 </div>
               )}
 
-              {/* Traffic Cards */}
+              {/* Traffic Used Cards (Modal Only) */}
               {((selectedClient.rxBytes || selectedClient.bytesIn) || (selectedClient.txBytes || selectedClient.bytesOut)) && (
                 <div style={{
                   display: 'grid',
@@ -1584,29 +1628,15 @@ export default function UsersPage() {
                           flex: 1,
                           padding: '7px',
                           borderRadius: '8px',
-                          border: '1px solid rgba(239, 68, 68, 0.4)',
-                          background: 'linear-gradient(135deg, rgba(239,68,68,0.8) 0%, rgba(220,38,38,0.9) 100%)',
+                          border: 'none',
+                          background: '#ef4444',
                           color: '#ffffff',
                           fontSize: '11.5px',
                           fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px'
+                          cursor: 'pointer'
                         }}
                       >
-                        {isDisconnecting ? (
-                          <>
-                            <RefreshCw size={12} className="spin" />
-                            <span>{t('users.disconnecting')}</span>
-                          </>
-                        ) : (
-                          <>
-                            <LogOut size={12} />
-                            <span>{t('users.disconnectUser')}</span>
-                          </>
-                        )}
+                        {isDisconnecting ? t('users.disconnecting') : t('users.disconnectUser')}
                       </button>
                     </div>
                   </div>
@@ -1615,22 +1645,21 @@ export default function UsersPage() {
                     onClick={() => setShowDisconnectConfirm(true)}
                     style={{
                       width: '100%',
-                      padding: '8px',
+                      padding: '8px 12px',
                       borderRadius: '8px',
                       border: '1px solid rgba(239, 68, 68, 0.3)',
                       background: 'rgba(239, 68, 68, 0.1)',
                       color: '#ef4444',
                       fontSize: '12px',
-                      fontWeight: 700,
+                      fontWeight: 600,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '5px',
-                      transition: 'all 0.2s ease'
+                      gap: '6px',
+                      transition: 'background 0.2s'
                     }}
                   >
-                    <LogOut size={14} />
                     <span>{t('users.disconnectUser')}</span>
                   </button>
                 )}

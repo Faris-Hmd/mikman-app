@@ -12,59 +12,50 @@ import {
   PortForwardRule,
 } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
+import { useVpnModal } from '../../context/VpnModalContext';
+import WireguardIcon from '../../components/WireguardIcon';
 
 import {
   Radio,
   RefreshCw,
   Search,
-  Plus,
   X,
   Globe,
-  Activity,
-  Copy,
-  Check,
-  Trash2,
-  Shield,
-  MessageSquare,
-  Server,
-  Layers,
   Smartphone,
   Laptop,
   Printer,
   Tv,
   HardDrive,
-  Wifi,
-  CheckCircle2,
-  AlertCircle,
-  Zap,
   ArrowUpRight,
-  Info
+  Info,
+  Lock,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 export type DeviceCategory = 'mobile' | 'laptop' | 'ap' | 'printer' | 'tv' | 'other';
 
 interface DeviceItem {
   id?: string;
+  bindingId?: string;
   mac: string;
   ip?: string;
-  type: 'bypassed' | 'regular' | 'blocked' | 'unbound';
+  isBypassed: boolean;
   category: DeviceCategory;
   comment?: string;
-  disabled?: boolean;
   name?: string;
   uptime?: string;
   isOnline: boolean;
-  isBound: boolean;
   rawComment?: string;
 }
 
 const CATEGORY_MAP: Record<DeviceCategory, { labelKey: string; defaultLabel: string; icon: any; color: string; bg: string; border: string }> = {
-  mobile: { labelKey: 'aps.mobile', defaultLabel: 'Mobile / Phone', icon: Smartphone, color: '#3b82f6', bg: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.3) 100%)', border: 'rgba(59,130,246,0.25)' },
-  laptop: { labelKey: 'aps.laptop', defaultLabel: 'Laptop / PC', icon: Laptop, color: '#8b5cf6', bg: 'linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(124,58,237,0.3) 100%)', border: 'rgba(139,92,246,0.25)' },
-  ap: { labelKey: 'aps.ap', defaultLabel: 'Access Point / Router', icon: Radio, color: '#10b981', bg: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.3) 100%)', border: 'rgba(16,185,129,0.25)' },
+  mobile: { labelKey: 'aps.mobile', defaultLabel: 'Mobile', icon: Smartphone, color: '#3b82f6', bg: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.3) 100%)', border: 'rgba(59,130,246,0.25)' },
+  laptop: { labelKey: 'aps.laptop', defaultLabel: 'Laptop', icon: Laptop, color: '#8b5cf6', bg: 'linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(124,58,237,0.3) 100%)', border: 'rgba(139,92,246,0.25)' },
+  ap: { labelKey: 'aps.ap', defaultLabel: 'Access Point', icon: Radio, color: '#10b981', bg: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.3) 100%)', border: 'rgba(16,185,129,0.25)' },
   printer: { labelKey: 'aps.printer', defaultLabel: 'Printer', icon: Printer, color: '#f59e0b', bg: 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(217,119,6,0.3) 100%)', border: 'rgba(245,158,11,0.25)' },
   tv: { labelKey: 'aps.tv', defaultLabel: 'Smart TV', icon: Tv, color: '#ec4899', bg: 'linear-gradient(135deg, rgba(236,72,153,0.15) 0%, rgba(219,39,119,0.3) 100%)', border: 'rgba(236,72,153,0.25)' },
-  other: { labelKey: 'aps.other', defaultLabel: 'Other Device', icon: HardDrive, color: '#6b7280', bg: 'linear-gradient(135deg, rgba(107,114,128,0.15) 0%, rgba(75,85,99,0.3) 100%)', border: 'rgba(107,114,128,0.25)' },
+  other: { labelKey: 'aps.other', defaultLabel: 'Device', icon: HardDrive, color: '#6b7280', bg: 'linear-gradient(135deg, rgba(107,114,128,0.15) 0%, rgba(75,85,99,0.3) 100%)', border: 'rgba(107,114,128,0.25)' },
 };
 
 function normalizeMac(mac?: string): string {
@@ -75,7 +66,6 @@ function normalizeMac(mac?: string): string {
 function parseCategoryAndComment(commentStr?: string, nameStr?: string): { category: DeviceCategory; cleanComment: string } {
   const text = (commentStr || nameStr || '').trim();
   
-  // Check for explicit tag like [Mobile], [Laptop], [AP], [Printer], [TV], [Other]
   const tagMatch = text.match(/^\[(Mobile|Laptop|AP|Printer|TV|Other)\]\s*(.*)$/i);
   if (tagMatch) {
     const tag = tagMatch[1].toLowerCase();
@@ -89,7 +79,6 @@ function parseCategoryAndComment(commentStr?: string, nameStr?: string): { categ
     return { category, cleanComment };
   }
 
-  // Auto-detect based on text keywords
   const lower = text.toLowerCase();
   if (lower.includes('phone') || lower.includes('iphone') || lower.includes('android') || lower.includes('galaxy') || lower.includes('mobile')) {
     return { category: 'mobile', cleanComment: text };
@@ -113,31 +102,29 @@ function parseCategoryAndComment(commentStr?: string, nameStr?: string): { categ
 export default function ApsPage() {
   const { routerId } = useParams<{ routerId: string }>();
   const { t, isRtl } = useLanguage();
+  const { openVpnModal } = useVpnModal();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'bypassed' | 'regular' | 'blocked' | 'unbound'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'bypassed'>('all');
   const [selectedDevice, setSelectedDevice] = useState<DeviceItem | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // Form State
-  const [newMac, setNewMac] = useState('');
-  const [newIp, setNewIp] = useState('');
-  const [newType, setNewType] = useState<'bypassed' | 'regular' | 'blocked'>('bypassed');
-  const [newCategory, setNewCategory] = useState<DeviceCategory>('mobile');
-  const [newComment, setNewComment] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  // Bypass Switch State
+  const [isBypassSubmitting, setIsBypassSubmitting] = useState(false);
+  const [bypassError, setBypassError] = useState<string | null>(null);
 
-  // Deletion state
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  // Port Forwarding / Remote Web Access State
+  // Port Forwarding State
   const [isPfSubmitting, setIsPfSubmitting] = useState(false);
-  const [pfExternalPort, setPfExternalPort] = useState<string>('8081');
-  const [pfTargetPort, setPfTargetPort] = useState<string>('80');
   const [pfError, setPfError] = useState<string | null>(null);
+
+  // Copy Feedback State
+  const [copiedField, setCopiedField] = useState<'ip' | 'mac' | null>(null);
+
+  const handleCopyField = (val: string, field: 'ip' | 'mac') => {
+    if (!val) return;
+    navigator.clipboard.writeText(val);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   // Fetch IP Bindings from RouterOS
   const { data: bindingsData, isLoading: isLoadingBindings, mutate: mutateBindings } = useSWR(
@@ -174,7 +161,7 @@ export default function ApsPage() {
 
   const routerVpnIp = pfData?.routerVpnIp || '';
 
-  const getSuggestedPort = (targetPort: string | number) => {
+  const getSuggestedPort = (targetPort: string | number = 443) => {
     const isSsl = String(targetPort) === '443';
     const usedPorts = new Set<number>();
     if (pfData?.portForwards && Array.isArray(pfData.portForwards)) {
@@ -196,29 +183,38 @@ export default function ApsPage() {
   };
 
   useEffect(() => {
-    if (selectedDevice?.ip) {
-      const existing = portForwardMap.get(selectedDevice.ip);
-      if (existing) {
-        setPfExternalPort(String(existing.dstPort));
-        setPfTargetPort(String(existing.toPort || 443));
-      } else {
-        // Default to HTTPS (443) for modern APs / CPEs (TP-Link / Ubiquiti)
-        setPfTargetPort('443');
-        setPfExternalPort(String(getSuggestedPort('443')));
-      }
-    }
     setPfError(null);
-  }, [selectedDevice, portForwardMap]);
+    setBypassError(null);
+  }, [selectedDevice]);
 
   const handleEnablePortForward = async () => {
     if (!routerId || !selectedDevice?.ip) return;
     setIsPfSubmitting(true);
     setPfError(null);
     try {
+      // 1. If device is not already bypassed, automatically bypass it first
+      if (!selectedDevice.isBypassed && selectedDevice.mac) {
+        const categoryTag = selectedDevice.category.charAt(0).toUpperCase() + selectedDevice.category.slice(1);
+        const formattedComment = selectedDevice.comment
+          ? `[${categoryTag}] ${selectedDevice.comment}`
+          : `[${categoryTag}]`;
+
+        await addIpBindingAPI(
+          routerId,
+          selectedDevice.mac,
+          selectedDevice.ip,
+          formattedComment,
+          'bypassed'
+        );
+        setSelectedDevice(prev => prev ? { ...prev, isBypassed: true } : null);
+        await mutateBindings();
+      }
+
+      // 2. Add port forwarding rule
       await addPortForwardAPI(routerId, {
         toAddress: selectedDevice.ip,
-        toPort: parseInt(pfTargetPort, 10) || 443,
-        dstPort: parseInt(pfExternalPort, 10) || getSuggestedPort(pfTargetPort),
+        toPort: 443,
+        dstPort: getSuggestedPort(443),
         comment: selectedDevice.comment || selectedDevice.name || selectedDevice.mac,
       });
       await mutatePortForwards();
@@ -251,7 +247,7 @@ export default function ApsPage() {
   };
 
   // Compare & Merge IP Bindings with Active Devices List
-  const { deviceList, activeUnboundList } = useMemo(() => {
+  const allCombinedDevices = useMemo(() => {
     // 1. Process Active Clients
     let activeList: any[] = [];
     if (Array.isArray(clientsData)) {
@@ -281,217 +277,140 @@ export default function ApsPage() {
       else if (Array.isArray((bindingsData as any).data)) bindingRawList = (bindingsData as any).data;
     }
 
-    const boundMacSet = new Set<string>();
-    const boundDevices: DeviceItem[] = bindingRawList.map(item => {
+    const boundMap = new Map<string, any>();
+    bindingRawList.forEach(item => {
       const mac = item.mac || item['mac-address'] || item.macAddress || '';
       const normalized = normalizeMac(mac);
-      if (normalized) boundMacSet.add(normalized);
-
-      const activeMatch = normalized ? activeMap.get(normalized) : null;
-      const rawComment = item.comment || item.name || '';
-      const { category, cleanComment } = parseCategoryAndComment(rawComment, item.name);
-
-      let bType: 'bypassed' | 'regular' | 'blocked' = 'regular';
-      const rawType = (item.type || '').toLowerCase();
-      if (rawType === 'bypassed' || item.bypassed) bType = 'bypassed';
-      else if (rawType === 'blocked') bType = 'blocked';
-
-      return {
-        id: item.id || item['.id'] || mac,
-        mac: mac,
-        ip: item.ip || item['address'] || item.ipAddress || (activeMatch ? (activeMatch.ip || activeMatch.address) : ''),
-        type: bType,
-        category: category,
-        comment: cleanComment,
-        rawComment: rawComment,
-        disabled: item.disabled === true || item.disabled === 'true',
-        name: item.name || cleanComment,
-        uptime: item.uptime || (activeMatch ? activeMatch.uptime : undefined),
-        isOnline: !!activeMatch,
-        isBound: true,
-      };
-    });
-
-    // 3. Find Unbound Active Devices (Devices online on network but NOT in IP bindings)
-    const unboundDevices: DeviceItem[] = [];
-    activeList.forEach(c => {
-      const mac = c.mac || c['mac-address'] || c.macAddress || '';
-      const normalized = normalizeMac(mac);
-      if (normalized && !boundMacSet.has(normalized)) {
-        const rawComment = c.comment || c.hostName || c.name || '';
-        const { category, cleanComment } = parseCategoryAndComment(rawComment, c.hostName);
-
-        unboundDevices.push({
-          id: `unbound-${normalized}`,
-          mac: mac,
-          ip: c.ip || c.address || c.ipAddress || '',
-          type: 'unbound',
-          category: category,
-          comment: cleanComment,
-          rawComment: rawComment,
-          disabled: false,
-          name: cleanComment || c.hostName || t('aps.networkDevice'),
-          uptime: c.uptime,
-          isOnline: true,
-          isBound: false,
-        });
+      if (normalized) {
+        boundMap.set(normalized, item);
       }
     });
 
-    return {
-      deviceList: boundDevices,
-      activeUnboundList: unboundDevices,
-    };
-  }, [bindingsData, clientsData]);
+    const combinedList: DeviceItem[] = [];
+    const processedMacs = new Set<string>();
 
-  // Combined All List for filtering
-  const allCombinedDevices = useMemo(() => {
-    return [...deviceList, ...activeUnboundList];
-  }, [deviceList, activeUnboundList]);
+    // Add all active clients
+    activeList.forEach(c => {
+      const mac = c.mac || c['mac-address'] || c.macAddress || '';
+      const normalized = normalizeMac(mac);
+      if (!normalized || processedMacs.has(normalized)) return;
+      processedMacs.add(normalized);
+
+      const boundItem = boundMap.get(normalized);
+      const isBypassed = boundItem ? ((boundItem.type || '').toLowerCase() === 'bypassed' || boundItem.bypassed === true) : false;
+      const rawComment = (boundItem?.comment || boundItem?.name) || (c.comment || c.hostName || c.name || '');
+      const { category, cleanComment } = parseCategoryAndComment(rawComment, c.hostName || boundItem?.name);
+
+      combinedList.push({
+        id: normalized,
+        bindingId: boundItem?.id || boundItem?.['.id'],
+        mac: mac,
+        ip: boundItem?.ip || boundItem?.address || c.ip || c.address || c.ipAddress || '',
+        isBypassed: isBypassed,
+        category: category,
+        comment: cleanComment,
+        rawComment: rawComment,
+        name: cleanComment || c.hostName || t('aps.networkDevice'),
+        uptime: c.uptime || boundItem?.uptime,
+        isOnline: true,
+      });
+    });
+
+    // Add any bindings that are not active currently
+    bindingRawList.forEach(item => {
+      const mac = item.mac || item['mac-address'] || item.macAddress || '';
+      const normalized = normalizeMac(mac);
+      if (!normalized || processedMacs.has(normalized)) return;
+      processedMacs.add(normalized);
+
+      const isBypassed = (item.type || '').toLowerCase() === 'bypassed' || item.bypassed === true;
+      const rawComment = item.comment || item.name || '';
+      const { category, cleanComment } = parseCategoryAndComment(rawComment, item.name);
+
+      combinedList.push({
+        id: normalized,
+        bindingId: item.id || item['.id'],
+        mac: mac,
+        ip: item.ip || item.address || item.ipAddress || '',
+        isBypassed: isBypassed,
+        category: category,
+        comment: cleanComment,
+        rawComment: rawComment,
+        name: item.name || cleanComment,
+        uptime: item.uptime,
+        isOnline: false,
+      });
+    });
+
+    return combinedList;
+  }, [bindingsData, clientsData]);
 
   // Compute Stat Counters
   const stats = useMemo(() => {
-    const totalBindings = deviceList.length;
-    const bypassed = deviceList.filter(d => d.type === 'bypassed').length;
-    const blocked = deviceList.filter(d => d.type === 'blocked').length;
-    const regular = deviceList.filter(d => d.type === 'regular').length;
-    const online = deviceList.filter(d => d.isOnline).length;
-    const unbound = activeUnboundList.length;
-    return { totalBindings, bypassed, blocked, regular, online, unbound };
-  }, [deviceList, activeUnboundList]);
+    const total = allCombinedDevices.length;
+    const bypassed = allCombinedDevices.filter(d => d.isBypassed).length;
+    return { total, bypassed };
+  }, [allCombinedDevices]);
 
   // Filtered devices list based on Search & Selected Filter Tab
   const filteredDevices = useMemo(() => {
     let list = allCombinedDevices;
 
     if (selectedFilter === 'bypassed') {
-      list = list.filter(d => d.type === 'bypassed');
-    } else if (selectedFilter === 'regular') {
-      list = list.filter(d => d.type === 'regular');
-    } else if (selectedFilter === 'blocked') {
-      list = list.filter(d => d.type === 'blocked');
-    } else if (selectedFilter === 'unbound') {
-      list = list.filter(d => d.type === 'unbound');
+      list = list.filter(d => d.isBypassed);
     }
 
     if (!searchTerm.trim()) return list;
     const term = searchTerm.toLowerCase().trim();
     return list.filter(d => {
-      const macMatch = (d.mac || '').toLowerCase().includes(term);
       const ipMatch = (d.ip || '').toLowerCase().includes(term);
       const commentMatch = (d.comment || '').toLowerCase().includes(term);
-      const typeMatch = (d.type || '').toLowerCase().includes(term);
-      return macMatch || ipMatch || commentMatch || typeMatch;
+      return ipMatch || commentMatch;
     });
   }, [allCombinedDevices, selectedFilter, searchTerm]);
 
-  const handleCopy = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const handleOpenAddModalForUnbound = (device: DeviceItem) => {
-    setNewMac(device.mac);
-    setNewIp(device.ip || '');
-    setNewType('bypassed');
-    setNewCategory(device.category || 'mobile');
-    setNewComment(device.comment || '');
-    setFormError(null);
-    setIsAddModalOpen(true);
-  };
-
-  const handleAddDevice = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!routerId) return;
-
-    if (!newMac.trim()) {
-      setFormError(t('aps.enterMac'));
-      return;
-    }
-
-    setIsSubmitting(true);
-    setFormError(null);
-
-    // Format comment with category prefix so it persists on RouterOS
-    const categoryTag = newCategory.charAt(0).toUpperCase() + newCategory.slice(1);
-    const formattedComment = newComment.trim()
-      ? `[${categoryTag}] ${newComment.trim()}`
-      : `[${categoryTag}]`;
-
+  // Toggle Bypass Switch (ON / OFF)
+  const handleToggleBypass = async () => {
+    if (!routerId || !selectedDevice) return;
+    setIsBypassSubmitting(true);
+    setBypassError(null);
     try {
-      await addIpBindingAPI(
-        routerId,
-        newMac.trim(),
-        newIp.trim(),
-        formattedComment,
-        newType
-      );
+      if (selectedDevice.isBypassed) {
+        // Switch OFF -> Remove binding
+        const targetId = selectedDevice.bindingId || selectedDevice.id || selectedDevice.mac;
+        await removeIpBindingAPI(routerId, targetId);
 
-      setNewMac('');
-      setNewIp('');
-      setNewType('bypassed');
-      setNewCategory('mobile');
-      setNewComment('');
-      setIsAddModalOpen(false);
+        // If device also has active port forwarding, remove port forward as well
+        if (selectedDevice.ip && portForwardMap.has(selectedDevice.ip)) {
+          const existingPf = portForwardMap.get(selectedDevice.ip);
+          await removePortForwardAPI(routerId, existingPf?.id, selectedDevice.ip);
+          await mutatePortForwards();
+        }
+
+        setSelectedDevice(prev => prev ? { ...prev, isBypassed: false, bindingId: undefined } : null);
+      } else {
+        // Switch ON -> Add bypassed binding
+        const categoryTag = selectedDevice.category.charAt(0).toUpperCase() + selectedDevice.category.slice(1);
+        const formattedComment = selectedDevice.comment
+          ? `[${categoryTag}] ${selectedDevice.comment}`
+          : `[${categoryTag}]`;
+
+        await addIpBindingAPI(
+          routerId,
+          selectedDevice.mac,
+          selectedDevice.ip || '',
+          formattedComment,
+          'bypassed'
+        );
+        setSelectedDevice(prev => prev ? { ...prev, isBypassed: true } : null);
+      }
       handleRefresh();
     } catch (err: any) {
-      console.error('Failed to add IP binding:', err);
-      setFormError(err?.message || t('aps.addFailed'));
+      console.error('Failed to toggle bypass:', err);
+      setBypassError(err?.message || 'Failed to update bypass');
     } finally {
-      setIsSubmitting(false);
+      setIsBypassSubmitting(false);
     }
-  };
-
-  const handleDeleteDevice = async () => {
-    if (!routerId || !selectedDevice) return;
-    const targetId = selectedDevice.id || selectedDevice.mac;
-    if (!targetId) return;
-
-    setIsDeleting(true);
-    try {
-      await removeIpBindingAPI(routerId, targetId);
-      setSelectedDevice(null);
-      setShowDeleteConfirm(false);
-      handleRefresh();
-    } catch (err) {
-      console.error('Failed to delete binding:', err);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const getTypeBadgeStyle = (type: string) => {
-    if (type === 'bypassed') {
-      return {
-        background: 'rgba(16, 185, 129, 0.15)',
-        border: '1px solid rgba(16, 185, 129, 0.3)',
-        color: '#10b981',
-        label: t('aps.bypassed') || 'Bypassed'
-      };
-    }
-    if (type === 'blocked') {
-      return {
-        background: 'rgba(239, 68, 68, 0.15)',
-        border: '1px solid rgba(239, 68, 68, 0.3)',
-        color: '#ef4444',
-        label: t('aps.blocked') || 'Blocked'
-      };
-    }
-    if (type === 'unbound') {
-      return {
-        background: 'rgba(245, 158, 11, 0.15)',
-        border: '1px solid rgba(245, 158, 11, 0.3)',
-        color: '#f59e0b',
-        label: t('aps.activeUnbound') || 'Active (Unbound)'
-      };
-    }
-    return {
-      background: 'rgba(59, 130, 246, 0.15)',
-      border: '1px solid rgba(59, 130, 246, 0.3)',
-      color: '#3b82f6',
-      label: t('aps.regular') || 'Regular'
-    };
   };
 
   const renderCategoryIcon = (category: DeviceCategory, size = 16) => {
@@ -532,9 +451,6 @@ export default function ApsPage() {
             <h2 className="page-header-title" style={{ fontSize: '15px' }}>
               {t('aps.title')}
             </h2>
-            <p className="page-header-subtitle" style={{ fontSize: '10.5px' }}>
-              {t('aps.subtitle') || 'إدارة أجهزة الشبكة وربط عناوين الماك'}
-            </p>
           </div>
         </div>
 
@@ -549,185 +465,54 @@ export default function ApsPage() {
             <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
             <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
           </button>
-          <button
-            onClick={() => {
-              setNewMac('');
-              setNewIp('');
-              setNewType('bypassed');
-              setNewCategory('mobile');
-              setNewComment('');
-              setFormError(null);
-              setIsAddModalOpen(true);
-            }}
-            className="page-header-btn page-header-btn-primary"
-            style={{ padding: '4px 10px', fontSize: '11px', height: '28px' }}
-          >
-            <Plus size={13} />
-            <span style={{ whiteSpace: 'nowrap' }}>{t('common.add') || 'إضافة'}</span>
-          </button>
         </div>
       </div>
 
-      {/* ─── 2. Overview Stat Cards / Interactive Group Tabs ─── */}
-      <div className="stat-summary-grid">
-        {/* Total Bindings */}
-        <div
-          onClick={() => setSelectedFilter('all')}
-          className="responsive-card hover-card"
-          style={{
-            padding: '8px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            minWidth: 0,
-            cursor: 'pointer',
-            border: selectedFilter === 'all' ? '1.5px solid #3b82f6' : '1px solid var(--glass-border)',
-            background: selectedFilter === 'all' ? 'rgba(59, 130, 246, 0.12)' : undefined,
-          }}
-        >
-          <div style={{
-            width: '30px',
-            height: '30px',
-            borderRadius: '8px',
-            background: 'var(--secondary)',
-            color: '#3b82f6',
-            border: '1px solid var(--glass-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <Laptop size={15} />
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {t('aps.statTotal') || t('aps.totalDevices') || 'Total'}
-            </span>
-            <strong style={{ fontSize: '15px', color: 'var(--foreground)', fontWeight: 800, marginTop: '2px', display: 'block', lineHeight: 1.2 }}>
-              {isLoading ? '—' : stats.totalBindings}
-            </strong>
-          </div>
-        </div>
-
-        {/* Bypassed */}
-        <div
-          onClick={() => setSelectedFilter('bypassed')}
-          className="responsive-card hover-card"
-          style={{
-            padding: '8px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            minWidth: 0,
-            cursor: 'pointer',
-            border: selectedFilter === 'bypassed' ? '1.5px solid #10b981' : '1px solid var(--glass-border)',
-            background: selectedFilter === 'bypassed' ? 'rgba(16, 185, 129, 0.12)' : undefined,
-          }}
-        >
-          <div style={{
-            width: '30px',
-            height: '30px',
-            borderRadius: '8px',
-            background: 'var(--secondary)',
-            color: '#10b981',
-            border: '1px solid var(--glass-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <CheckCircle2 size={15} />
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {t('aps.statBypassed') || t('aps.bypassed') || 'Bypassed'}
-            </span>
-            <strong style={{ fontSize: '15px', color: '#10b981', fontWeight: 800, marginTop: '2px', display: 'block', lineHeight: 1.2 }}>
-              {isLoading ? '—' : stats.bypassed}
-            </strong>
-          </div>
-        </div>
-
-        {/* Regular */}
-        <div
-          onClick={() => setSelectedFilter('regular')}
-          className="responsive-card hover-card"
-          style={{
-            padding: '8px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            minWidth: 0,
-            cursor: 'pointer',
-            border: selectedFilter === 'regular' ? '1.5px solid #8b5cf6' : '1px solid var(--glass-border)',
-            background: selectedFilter === 'regular' ? 'rgba(139, 92, 246, 0.12)' : undefined,
-          }}
-        >
-          <div style={{
-            width: '30px',
-            height: '30px',
-            borderRadius: '8px',
-            background: 'var(--secondary)',
-            color: '#8b5cf6',
-            border: '1px solid var(--glass-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <Shield size={15} />
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {t('aps.statRegular') || t('aps.regular') || 'Regular'}
-            </span>
-            <strong style={{ fontSize: '15px', color: '#8b5cf6', fontWeight: 800, marginTop: '2px', display: 'block', lineHeight: 1.2 }}>
-              {isLoading ? '—' : stats.regular}
-            </strong>
-          </div>
-        </div>
-
-        {/* Active Unbound */}
-        <div
-          onClick={() => setSelectedFilter('unbound')}
-          className="responsive-card hover-card"
-          style={{
-            padding: '8px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            minWidth: 0,
-            cursor: 'pointer',
-            border: selectedFilter === 'unbound' ? '1.5px solid #f59e0b' : '1px solid var(--glass-border)',
-            background: selectedFilter === 'unbound' ? 'rgba(245, 158, 11, 0.12)' : undefined,
-          }}
-        >
-          <div style={{
-            width: '30px',
-            height: '30px',
-            borderRadius: '8px',
-            background: 'rgba(245, 158, 11, 0.15)',
-            color: '#f59e0b',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <Zap size={15} />
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {t('aps.statUnbound') || t('aps.unboundCount') || 'Unbound'}
-            </span>
-            <strong style={{ fontSize: '15px', color: '#f59e0b', fontWeight: 800, marginTop: '2px', display: 'block', lineHeight: 1.2 }}>
-              {isLoading ? '—' : stats.unbound}
-            </strong>
-          </div>
-        </div>
+      {/* ─── 2. Compact Filter Strip (All / Bypassed) ─── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+        {[
+          { key: 'all', label: t('common.all') || 'All', count: stats.total, color: '#3b82f6' },
+          { key: 'bypassed', label: t('aps.statBypassed') || 'Bypassed', count: stats.bypassed, color: '#10b981' },
+        ].map(tab => {
+          const isSelected = selectedFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setSelectedFilter(tab.key as any)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '5px 11px',
+                borderRadius: '20px',
+                border: isSelected ? `1px solid ${tab.color}` : '1px solid var(--glass-border)',
+                background: isSelected ? `${tab.color}20` : 'var(--card-bg)',
+                color: isSelected ? tab.color : 'var(--text-muted)',
+                fontSize: '11px',
+                fontWeight: isSelected ? 800 : 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
+              }}
+            >
+              <span>{tab.label}</span>
+              <span style={{
+                fontSize: '9.5px',
+                padding: '1px 6px',
+                borderRadius: '10px',
+                background: isSelected ? `${tab.color}35` : 'rgba(255, 255, 255, 0.06)',
+                color: isSelected ? tab.color : 'var(--foreground)',
+                fontWeight: 700
+              }}>
+                {isLoading ? '—' : tab.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Search Input Filter Bar */}
+      {/* ─── 3. Search Bar ─── */}
       <div style={{ position: 'relative', width: '100%' }}>
         <Search
           size={13}
@@ -744,7 +529,7 @@ export default function ApsPage() {
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={t('aps.searchPlaceholder') || 'Search by MAC, IP, category, comment...'}
+          placeholder={t('aps.searchPlaceholder') || 'Search devices...'}
           style={{
             width: '100%',
             padding: `6px ${isRtl ? '28px' : '28px'} 6px ${isRtl ? '28px' : '28px'}`,
@@ -782,16 +567,16 @@ export default function ApsPage() {
         )}
       </div>
 
-      {/* ─── 4. Devices List / Skeletons / Empty State ─── */}
+      {/* ─── 4. Devices List (Green border if forwarded AND bypassed) ─── */}
       {isLoading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {[1, 2, 3, 4].map(n => (
             <div
               key={n}
               className="skeleton"
               style={{
-                height: '72px',
-                borderRadius: '12px',
+                height: '56px',
+                borderRadius: '10px',
                 width: '100%'
               }}
             />
@@ -803,17 +588,17 @@ export default function ApsPage() {
           backdropFilter: 'blur(12px)',
           border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
           borderRadius: '16px',
-          padding: '40px 20px',
+          padding: '36px 20px',
           textAlign: 'center',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '12px'
+          gap: '10px'
         }}>
           <div style={{
-            width: '52px',
-            height: '52px',
-            borderRadius: '16px',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
             background: 'rgba(16, 185, 129, 0.1)',
             color: '#10b981',
             display: 'flex',
@@ -821,13 +606,13 @@ export default function ApsPage() {
             justifyContent: 'center',
             border: '1px solid rgba(16, 185, 129, 0.2)'
           }}>
-            <Radio size={24} />
+            <Radio size={22} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--foreground)' }}>
+            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--foreground)' }}>
               {t('aps.noApsFound')}
             </h3>
-            <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: 'var(--text-muted)', maxWidth: '320px' }}>
+            <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', maxWidth: '320px' }}>
               {t('aps.noApsDesc')}
             </p>
           </div>
@@ -835,9 +620,10 @@ export default function ApsPage() {
       ) : (
         <div className="list-container">
           {filteredDevices.map(device => {
-            const badgeStyle = getTypeBadgeStyle(device.type);
             const catConfig = CATEGORY_MAP[device.category] || CATEGORY_MAP.other;
             const CategoryIcon = catConfig.icon;
+            const isForwarded = Boolean(device.ip && portForwardMap.has(device.ip));
+            const showGreenBorder = isForwarded && device.isBypassed;
 
             return (
               <div
@@ -845,13 +631,21 @@ export default function ApsPage() {
                 onClick={() => setSelectedDevice(device)}
                 className="list-item-card hover-card"
                 style={{
-                  padding: '6px 10px',
+                  padding: '7px 10px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: '8px',
                   cursor: 'pointer',
-                  border: device.type === 'unbound' ? '1px dashed rgba(245, 158, 11, 0.4)' : undefined,
+                  border: showGreenBorder
+                    ? '1.5px solid rgba(16, 185, 129, 0.7)'
+                    : undefined,
+                  background: showGreenBorder
+                    ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, var(--card-bg) 100%)'
+                    : undefined,
+                  boxShadow: showGreenBorder
+                    ? '0 0 10px rgba(16, 185, 129, 0.15)'
+                    : undefined,
                 }}
               >
                 {/* Left: Category Icon & Details */}
@@ -887,106 +681,50 @@ export default function ApsPage() {
                     }} />
                   </div>
 
-                  {/* Name & Identifiers */}
+                  {/* Name & IP only */}
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <strong className="item-title" style={{
-                        fontSize: '12.5px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {device.comment || device.name || device.mac}
-                      </strong>
-                    </div>
+                    <strong className="item-title" style={{
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      display: 'block'
+                    }}>
+                      {device.comment || device.name || t('aps.networkDevice')}
+                    </strong>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px', flexWrap: 'wrap' }}>
-                      <span className="item-subtext" style={{ fontSize: '10px', fontFamily: 'monospace', fontWeight: 600 }}>
-                        {device.mac}
-                      </span>
-
-                      {device.ip && (
-                        <>
-                          <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>•</span>
-                          <span className="item-subtext" style={{ fontSize: '10px', color: '#3b82f6', fontFamily: 'monospace' }}>
-                            {device.ip}
-                          </span>
-                        </>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'nowrap' }}>
+                      {device.ip ? (
+                        <span className="item-subtext" style={{ fontSize: '10.5px', color: '#3b82f6', fontFamily: 'monospace', fontWeight: 600 }}>
+                          {device.ip}
+                        </span>
+                      ) : (
+                        <span className="item-subtext" style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                          {t(catConfig.labelKey) || catConfig.defaultLabel}
+                        </span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Right: Status Badge & Info Button */}
+                {/* Right: Bypassed Badge (if active) & Info Icon */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                  {device.ip && portForwardMap.has(device.ip) && routerVpnIp && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const pf = portForwardMap.get(device.ip!)!;
-                        window.open(getPortForwardUrl(pf, routerVpnIp), '_blank');
-                      }}
-                      title={t('aps.openWebGui') || 'Open AP Web GUI'}
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        border: '1px solid rgba(16, 185, 129, 0.4)',
-                        background: 'linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.3) 100%)',
-                        color: '#10b981',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}
-                    >
-                      <Globe size={11} />
-                      <span>:{portForwardMap.get(device.ip!)!.dstPort}</span>
-                      <ArrowUpRight size={10} />
-                    </button>
-                  )}
-
-                  {device.type === 'unbound' ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenAddModalForUnbound(device);
-                      }}
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        border: '1px solid rgba(16, 185, 129, 0.4)',
-                        background: 'linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.3) 100%)',
-                        color: '#10b981',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px'
-                      }}
-                    >
-                      <Plus size={11} />
-                      <span>{t('aps.bypassNow')}</span>
-                    </button>
-                  ) : (
+                  {device.isBypassed && (
                     <span className="item-badge" style={{
-                      padding: '2px 6px',
-                      borderRadius: '4px',
+                      padding: '2px 7px',
+                      borderRadius: '5px',
                       fontSize: '9.5px',
                       fontWeight: 700,
-                      background: badgeStyle.background,
-                      border: badgeStyle.border,
-                      color: badgeStyle.color,
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      color: '#10b981',
                       whiteSpace: 'nowrap'
                     }}>
-                      {badgeStyle.label}
+                      {t('aps.statBypassed') || 'Bypassed'}
                     </span>
                   )}
 
-                  {/* Info Icon Button */}
                   <div style={{
                     color: 'var(--text-muted)',
                     display: 'flex',
@@ -1003,246 +741,7 @@ export default function ApsPage() {
         </div>
       )}
 
-      {/* ─── 5. Add Device Modal ─── */}
-      {isAddModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '16px'
-        }}>
-          <div className="responsive-card" style={{
-            width: '100%',
-            maxWidth: '420px',
-            background: 'var(--card-bg)',
-            borderRadius: '16px',
-            padding: '20px',
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  color: '#10b981',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Plus size={16} />
-                </div>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--foreground)' }}>
-                  {t('aps.addDeviceTitle')}
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsAddModalOpen(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {formError && (
-              <div style={{
-                padding: '10px 12px',
-                borderRadius: '8px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: '#ef4444',
-                fontSize: '12px',
-                marginBottom: '12px'
-              }}>
-                {formError}
-              </div>
-            )}
-
-            <form onSubmit={handleAddDevice} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Device Category Selector */}
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '6px' }}>
-                  {t('aps.deviceCategory') || 'Device Type / Category'}
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                  {(Object.keys(CATEGORY_MAP) as DeviceCategory[]).map(catKey => {
-                    const cat = CATEGORY_MAP[catKey];
-                    const IconC = cat.icon;
-                    const isSelected = newCategory === catKey;
-                    return (
-                      <button
-                        key={catKey}
-                        type="button"
-                        onClick={() => setNewCategory(catKey)}
-                        style={{
-                          padding: '8px',
-                          borderRadius: '8px',
-                          border: isSelected ? `1px solid ${cat.color}` : '1px solid var(--border-color)',
-                          background: isSelected ? `${cat.color}15` : 'var(--card-bg)',
-                          color: isSelected ? cat.color : 'var(--muted)',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <IconC size={14} />
-                        <span>{t(cat.labelKey) || cat.defaultLabel}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Binding Type Selector */}
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px' }}>
-                  {t('aps.bindingType')}
-                </label>
-                <select
-                  value={newType}
-                  onChange={e => setNewType(e.target.value as any)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--card-bg)',
-                    color: 'var(--foreground)',
-                    fontSize: '12px'
-                  }}
-                >
-                  <option value="bypassed">{t('aps.bypassed')}</option>
-                  <option value="regular">{t('aps.regular')}</option>
-                  <option value="blocked">{t('aps.blocked')}</option>
-                </select>
-              </div>
-
-              {/* MAC Address */}
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px' }}>
-                  {t('aps.macAddress')} *
-                </label>
-                <input
-                  type="text"
-                  value={newMac}
-                  onChange={e => setNewMac(e.target.value)}
-                  placeholder="e.g. AA:BB:CC:DD:EE:FF"
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--card-bg)',
-                    color: 'var(--foreground)',
-                    fontSize: '12px',
-                    fontFamily: 'monospace'
-                  }}
-                  required
-                />
-              </div>
-
-              {/* IP Address */}
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px' }}>
-                  {t('aps.ipAddress')} (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={newIp}
-                  onChange={e => setNewIp(e.target.value)}
-                  placeholder="e.g. 192.168.88.100"
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--card-bg)',
-                    color: 'var(--foreground)',
-                    fontSize: '12px',
-                    fontFamily: 'monospace'
-                  }}
-                />
-              </div>
-
-              {/* Device Comment / Name */}
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px' }}>
-                  {t('aps.deviceName')}
-                </label>
-                <input
-                  type="text"
-                  value={newComment}
-                  onChange={e => setNewComment(e.target.value)}
-                  placeholder="e.g. Manager iPhone, Reception Printer..."
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--card-bg)',
-                    color: 'var(--foreground)',
-                    fontSize: '12px'
-                  }}
-                />
-              </div>
-
-              {/* Buttons */}
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--card-bg)',
-                    color: 'var(--foreground)',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {t('aps.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, rgba(16,185,129,0.9) 0%, rgba(5,150,105,1) 100%)',
-                    color: '#ffffff',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {isSubmitting ? t('aps.saving') : t('aps.saveDevice')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ─── 6. Device Detail & Action Modal ─── */}
+      {/* ─── 5. Consolidated Clean Single Device Modal ─── */}
       {selectedDevice && (
         <div style={{
           position: 'fixed',
@@ -1260,15 +759,21 @@ export default function ApsPage() {
         }}>
           <div className="responsive-card" style={{
             width: '100%',
-            maxWidth: '440px',
+            maxWidth: '360px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
             background: 'var(--card-bg)',
             borderRadius: '16px',
-            padding: '20px',
+            padding: '16px',
             border: '1px solid var(--border-color)',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                 <div style={{
                   width: '32px',
                   height: '32px',
@@ -1277,15 +782,16 @@ export default function ApsPage() {
                   border: '1px solid var(--border-color)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  flexShrink: 0
                 }}>
                   {renderCategoryIcon(selectedDevice.category, 16)}
                 </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
-                    {selectedDevice.comment || selectedDevice.name || selectedDevice.mac}
+                <div style={{ minWidth: 0 }}>
+                  <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {selectedDevice.comment || selectedDevice.name || t('aps.networkDevice')}
                   </h3>
-                  <div style={{ fontSize: '11px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                     <span>{CATEGORY_MAP[selectedDevice.category]?.defaultLabel}</span>
                     <span>•</span>
                     <span style={{ color: selectedDevice.isOnline ? '#10b981' : '#6b7280', fontWeight: 600 }}>
@@ -1295,437 +801,336 @@ export default function ApsPage() {
                 </div>
               </div>
               <button
-                onClick={() => {
-                  setSelectedDevice(null);
-                  setShowDeleteConfirm(false);
-                }}
-                style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}
+                onClick={() => setSelectedDevice(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: '4px' }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Specifications Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '8px',
-              marginBottom: '16px'
-            }}>
-              {/* Type Badge */}
-              <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'var(--glass-bg, rgba(255,255,255,0.03))', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '10px', color: 'var(--muted)', display: 'block', marginBottom: '2px' }}>
-                  {t('aps.bindingType')}
-                </span>
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: getTypeBadgeStyle(selectedDevice.type).color
-                }}>
-                  {getTypeBadgeStyle(selectedDevice.type).label}
-                </span>
+            {/* Error alerts */}
+            {(bypassError || pfError) && (
+              <div style={{ padding: '7px 10px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', fontSize: '11px' }}>
+                {bypassError || pfError}
               </div>
+            )}
 
-              {/* Category */}
-              <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'var(--glass-bg, rgba(255,255,255,0.03))', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '10px', color: 'var(--muted)', display: 'block', marginBottom: '2px' }}>
-                  {t('aps.deviceCategory') || 'Category'}
-                </span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--foreground)' }}>
-                  {t(CATEGORY_MAP[selectedDevice.category]?.labelKey) || CATEGORY_MAP[selectedDevice.category]?.defaultLabel}
-                </span>
-              </div>
-
-              {/* MAC Address */}
-              <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'var(--glass-bg, rgba(255,255,255,0.03))', border: '1px solid var(--border-color)', gridColumn: 'span 2' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{t('aps.macAddress')}</span>
-                  <button
-                    onClick={() => handleCopy(selectedDevice.mac, 'mac')}
-                    style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '2px' }}
-                  >
-                    {copiedField === 'mac' ? <Check size={10} /> : <Copy size={10} />}
-                    <span>{copiedField === 'mac' ? t('aps.copied') : t('aps.copyMac')}</span>
-                  </button>
-                </div>
-                <span style={{ fontSize: '12px', fontFamily: 'monospace', fontWeight: 700, color: 'var(--foreground)', display: 'block', marginTop: '2px' }}>
-                  {selectedDevice.mac}
-                </span>
-              </div>
-
-              {/* IP Address */}
-              {selectedDevice.ip && (
-                <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'var(--glass-bg, rgba(255,255,255,0.03))', border: '1px solid var(--border-color)', gridColumn: 'span 2' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{t('aps.ipAddress')}</span>
-                    <button
-                      onClick={() => handleCopy(selectedDevice.ip!, 'ip')}
-                      style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '2px' }}
-                    >
-                      {copiedField === 'ip' ? <Check size={10} /> : <Copy size={10} />}
-                      <span>{copiedField === 'ip' ? t('aps.copied') : t('aps.copyIp')}</span>
-                    </button>
-                  </div>
-                  <span style={{ fontSize: '12px', fontFamily: 'monospace', fontWeight: 700, color: '#3b82f6', display: 'block', marginTop: '2px' }}>
-                    {selectedDevice.ip}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* ─── Remote Web Access (VPN / Port Forwarding) Section ─── */}
-            {selectedDevice.ip && (
+            {/* Device Network Info: IP & MAC Address Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {/* IP Address Row */}
               <div style={{
-                marginBottom: '16px',
-                padding: '12px 14px',
-                borderRadius: '12px',
-                background: portForwardMap.has(selectedDevice.ip)
-                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.15) 100%)'
-                  : 'var(--glass-bg, rgba(255, 255, 255, 0.03))',
-                border: portForwardMap.has(selectedDevice.ip)
-                  ? '1px solid rgba(16, 185, 129, 0.35)'
-                  : '1px solid var(--border-color)',
+                background: 'rgba(59, 130, 246, 0.06)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                borderRadius: '8px',
+                padding: '7px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Globe size={15} color={portForwardMap.has(selectedDevice.ip) ? '#10b981' : '#3b82f6'} />
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--foreground)' }}>
-                      {t('aps.remoteAccess') || 'Remote Web Access (VPN)'}
-                    </span>
-                  </div>
-                  {portForwardMap.has(selectedDevice.ip) && (
-                    <span style={{
-                      fontSize: '9.5px',
-                      fontWeight: 700,
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      background: 'rgba(16, 185, 129, 0.2)',
-                      color: '#10b981',
-                      border: '1px solid rgba(16, 185, 129, 0.3)'
-                    }}>
-                      {t('aps.portForwardEnabled') || 'Active'}
-                    </span>
-                  )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                  <Globe size={13} style={{ color: '#3b82f6' }} />
+                  <span>{t('aps.ipAddress') || 'IP Address'}</span>
                 </div>
-
-                {pfError && (
-                  <div style={{ padding: '6px 10px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', fontSize: '11px', marginBottom: '8px' }}>
-                    {pfError}
-                  </div>
-                )}
-
-                {portForwardMap.has(selectedDevice.ip) ? (
-                  <div>
-                    {(() => {
-                      const activePf = portForwardMap.get(selectedDevice.ip!)!;
-                      const directUrl = getPortForwardUrl(activePf, routerVpnIp);
-                      const isSsl = String(activePf.toPort) === '443' || String(activePf.dstPort).startsWith('84');
-
-                      return (
-                        <>
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            background: 'rgba(0, 0, 0, 0.3)',
-                            padding: '8px 10px',
-                            borderRadius: '8px',
-                            border: '1px solid rgba(255, 255, 255, 0.06)',
-                            marginBottom: '8px'
-                          }}>
-                            <div>
-                              <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', display: 'block' }}>
-                                {t('aps.forwardedPort') || 'VPN Direct Link'}
-                              </span>
-                              <span style={{ fontSize: '11.5px', fontFamily: 'monospace', fontWeight: 700, color: '#38bdf8' }}>
-                                {directUrl}
-                              </span>
-                            </div>
-                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                              ➔ {selectedDevice.ip}:{activePf.toPort}
-                            </span>
-                          </div>
-
-                          {isSsl && (
-                            <p style={{ margin: '0 0 10px 0', fontSize: '10px', color: '#f59e0b', lineHeight: 1.3 }}>
-                              💡 <strong>ملاحظة:</strong> أجهزة TP-Link PharOS و Ubiquiti تستخدم شهادة SSL ذاتية. إذا ظهر تحذير أمان في المتصفح، اختر <em>Advanced → Proceed</em> لفتح الصفحة.
-                            </p>
-                          )}
-
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                window.open(directUrl, '_blank');
-                              }}
-                              style={{
-                                flex: 1,
-                                padding: '8px 12px',
-                                borderRadius: '8px',
-                                border: 'none',
-                                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 1) 100%)',
-                                color: '#ffffff',
-                                fontSize: '11.5px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '6px'
-                              }}
-                            >
-                              <Globe size={13} />
-                              <span>{t('aps.openWebGui') || 'Open AP Web GUI'}</span>
-                              <ArrowUpRight size={12} />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={handleDisablePortForward}
-                              disabled={isPfSubmitting}
-                              style={{
-                                padding: '8px 12px',
-                                borderRadius: '8px',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                color: '#ef4444',
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {isPfSubmitting ? (t('aps.disabling') || '...') : (t('aps.disableRemoteAccess') || 'Disable')}
-                            </button>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                ) : (
-                  <div>
-                    <p style={{ margin: '0 0 10px 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                      {t('aps.remoteAccessDesc') || 'Access this device web management interface over WireGuard VPN.'}
-                    </p>
-
-                    {/* Protocol Presets */}
-                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPfTargetPort('443');
-                          setPfExternalPort(String(getSuggestedPort('443')));
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '5px 8px',
-                          borderRadius: '6px',
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          border: pfTargetPort === '443' ? '1px solid #10b981' : '1px solid var(--border-color)',
-                          background: pfTargetPort === '443' ? 'rgba(16, 185, 129, 0.15)' : 'var(--card-bg)',
-                          color: pfTargetPort === '443' ? '#10b981' : 'var(--muted)',
-                        }}
-                      >
-                        🔒 HTTPS (443) - TP-Link / Ubiquiti
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPfTargetPort('80');
-                          setPfExternalPort(String(getSuggestedPort('80')));
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '5px 8px',
-                          borderRadius: '6px',
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          border: pfTargetPort === '80' ? '1px solid #3b82f6' : '1px solid var(--border-color)',
-                          background: pfTargetPort === '80' ? 'rgba(59, 130, 246, 0.15)' : 'var(--card-bg)',
-                          color: pfTargetPort === '80' ? '#38bdf8' : 'var(--muted)',
-                        }}
-                      >
-                        🌐 HTTP (80)
-                      </button>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px' }}>
-                          {t('aps.forwardedPort') || 'VPN Port'}
-                        </label>
-                        <input
-                          type="number"
-                          value={pfExternalPort}
-                          onChange={(e) => setPfExternalPort(e.target.value)}
-                          placeholder="8443"
-                          style={{
-                            width: '100%',
-                            padding: '6px 8px',
-                            background: 'var(--card-bg)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '6px',
-                            color: 'var(--foreground)',
-                            fontSize: '11px',
-                            fontFamily: 'monospace',
-                            outline: 'none',
-                            boxSizing: 'border-box'
-                          }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px' }}>
-                          {t('aps.targetPort') || 'AP Port'}
-                        </label>
-                        <input
-                          type="number"
-                          value={pfTargetPort}
-                          onChange={(e) => setPfTargetPort(e.target.value)}
-                          placeholder="443"
-                          style={{
-                            width: '100%',
-                            padding: '6px 8px',
-                            background: 'var(--card-bg)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '6px',
-                            color: 'var(--foreground)',
-                            fontSize: '11px',
-                            fontFamily: 'monospace',
-                            outline: 'none',
-                            boxSizing: 'border-box'
-                          }}
-                        />
-                      </div>
-                    </div>
-
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                  <span style={{
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    color: selectedDevice.ip ? '#3b82f6' : 'var(--text-muted)',
+                    fontFamily: 'monospace',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {selectedDevice.ip || '—'}
+                  </span>
+                  {selectedDevice.ip && (
                     <button
                       type="button"
-                      onClick={handleEnablePortForward}
-                      disabled={isPfSubmitting || !pfExternalPort}
+                      onClick={() => handleCopyField(selectedDevice.ip!, 'ip')}
+                      title={copiedField === 'ip' ? (t('common.copied') || 'Copied!') : (t('aps.copyIp') || 'Copy IP')}
                       style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(59, 130, 246, 0.3)',
-                        background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.3) 100%)',
-                        color: '#38bdf8',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
+                        background: copiedField === 'ip' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '5px',
+                        padding: '3px 6px',
+                        color: copiedField === 'ip' ? '#10b981' : 'var(--text-muted)',
+                        fontSize: '10px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
+                        gap: '3px',
+                        flexShrink: 0,
+                        transition: 'all 0.15s ease'
                       }}
                     >
-                      <Zap size={13} />
-                      <span>{isPfSubmitting ? (t('aps.enabling') || '...') : (t('aps.enableRemoteAccess') || 'Enable VPN Web Access')}</span>
+                      {copiedField === 'ip' ? <Check size={11} /> : <Copy size={11} />}
                     </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Actions / Deletion */}
-            {selectedDevice.type === 'unbound' ? (
-              <button
-                onClick={() => {
-                  const dev = selectedDevice;
-                  setSelectedDevice(null);
-                  handleOpenAddModalForUnbound(dev);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, rgba(16,185,129,0.9) 0%, rgba(5,150,105,1) 100%)',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                <Plus size={14} />
-                <span>{t('aps.bypassNow')}</span>
-              </button>
-            ) : showDeleteConfirm ? (
-              <div style={{
-                padding: '12px',
-                borderRadius: '10px',
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                textAlign: 'center'
-              }}>
-                <span style={{ fontSize: '12px', color: '#ef4444', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
-                  {t('aps.confirmRemove')}
-                </span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--border-color)',
-                      background: 'var(--card-bg)',
-                      color: 'var(--foreground)',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {t('aps.cancel')}
-                  </button>
-                  <button
-                    onClick={handleDeleteDevice}
-                    disabled={isDeleting}
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      background: '#ef4444',
-                      color: '#ffffff',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {isDeleting ? t('aps.removing') : t('aps.removeBinding')}
-                  </button>
+                  )}
                 </div>
               </div>
-            ) : (
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(239, 68, 68, 0.4)',
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  color: '#ef4444',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                <Trash2 size={14} />
-                <span>{t('aps.removeBinding')}</span>
-              </button>
-            )}
+
+              {/* MAC Address Row */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '8px',
+                padding: '7px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                  <Laptop size={13} style={{ color: '#8b5cf6' }} />
+                  <span>{t('aps.macAddress') || 'MAC Address'}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: 'var(--foreground)',
+                    fontFamily: 'monospace',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {selectedDevice.mac || '—'}
+                  </span>
+                  {selectedDevice.mac && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopyField(selectedDevice.mac, 'mac')}
+                      title={copiedField === 'mac' ? (t('common.copied') || 'Copied!') : (t('aps.copyMac') || 'Copy MAC')}
+                      style={{
+                        background: copiedField === 'mac' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '5px',
+                        padding: '3px 6px',
+                        color: copiedField === 'mac' ? '#10b981' : 'var(--text-muted)',
+                        fontSize: '10px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        flexShrink: 0,
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {copiedField === 'mac' ? <Check size={11} /> : <Copy size={11} />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions Block: Bypass Toggle Switch & Port Forward Toggle Switch */}
+            {(() => {
+              const isSelectedForwarded = Boolean(selectedDevice.ip && portForwardMap.has(selectedDevice.ip));
+              const selectedActivePf = selectedDevice.ip ? portForwardMap.get(selectedDevice.ip) : undefined;
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {/* 1. Bypass Toggle Switch Row */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: 'var(--glass-bg, rgba(255, 255, 255, 0.03))',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
+                        {t('aps.statBypassed') || 'Bypass'}
+                      </span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        {selectedDevice.isBypassed ? (t('aps.bypassed') || 'No login required') : (t('aps.regular') || 'Requires Hotspot login')}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={selectedDevice.isBypassed}
+                      onClick={handleToggleBypass}
+                      disabled={isBypassSubmitting}
+                      style={{
+                        width: '42px',
+                        height: '24px',
+                        borderRadius: '12px',
+                        background: selectedDevice.isBypassed ? '#10b981' : 'rgba(255, 255, 255, 0.15)',
+                        border: 'none',
+                        position: 'relative',
+                        cursor: isBypassSubmitting ? 'wait' : 'pointer',
+                        transition: 'background 0.2s ease',
+                        padding: 0,
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '2px',
+                        left: !isRtl ? (selectedDevice.isBypassed ? '20px' : '2px') : 'auto',
+                        right: isRtl ? (selectedDevice.isBypassed ? '20px' : '2px') : 'auto',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                      }} />
+                    </button>
+                  </div>
+
+                  {/* 2. Port Forward Toggle Switch Row */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: 'var(--glass-bg, rgba(255, 255, 255, 0.03))',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
+                        {t('aps.portForwarding') || 'Port Forward'}
+                      </span>
+                      {selectedDevice.ip ? (
+                        isSelectedForwarded && selectedActivePf ? (
+                          <span style={{ fontSize: '10px', color: '#38bdf8', fontFamily: 'monospace', fontWeight: 600 }}>
+                            Port {selectedActivePf.dstPort} &rarr; {selectedActivePf.toPort || 443}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                            {t('aps.portForwardSubtitle') || 'Remote Web GUI Access (VPN)'}
+                          </span>
+                        )
+                      ) : (
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                          {t('aps.noIpAssigned') || 'No IP assigned'}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isSelectedForwarded}
+                      onClick={isSelectedForwarded ? handleDisablePortForward : handleEnablePortForward}
+                      disabled={isPfSubmitting || !selectedDevice.ip}
+                      style={{
+                        width: '42px',
+                        height: '24px',
+                        borderRadius: '12px',
+                        background: isSelectedForwarded ? '#3b82f6' : 'rgba(255, 255, 255, 0.15)',
+                        border: 'none',
+                        position: 'relative',
+                        cursor: (isPfSubmitting || !selectedDevice.ip) ? (isPfSubmitting ? 'wait' : 'not-allowed') : 'pointer',
+                        opacity: !selectedDevice.ip ? 0.5 : 1,
+                        transition: 'background 0.2s ease, opacity 0.2s ease',
+                        padding: 0,
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '2px',
+                        left: !isRtl ? (isSelectedForwarded ? '20px' : '2px') : 'auto',
+                        right: isRtl ? (isSelectedForwarded ? '20px' : '2px') : 'auto',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                      }} />
+                    </button>
+                  </div>
+
+                  {/* 3. When Port Forward is ON: Web GUI Link & VPN Requirement Message */}
+                  {isSelectedForwarded && selectedActivePf && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '2px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          window.open(getPortForwardUrl(selectedActivePf, routerVpnIp), '_blank');
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(16, 185, 129, 0.4)',
+                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.3) 100%)',
+                          color: '#10b981',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <Globe size={13} />
+                        <span>{t('aps.openWebGui') || 'Open Web GUI'}</span>
+                        <ArrowUpRight size={13} />
+                      </button>
+
+                      {/* WireGuard VPN Requirement Warning Notice */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '8px',
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          background: 'rgba(234, 179, 8, 0.1)',
+                          border: '1px solid rgba(234, 179, 8, 0.25)',
+                          color: '#eab308',
+                          fontSize: '11px',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        <WireguardIcon size={16} color="#eab308" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, marginBottom: '2px', color: '#facc15' }}>
+                            {t('aps.vpnRequiredTitle') || 'WireGuard VPN Required'}
+                          </div>
+                          <div style={{ color: 'var(--foreground)', opacity: 0.9 }}>
+                            {t('aps.vpnRequiredNotice') || 'You must be connected to the WireGuard VPN to access the forwarded Web GUI.'}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openVpnModal(routerVpnIp)}
+                            style={{
+                              marginTop: '6px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: 'rgba(234, 179, 8, 0.15)',
+                              border: '1px solid rgba(234, 179, 8, 0.35)',
+                              color: '#facc15',
+                              borderRadius: '5px',
+                              padding: '3px 8px',
+                              fontSize: '10.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Lock size={11} />
+                            <span>{t('sidebar.vpnAccess') || 'VPN Access'}</span>
+                            <span>&rarr;</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

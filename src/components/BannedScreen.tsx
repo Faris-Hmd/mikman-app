@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Ticket, ShieldAlert, LogOut, MessageCircle, Globe, RefreshCw } from 'lucide-react';
+import { Ticket, ShieldAlert, LogOut, MessageCircle, Languages, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -57,7 +57,7 @@ export default function BannedScreen() {
             padding: '8px 16px',
             borderRadius: '20px',
             backgroundColor: 'var(--card-bg)',
-            border: '1px solid var(--glass-border)',
+            border: 'none',
             color: 'var(--foreground)',
             fontSize: '13px',
             fontWeight: '700',
@@ -67,7 +67,7 @@ export default function BannedScreen() {
             transition: 'all 0.2s ease',
           }}
         >
-          <Globe size={16} style={{ color: 'var(--primary)' }} />
+          <Languages size={16} style={{ color: 'var(--primary)' }} />
           <span>{language === 'ar' ? 'English' : 'العربية'}</span>
         </button>
       </div>

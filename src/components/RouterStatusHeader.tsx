@@ -4,7 +4,7 @@ import useSWR from 'swr';
 import { fetchSingleRouterStatusAPI, fetchRouterProfilesWithUserAPI, fetchAllRoutersStatusAPI, formatUptimeAPI } from '../api';
 import { useLanguage } from '../context/LanguageContext';
 import { cleanDisplayName, getRouterImage } from '../lib/helpers';
-import { Router, Cpu, Clock, Users, Thermometer, ChevronDown, Check, LayoutGrid } from 'lucide-react';
+import { Router, Cpu, Clock, Users, Thermometer, ChevronDown, Check, LayoutGrid, Activity } from 'lucide-react';
 
 export default function RouterStatusHeader() {
   const navigate = useNavigate();
@@ -356,32 +356,41 @@ export default function RouterStatusHeader() {
         </div>
       </div>
 
-      {/* Right: Quick Telemetry Pills */}
+      {/* Right: Quick Telemetry (colored icons, clean inline text without badges or padding) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
         {status?.activeUsers != null && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }} title={t('dashboard.activeSessions')}>
-            <Users size={12} style={{ color: 'var(--primary)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('dashboard.activeSessions')}>
+            <Users size={13} style={{ color: '#60a5fa' }} />
             <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{status.activeUsers}</span>
           </div>
         )}
 
         {status?.cpuLoad != null && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }} title={t('header.cpuLoad')}>
-            <Cpu size={12} style={{ color: '#38bdf8' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('header.cpuLoad')}>
+            <Cpu size={13} style={{ color: '#fb923c' }} />
             <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{status.cpuLoad}%</span>
           </div>
         )}
 
+        {status?.totalMemory != null && status?.freeMemory != null && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('header.ram') || 'RAM'}>
+            <Activity size={13} style={{ color: '#a78bfa' }} />
+            <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>
+              {Math.round((Number(status.totalMemory) - Number(status.freeMemory)) / (1024 * 1024))}MB
+            </span>
+          </div>
+        )}
+
         {status?.uptime && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }} title={t('header.uptime')}>
-            <Clock size={12} style={{ color: '#a855f7' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('header.uptime')}>
+            <Clock size={13} style={{ color: '#34d399' }} />
             <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{formatUptimeAPI(status.uptime)}</span>
           </div>
         )}
 
         {status?.temperature != null && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }} title={t('header.temp')}>
-            <Thermometer size={12} style={{ color: '#f59e0b' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('header.temp')}>
+            <Thermometer size={13} style={{ color: '#f87171' }} />
             <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{status.temperature}°C</span>
           </div>
         )}

@@ -32,7 +32,8 @@ export default function BrandLogo({
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          boxShadow: '0 4px 14px rgba(59, 130, 246, 0.45)',
+          boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+          boxSizing: 'border-box',
         }}
       >
         <ZapIcon size={iconSize} color="#ffffff" fill="#ffffff" strokeWidth="1.2" />

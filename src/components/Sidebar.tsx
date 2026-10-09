@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { Ticket, Server, Layers, Users, Laptop, Settings, ChevronLeft, ChevronRight, LogOut, LayoutDashboard, TrendingUp, User, Home, Printer, Sun, Moon, Globe } from 'lucide-react';
+import { Ticket, Server, Layers, Users, Laptop, Settings, ChevronLeft, ChevronRight, LogOut, LayoutDashboard, TrendingUp, User, Home, Printer, Sun, Moon, Languages } from 'lucide-react';
 import BrandLogo from './BrandLogo';
 import WireguardIcon from './WireguardIcon';
 import { useLanguage } from '../context/LanguageContext';
@@ -135,7 +135,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 {/* Avatar / Account Link */}
                 <Link to="/account" onClick={() => { if (isMobile && onClose) onClose(); }} title={t('sidebar.accountDetails')}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', cursor: 'pointer', boxSizing: 'border-box', transition: 'transform 0.2s', textDecoration: 'none' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid var(--primary)', backgroundColor: 'var(--card-bg)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '10px', overflow: 'hidden', border: 'none', backgroundColor: 'var(--card-bg)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {userPhoto ? <img src={userPhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
                     : <div style={{ width: '100%', height: '100%', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: 'bold' }}>{userDisplayName ? userDisplayName.charAt(0).toUpperCase() : 'U'}</div>}
                   </div>
@@ -143,13 +143,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
                 {/* Theme Toggle */}
                 <button onClick={toggleTheme} title={theme === 'dark' ? t('sidebar.lightMode') : t('sidebar.darkMode')}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--glass-border)', borderRadius: '6px', padding: '5px', color: 'var(--primary)', cursor: 'pointer', width: '28px', height: '28px' }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: 'none', borderRadius: '6px', padding: '5px', color: 'var(--primary)', cursor: 'pointer', width: '28px', height: '28px' }}>
                   {theme === 'dark' ? <Sun size={14} color="var(--primary)" /> : <Moon size={14} color="var(--primary)" />}
                 </button>
 
                 {/* Language Toggle */}
                 <button onClick={toggleLanguage} title={t('header.languageSelector')}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--glass-border)', borderRadius: '6px', padding: '3px', color: 'var(--primary)', fontSize: '10px', fontWeight: '800', cursor: 'pointer', width: '28px', height: '28px' }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: 'none', borderRadius: '6px', padding: '3px', color: 'var(--primary)', fontSize: '10px', fontWeight: '800', cursor: 'pointer', width: '28px', height: '28px' }}>
                   {language === 'en' ? 'AR' : 'EN'}
                 </button>
 
@@ -174,7 +174,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <Link to="/account" onClick={() => { if (isMobile && onClose) onClose(); }} title={t('sidebar.accountDetails')}
                     style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', textDecoration: 'none', minWidth: 0, flex: 1 }}>
-                    <div style={{ width: '30px', height: '30px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid var(--primary)', backgroundColor: 'var(--card-bg)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '30px', height: '30px', borderRadius: '10px', overflow: 'hidden', border: 'none', backgroundColor: 'var(--card-bg)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {userPhoto ? <img src={userPhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
                       : <div style={{ width: '100%', height: '100%', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>{userDisplayName ? userDisplayName.charAt(0).toUpperCase() : 'U'}</div>}
                     </div>
@@ -185,7 +185,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   </Link>
 
                   <button onClick={handleSignOutRequest} title={t('sidebar.signOutShort') || 'Sign Out'}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', padding: '5px', color: '#ef4444', cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s ease' }}>
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '6px', padding: '5px', color: '#ef4444', cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s ease' }}>
                     <LogOut size={14} />
                   </button>
                 </div>
@@ -194,14 +194,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', paddingTop: '6px', borderTop: '1px solid var(--glass-border)' }}>
                   {/* Theme Toggle Button */}
                   <button onClick={toggleTheme} title={theme === 'dark' ? t('sidebar.lightMode') : t('sidebar.darkMode')}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 8px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--glass-border)', color: 'var(--foreground)', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 8px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: 'none', color: 'var(--foreground)', cursor: 'pointer', transition: 'all 0.2s ease' }}>
                     {theme === 'dark' ? <Sun size={15} color="var(--primary)" /> : <Moon size={15} color="var(--primary)" />}
                   </button>
 
                   {/* Language Toggle Button */}
                   <button onClick={toggleLanguage} title={t('header.languageSelector')}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', padding: '6px 8px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--glass-border)', color: 'var(--primary)', fontSize: '11px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s ease' }}>
-                    <Globe size={14} />
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', padding: '6px 8px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: 'none', color: 'var(--primary)', fontSize: '11px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+                    <Languages size={14} />
                     <span>{language === 'en' ? 'AR' : 'EN'}</span>
                   </button>
                 </div>

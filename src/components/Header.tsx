@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { Sun, Moon, Menu, Globe } from 'lucide-react';
+import { Sun, Moon, Menu, Languages } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useVpnModal } from '../context/VpnModalContext';
@@ -57,69 +57,66 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
   return (
     <header className="app-header">
       <div className="header-container">
-        <div className="flex items-center gap-2 min-h-[36px]">
+        <div className="flex items-center gap-1 min-h-[36px]">
           {user && (
             <button
               onClick={onMenuToggle}
               className="mobile-nav header-action-btn z-10"
-              style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0 }}
+              style={{ padding: '6px', border: 'none', outline: 'none' }}
               title="Menu"
             >
-              <Menu size={18} color="var(--foreground)" />
+              <Menu size={20} color="var(--foreground)" />
             </button>
           )}
-          <Link to="/" className="mobile-nav flex items-center gap-2.5 rounded-lg px-1.5 py-1 no-underline transition-colors" title={t('header.routerSelection')}>
-            <BrandLogo size={36} iconSize={20} showText textTitle="MIKMAN" subtitle={title} />
+          <Link to="/" className="mobile-nav flex items-center gap-2 rounded-lg px-1 py-1 no-underline transition-colors border-none" title={t('header.routerSelection')}>
+            <BrandLogo size={32} iconSize={18} showText textTitle="MIKMAN" subtitle={title} />
           </Link>
           <div className="desktop-nav">
             <h1 className="text-lg font-extrabold text-[var(--foreground)] m-0 tracking-tight">{title}</h1>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {user && (
             <button
               onClick={() => openVpnModal()}
               className="header-action-btn flex items-center justify-center"
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                flexShrink: 0,
-              }}
+              style={{ padding: '6px', border: 'none', outline: 'none' }}
               title={t('vpnModal.title') || 'WireGuard VPN Access'}
             >
-              <WireguardIcon size={19} color="#ef4444" />
+              <WireguardIcon size={20} color="#ef4444" />
             </button>
           )}
           <button
             onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
-            className="header-action-btn flex items-center justify-center"
-            style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0 }}
+            className="desktop-nav header-action-btn flex items-center justify-center"
+            style={{ padding: '6px', border: 'none', outline: 'none' }}
             title={language === 'en' ? 'تغيير اللغة إلى العربية (Switch to Arabic)' : 'Switch Language to English'}
           >
-            <Globe size={18} color="var(--primary)" />
+            <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.5px' }}>
+              {language === 'en' ? 'عربي' : 'EN'}
+            </span>
           </button>
           <button
             onClick={toggleTheme}
             className="header-action-btn"
-            style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0 }}
+            style={{ padding: '6px', border: 'none', outline: 'none' }}
             title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           >
-            {theme === 'dark' ? <Sun size={18} color="var(--primary)" /> : <Moon size={18} color="var(--primary)" />}
+            {theme === 'dark' ? <Sun size={19} color="var(--primary)" /> : <Moon size={19} color="var(--primary)" />}
           </button>
           {user && (
             <Link
               to="/account"
-              className="header-action-btn overflow-hidden"
-              style={{ width: '36px', height: '36px', borderRadius: '10px', padding: 0, border: '1.5px solid var(--primary)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}
+              className="header-action-btn"
+              style={{ padding: '4px', border: 'none', outline: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title={user.email || 'Account'}
             >
               {user.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8.5px' }} referrerPolicy="no-referrer" />
+                <img src={user.user_metadata.avatar_url} alt="Profile" style={{ width: '26px', height: '26px', objectFit: 'cover', borderRadius: '50%' }} referrerPolicy="no-referrer" />
               ) : (
-                <span style={{ fontSize: 'var(--font-base)', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: 'rgba(var(--primary-rgb), 0.15)', color: 'var(--primary)', fontSize: '11px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {user.user_metadata?.full_name ? user.user_metadata.full_name.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
-                </span>
+                </div>
               )}
             </Link>
           )}

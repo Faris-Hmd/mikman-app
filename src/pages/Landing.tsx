@@ -1,12 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchRouterProfilesWithUserAPI, fetchAllRoutersStatusAPI, formatUptimeAPI } from '../api';
+import {
+  fetchRouterProfilesWithUserAPI,
+  fetchAllRoutersStatusAPI,
+  formatUptimeAPI,
+  fetchUserVpnConfigAPI,
+  fetchUserVpnPeersStatusAPI,
+  deleteUserVpnPeerAPI,
+  UserPeerStatusItem,
+} from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import { useLanguage } from '../context/LanguageContext';
-import { getRemainingDays, getTemperature, getRouterImage, skeletonStyle, getQuotaName } from '../lib/helpers';
-import { Server, Plus, Users, Activity, Cpu, Clock, RefreshCw, User as UserIcon, Thermometer, ChevronRight, ChevronLeft, Settings, Crown, KeyRound } from 'lucide-react';
+import { getRemainingDays, getTemperature, getRouterImage, skeletonStyle, getQuotaName, getRouterVpnIp } from '../lib/helpers';
+import { getOrCreateUserPrivateKey, getPublicKeyFromPrivateKey } from '../lib/wireguardVpn';
+import {
+  Server,
+  Plus,
+  Users,
+  Activity,
+  Cpu,
+  Clock,
+  RefreshCw,
+  User as UserIcon,
+  Thermometer,
+  Settings,
+  KeyRound,
+  Copy,
+  Check,
+  Globe,
+  Laptop,
+  Smartphone,
+  Trash2,
+  MoreVertical,
+  Terminal,
+  ExternalLink,
+  X,
+} from 'lucide-react';
 
 export default function LandingPage() {
   const { user: currentUser } = useAuth();
@@ -14,6 +45,11 @@ export default function LandingPage() {
   const { t, language, isRtl } = useLanguage();
   const [nowTime, setNowTime] = useState<number>(() => Date.now());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [copiedIpMap, setCopiedIpMap] = useState<Record<string, boolean>>({});
+  const [copiedSshMap, setCopiedSshMap] = useState<Record<string, boolean>>({});
+  const [openMenuRouterId, setOpenMenuRouterId] = useState<string | null>(null);
+  const [peerToDelete, setPeerToDelete] = useState<UserPeerStatusItem | null>(null);
+  const [isDeletingPeer, setIsDeletingPeer] = useState(false);
 
   const { data: routerData, mutate: mutateRouters } = useSWR(
     'router-profiles',
@@ -38,6 +74,17 @@ export default function LandingPage() {
   useEffect(() => {
     setNowTime(Date.now());
   }, []);
+
+  // Close router action dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (openMenuRouterId && !(e.target as HTMLElement).closest('.router-dropdown-menu-container')) {
+        setOpenMenuRouterId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuRouterId]);
 
   // Sort by date added: First added router (oldest) on top
   const sortedRouters = React.useMemo(() => {
@@ -70,14 +117,144 @@ export default function LandingPage() {
     }
   };
 
+  const handleCopyIp = async (e: React.MouseEvent, ip: string, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!ip) return;
+    try {
+      await navigator.clipboard.writeText(ip);
+      setCopiedIpMap((prev) => ({ ...prev, [id]: true }));
+      setTimeout(() => setCopiedIpMap((prev) => ({ ...prev, [id]: false })), 2000);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = ip;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopiedIpMap((prev) => ({ ...prev, [id]: true }));
+      setTimeout(() => setCopiedIpMap((prev) => ({ ...prev, [id]: false })), 2000);
+    }
+  };
+
+  const handleCopySsh = async (e: React.MouseEvent, cmd: string, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!cmd) return;
+    try {
+      await navigator.clipboard.writeText(cmd);
+      setCopiedSshMap((prev) => ({ ...prev, [id]: true }));
+      setTimeout(() => setCopiedSshMap((prev) => ({ ...prev, [id]: false })), 2000);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = cmd;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopiedSshMap((prev) => ({ ...prev, [id]: true }));
+      setTimeout(() => setCopiedSshMap((prev) => ({ ...prev, [id]: false })), 2000);
+    }
+  };
+
   const totalRouters = savedRouters.length;
   const maxRouters = (userData?.maxRouters as number) || (userData?.quota === 'quota1' ? 10 : userData?.quota === 'quota2' ? 20 : 1);
-  const onlineRouters = savedRouters.filter(r => routerStatuses.find(s => s.id === r.id)?.status === 'online').length;
   const usagePercent = userData ? Math.min(100, Math.round((totalRouters / maxRouters) * 100)) : 0;
   const days = userData ? getRemainingDays(userData.expiresAt, nowTime) : null;
   const planName = userData ? getQuotaName(t, userData.quota as string, userData.maxRouters as number) : null;
 
   const userName = userData?.name || currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0] : '');
+
+  const { data: vpnServerConfig } = useSWR(
+    currentUser?.email ? ['user-vpn-config-landing', currentUser.email] : null,
+    async () => {
+      try {
+        const privKey = getOrCreateUserPrivateKey(currentUser?.email || 'admin');
+        const pubKey = getPublicKeyFromPrivateKey(privKey);
+        return await fetchUserVpnConfigAPI(pubKey);
+      } catch {
+        return null;
+      }
+    },
+    { revalidateOnFocus: false, dedupingInterval: 60000 }
+  );
+
+  const { data: peerTelemetryList, mutate: mutatePeers } = useSWR(
+    currentUser?.email ? ['user-vpn-peers-telemetry', currentUser.email] : null,
+    async () => {
+      try {
+        const privKey = getOrCreateUserPrivateKey(currentUser?.email || 'admin');
+        const pubKey = getPublicKeyFromPrivateKey(privKey);
+        return await fetchUserVpnPeersStatusAPI(pubKey);
+      } catch {
+        return [];
+      }
+    },
+    { refreshInterval: 10000, dedupingInterval: 5000, revalidateOnFocus: true }
+  );
+
+  const confirmDeletePeer = async () => {
+    if (!peerToDelete?.publicKey) return;
+    setIsDeletingPeer(true);
+    try {
+      const success = await deleteUserVpnPeerAPI(peerToDelete.publicKey);
+      if (success) {
+        // Clean up local storage key if it corresponds to this peer slot
+        const email = currentUser?.email?.toLowerCase().trim() || '';
+        if (email) {
+          ['pc', 'phone', 'default'].forEach((slot) => {
+            const priv = localStorage.getItem(`@wg_user_privkey_${email}_${slot}`);
+            if (priv && getPublicKeyFromPrivateKey(priv) === peerToDelete.publicKey) {
+              localStorage.removeItem(`@wg_user_privkey_${email}_${slot}`);
+              localStorage.removeItem(`@wg_dev_name_${slot}_${email}`);
+            }
+          });
+          const legacyPriv = localStorage.getItem(`@wg_user_privkey_${email}`);
+          if (legacyPriv && getPublicKeyFromPrivateKey(legacyPriv) === peerToDelete.publicKey) {
+            localStorage.removeItem(`@wg_user_privkey_${email}`);
+          }
+        }
+        await mutatePeers();
+        setPeerToDelete(null);
+      } else {
+        showAlert(t('common.error') || 'Error', t('dashboard.deletePeerFailed') || 'Failed to delete peer from server', 'error');
+      }
+    } catch (err: any) {
+      showAlert(t('common.error') || 'Error', err?.message || String(err), 'error');
+    } finally {
+      setIsDeletingPeer(false);
+    }
+  };
+
+  const baseVpnIp = vpnServerConfig?.clientIp || '10.8.250.2';
+  const phoneVpnIp = baseVpnIp.includes('.') ? baseVpnIp.replace(/\.\d+$/, '.3') : '10.8.250.3';
+
+  const livePeers = peerTelemetryList && peerTelemetryList.length > 0
+    ? peerTelemetryList
+    : [
+        {
+          publicKey: '',
+          clientIp: baseVpnIp,
+          name: 'Admin PC',
+          deviceType: 'pc' as const,
+          lastHandshakeHuman: 'Never',
+          isOnline: false,
+          transferRx: 0,
+          transferTx: 0,
+          latestHandshake: 0,
+        },
+        {
+          publicKey: '',
+          clientIp: phoneVpnIp,
+          name: 'Admin Phone',
+          deviceType: 'phone' as const,
+          lastHandshakeHuman: 'Never',
+          isOnline: false,
+          transferRx: 0,
+          transferTx: 0,
+          latestHandshake: 0,
+        }
+      ];
 
   return (
     <div className="app-container" style={{ padding: '16px 20px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
@@ -158,38 +335,12 @@ export default function LandingPage() {
         </div>
 
         {/* Row 2 / Right Group: Plan Info & Router Capacity */}
-        <div className="account-status-group account-status-group-bottom">
+        <div className="account-status-group account-status-group-bottom" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {userData && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px',
-                backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
-                color: 'var(--primary)',
-                fontWeight: '700',
-                fontSize: '11px',
-                padding: '2px 8px',
-                borderRadius: '6px',
-                border: '1px solid rgba(var(--primary-rgb), 0.2)',
-                whiteSpace: 'nowrap'
-              }}>
-                <Crown size={11} />
-                {planName}
-              </span>
-
-              {userData?.expiresAt && (
-                <span style={{
-                  fontSize: '10.5px',
-                  fontWeight: '600',
-                  color: days !== null && days <= 3 ? 'var(--danger)' : 'var(--text-muted)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                  padding: '2px 6px',
-                  borderRadius: '5px',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {days !== null && days > 0 ? `${days}${language === 'ar' ? 'يوم' : 'd'}` : (t('dashboard.expired') || 'Expired')}
-                </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+              <span style={{ fontWeight: '700', color: 'var(--foreground)' }}>{planName}</span>
+              {userData?.expiresAt && days !== null && (
+                <span>• {days > 0 ? `${days} ${language === 'ar' ? 'يوم' : 'd'}` : (t('dashboard.expired') || 'Expired')}</span>
               )}
             </div>
           )}
@@ -289,19 +440,91 @@ export default function LandingPage() {
         </div>
       )}
 
+      {/* Small WireGuard Peers List (PC & Phone) */}
+      <div style={{ marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '12.5px', fontWeight: '800', margin: '0 0 8px 0', color: 'var(--foreground)' }}>
+          {t('dashboard.vpnPeersTitle') || 'WireGuard Peers'}
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px' }}>
+          {livePeers.map((peer, idx) => {
+            const isPhone = peer.deviceType === 'phone' || peer.name.toLowerCase().includes('phone');
+            const Icon = isPhone ? Smartphone : Laptop;
+            const iconColor = isPhone ? '#10b981' : 'var(--primary)';
+
+            return (
+              <div
+                key={peer.publicKey || peer.clientIp || idx}
+                style={{
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '10px',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                  <Icon size={15} color={iconColor} style={{ flexShrink: 0 }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {peer.name || (isPhone ? 'Admin Phone' : 'Admin PC')}
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                      {isPhone ? 'Phone' : 'PC'}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <div style={{ textAlign: isRtl ? 'left' : 'right' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: peer.isOnline ? '#10b981' : 'var(--text-muted)' }}>
+                      {peer.isOnline ? (isRtl ? 'متصل' : 'Online') : (isRtl ? 'غير متصل' : 'Offline')}
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                      {peer.lastHandshakeHuman !== 'Never' ? `${peer.lastHandshakeHuman}` : (isRtl ? 'لم يتصل' : 'Never')}
+                    </div>
+                  </div>
+                  {peer.publicKey && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setPeerToDelete(peer);
+                      }}
+                      title={t('common.delete') || 'Delete Peer'}
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        color: '#ef4444',
+                        borderRadius: '6px',
+                        width: '26px',
+                        height: '26px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        padding: 0,
+                        transition: 'all 0.15s ease',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Routers Grid Header */}
       {(savedRouters.length > 0 || isInitialLoading) && (
         <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <h3 style={{ fontSize: '13.5px', fontWeight: '800', margin: 0, color: 'var(--foreground)' }}>
-              {t('dashboard.registeredRouters')}
-            </h3>
-            {savedRouters.length > 0 && (
-              <span style={{ fontSize: '10.5px', fontWeight: '700', color: 'var(--primary)', backgroundColor: 'rgba(var(--primary-rgb), 0.1)', padding: '1px 6px', borderRadius: '8px' }}>
-                {savedRouters.length}
-              </span>
-            )}
-          </div>
+          <h3 style={{ fontSize: '13.5px', fontWeight: '800', margin: 0, color: 'var(--foreground)' }}>
+            {t('dashboard.registeredRouters')}
+          </h3>
         </div>
       )}
 
@@ -352,6 +575,11 @@ export default function LandingPage() {
             const status = (router as any)._status;
             const isOnline = (router as any)._isOnline;
             const routerImg = (router as any)._routerImg;
+            const routerIp = getRouterVpnIp(router, status);
+            const routerUser = router.user || 'admin';
+            const sshCmd = `ssh ${routerUser}@${routerIp}`;
+            const isIpCopied = copiedIpMap[router.id || routerIp];
+            const isSshCopied = copiedSshMap[router.id || routerIp];
 
             return (
               <Link
@@ -371,6 +599,7 @@ export default function LandingPage() {
                   gap: '14px',
                   opacity: isOnline ? 1 : 0.6,
                   filter: isOnline ? 'none' : 'grayscale(0.2)',
+                  position: 'relative',
                 }}
               >
                 {/* Column 1: Vertically Centered Router Image */}
@@ -418,9 +647,9 @@ export default function LandingPage() {
                   />
                 </div>
 
-                {/* Column 2: Router Content Div (Name + Chevron top, Telemetry stats bottom) */}
+                {/* Column 2: Router Content Div (Name + Dropdown top, Telemetry stats bottom) */}
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
-                  {/* Top Row: Name & Navigation Chevron */}
+                  {/* Top Row: Name & Dropdown Menu + Navigation Chevron */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                     <h3
                       style={{
@@ -435,11 +664,176 @@ export default function LandingPage() {
                     >
                       {router.name || 'MikroTik Router'}
                     </h3>
-                    {isRtl ? (
-                      <ChevronLeft size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                    ) : (
-                      <ChevronRight size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                    )}
+
+                    {/* 3-dots Dropdown Menu Container */}
+                    <div className="router-dropdown-menu-container" style={{ position: 'relative', flexShrink: 0 }}>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpenMenuRouterId(openMenuRouterId === router.id ? null : (router.id || null));
+                        }}
+                        title="Quick Actions"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'transparent',
+                          border: 'none',
+                          padding: '2px',
+                          color: openMenuRouterId === router.id ? 'var(--primary)' : 'var(--text-muted)',
+                          cursor: 'pointer',
+                          transition: 'color 0.15s ease',
+                        }}
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+
+                      {/* Dropdown Menu Popup */}
+                      {openMenuRouterId === router.id && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 'calc(100% + 4px)',
+                            [isRtl ? 'left' : 'right']: 0,
+                            zIndex: 100,
+                            minWidth: '190px',
+                            background: 'var(--card-bg)',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: '10px',
+                            padding: '6px',
+                            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                        >
+                          {/* WebFig */}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (routerIp) {
+                                window.open(`http://${routerIp}`, '_blank', 'noopener,noreferrer');
+                              }
+                              setOpenMenuRouterId(null);
+                            }}
+                            disabled={!routerIp}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '7px 10px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              background: 'transparent',
+                              color: 'var(--foreground)',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              cursor: routerIp ? 'pointer' : 'not-allowed',
+                              textAlign: isRtl ? 'right' : 'left',
+                              width: '100%',
+                              transition: 'background 0.15s ease',
+                              opacity: routerIp ? 1 : 0.5,
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.15)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          >
+                            <Globe size={14} color="var(--primary)" style={{ flexShrink: 0 }} />
+                            <span style={{ flex: 1 }}>WebFig</span>
+                            <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />
+                          </button>
+
+                          {/* SSH */}
+                          <button
+                            onClick={(e) => handleCopySsh(e, sshCmd, router.id || routerIp)}
+                            disabled={!routerIp}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '7px 10px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              background: isSshCopied ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                              color: isSshCopied ? '#10b981' : 'var(--foreground)',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              cursor: routerIp ? 'pointer' : 'not-allowed',
+                              textAlign: isRtl ? 'right' : 'left',
+                              width: '100%',
+                              transition: 'background 0.15s ease',
+                              opacity: routerIp ? 1 : 0.5,
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isSshCopied) {
+                                e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.15)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isSshCopied) {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                              }
+                            }}
+                          >
+                            {isSshCopied ? (
+                              <Check size={14} color="#10b981" style={{ flexShrink: 0 }} />
+                            ) : (
+                              <Terminal size={14} color="var(--primary)" style={{ flexShrink: 0 }} />
+                            )}
+                            <span style={{ flex: 1 }}>
+                              {isSshCopied ? (t('common.copied') || 'Copied SSH!') : 'SSH Command'}
+                            </span>
+                          </button>
+
+                          {/* Copy IP */}
+                          <button
+                            onClick={(e) => handleCopyIp(e, routerIp, router.id || routerIp)}
+                            disabled={!routerIp}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '7px 10px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              background: isIpCopied ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                              color: isIpCopied ? '#10b981' : 'var(--foreground)',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              cursor: routerIp ? 'pointer' : 'not-allowed',
+                              textAlign: isRtl ? 'right' : 'left',
+                              width: '100%',
+                              transition: 'background 0.15s ease',
+                              opacity: routerIp ? 1 : 0.5,
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isIpCopied) {
+                                e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.15)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isIpCopied) {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                              }
+                            }}
+                          >
+                            {isIpCopied ? (
+                              <Check size={14} color="#10b981" style={{ flexShrink: 0 }} />
+                            ) : (
+                              <Copy size={14} color="var(--primary)" style={{ flexShrink: 0 }} />
+                            )}
+                            <span style={{ flex: 1 }}>
+                              {isIpCopied ? (t('common.copied') || 'Copied IP!') : (routerIp ? `Copy IP (${routerIp})` : 'Copy IP')}
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Bottom Row: Telemetry Stats Strip */}
@@ -496,6 +890,188 @@ export default function LandingPage() {
           })
         )}
       </div>
+
+      {/* Dedicated Delete WireGuard Peer Modal */}
+      {peerToDelete && (
+        <div
+          className="modal-overlay"
+          dir={isRtl ? 'rtl' : 'ltr'}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 1200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={() => !isDeletingPeer && setPeerToDelete(null)}
+        >
+          <div
+            className="responsive-card"
+            style={{
+              width: '100%',
+              maxWidth: '420px',
+              backgroundColor: 'var(--card-bg)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '16px',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6)',
+              overflow: 'hidden',
+              animation: 'fadeIn 0.2s ease-out',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: '14px 18px',
+                borderBottom: '1px solid var(--glass-border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ef4444',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Trash2 size={16} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: 'var(--foreground)' }}>
+                    {t('dashboard.deletePeerModalTitle') || 'Delete WireGuard Peer'}
+                  </h3>
+                </div>
+              </div>
+
+              <button
+                onClick={() => !isDeletingPeer && setPeerToDelete(null)}
+                disabled={isDeletingPeer}
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '6px',
+                  backgroundColor: 'var(--input-bg)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: isDeletingPeer ? 'not-allowed' : 'pointer',
+                  padding: 0,
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '16px 18px' }}>
+              <p style={{ margin: '0 0 14px 0', fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                {t('dashboard.deletePeerModalDesc') || 'Are you sure you want to delete this WireGuard peer? The device will immediately lose VPN access to your connected routers.'}
+              </p>
+
+              {/* Peer Info Box */}
+              <div
+                style={{
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  marginBottom: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                  {peerToDelete.deviceType === 'phone' || peerToDelete.name?.toLowerCase().includes('phone') ? (
+                    <Smartphone size={18} color="#10b981" style={{ flexShrink: 0 }} />
+                  ) : (
+                    <Laptop size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
+                  )}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {peerToDelete.name || 'WireGuard Device'}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                      {peerToDelete.clientIp || '10.8.x.x'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: isRtl ? 'left' : 'right', flexShrink: 0 }}>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: peerToDelete.isOnline ? '#10b981' : 'var(--text-muted)',
+                    }}
+                  >
+                    {peerToDelete.isOnline ? (isRtl ? 'متصل' : 'Online') : (isRtl ? 'غير متصل' : 'Offline')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Buttons (Solid High Contrast buttons per AGENTS.md) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setPeerToDelete(null)}
+                  disabled={isDeletingPeer}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--input-bg)',
+                    border: '1px solid var(--glass-border)',
+                    color: 'var(--foreground)',
+                    fontWeight: '700',
+                    fontSize: '12px',
+                    cursor: isDeletingPeer ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {t('common.cancel') || 'Cancel'}
+                </button>
+                <button
+                  onClick={confirmDeletePeer}
+                  disabled={isDeletingPeer}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    backgroundColor: '#ef4444',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontWeight: '800',
+                    fontSize: '12px',
+                    cursor: isDeletingPeer ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {isDeletingPeer && <RefreshCw size={13} className="spinner" />}
+                  <span>{isDeletingPeer ? (t('common.deleting') || 'Deleting...') : (t('common.delete') || 'Delete Peer')}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

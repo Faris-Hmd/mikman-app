@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, ShieldCheck, Sun, Moon, Globe } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, Sun, Moon, Languages } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../context/LanguageContext';
 import BrandLogo from './BrandLogo';
@@ -91,7 +91,7 @@ export default function SignIn() {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--glass-border)] bg-[var(--card-bg)] text-[var(--foreground)] text-xs font-bold cursor-pointer hover:bg-[var(--secondary)] transition-all shadow-sm"
           title="Switch Language"
         >
-          <Globe size={14} className="text-[var(--primary)]" />
+          <Languages size={14} className="text-[var(--primary)]" />
           <span>{language === 'ar' ? 'English' : 'العربية'}</span>
         </button>
 

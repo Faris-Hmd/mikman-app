@@ -54,10 +54,26 @@ export default function PortApModal({
 
   if (!isOpen) return null;
 
-  const interfaces = ifaceData?.interfaces || [];
+  const rawInterfaces = ifaceData?.interfaces || [];
+  const interfaces = [...rawInterfaces];
+  if (!interfaces.some((i) => i.name.toLowerCase() === 'bridge')) {
+    interfaces.push({
+      id: 'bridge-main',
+      name: 'bridge',
+      type: 'bridge',
+      running: true,
+      disabled: false,
+      comment: 'Main Hotspot Bridge',
+    });
+  }
 
   // Sort interfaces so physical ether & wlan interfaces appear first, bridge/vpn last
   const sortedInterfaces = [...interfaces].sort((a, b) => {
+    const isBridgeA = a.name.toLowerCase().includes('bridge');
+    const isBridgeB = b.name.toLowerCase().includes('bridge');
+    if (isBridgeA && !isBridgeB) return 1;
+    if (!isBridgeA && isBridgeB) return -1;
+
     const isEthA = a.name.startsWith('ether');
     const isEthB = b.name.startsWith('ether');
     const isWlanA = a.name.startsWith('wlan') || a.name.startsWith('wifi');

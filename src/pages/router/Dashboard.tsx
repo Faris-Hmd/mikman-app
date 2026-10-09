@@ -1,13 +1,40 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchRouterProfilesAPI, fetchSingleRouterStatusAPI, fetchRevenueStatsAPI, formatUptimeAPI } from '../../api';
+import {
+  fetchRouterProfilesAPI,
+  fetchSingleRouterStatusAPI,
+  fetchRevenueStatsAPI,
+  formatUptimeAPI,
+  fetchRouterInterfacesAPI,
+  fetchNetworkClientsAPI,
+  fetchIpBindingsAPI,
+} from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 import { getTemperature, getRouterImage, cleanDisplayName } from '../../lib/helpers';
+import { resolveClientPortAndAp, checkIsSignedUser } from '../../lib/clientPortDetection';
 import LoadingScreen from '../../components/LoadingScreen';
 import {
-  Wifi, Activity, Cpu, Clock, Users, Thermometer, Ticket,
-  Layers, FileText, Printer, Radio, Settings, AlertCircle, BarChart2, TrendingUp
+  Wifi,
+  Activity,
+  Cpu,
+  Clock,
+  Users,
+  Thermometer,
+  Ticket,
+  Layers,
+  FileText,
+  Printer,
+  Radio,
+  Settings,
+  AlertCircle,
+  BarChart2,
+  TrendingUp,
+  Laptop,
+  Network,
+  Tag,
+  ChevronRight,
+  ChevronLeft,
 } from 'lucide-react';
 
 /* ─── Shared styles ─── */
@@ -33,7 +60,7 @@ const S = {
 
 export default function RouterDashboardPage() {
   const { routerId } = useParams<{ routerId: string }>();
-  const { t, language } = useLanguage();
+  const { t, language, isRtl } = useLanguage();
   const [activeTooltip, setActiveTooltip] = useState<{ date: string; revenue: number; count: number; index: number } | null>(null);
 
   const { data: status, isLoading: isStatusLoading } = useSWR(
@@ -133,6 +160,183 @@ export default function RouterDashboardPage() {
     const tz = status?.timezone; if (!tz) return null;
     try { return new Intl.DateTimeFormat(undefined, { timeZone: tz, weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).format(now); } catch { return null; }
   }, [now, status?.timezone]);
+
+  // Fetch router interfaces to get live ports and portApMap
+  const { data: ifaceData, mutate: mutateIfaces } = useSWR(
+    routerId && isConnected ? `router-interfaces-${routerId}` : null,
+    () => fetchRouterInterfacesAPI(routerId!),
+    { refreshInterval: 15000, dedupingInterval: 5000, revalidateOnFocus: true }
+  );
+
+  // Fetch active network clients to compute active users per port
+  const { data: clientsData } = useSWR(
+    routerId && isConnected ? `router-clients-${routerId}` : null,
+    () => fetchNetworkClientsAPI(routerId!),
+    { refreshInterval: 15000, dedupingInterval: 5000, revalidateOnFocus: true }
+  );
+
+  const portApMap = useMemo(() => {
+    let map: Record<string, string> = {};
+    try {
+      const cached = localStorage.getItem(`@router_port_map_${routerId}`);
+      if (cached) map = { ...map, ...JSON.parse(cached) };
+    } catch {}
+
+    if (profileData?.portApMap && typeof profileData.portApMap === 'object') {
+      map = { ...map, ...profileData.portApMap };
+    }
+
+    if (ifaceData?.portApMap && typeof ifaceData.portApMap === 'object') {
+      map = { ...map, ...ifaceData.portApMap };
+    }
+    return map;
+  }, [routerId, profileData, ifaceData]);
+
+  const parsedClients = useMemo(() => {
+    let list: any[] = [];
+    if (Array.isArray(clientsData)) list = clientsData;
+    else if (clientsData && typeof clientsData === 'object') {
+      if (Array.isArray((clientsData as any).clients)) list = (clientsData as any).clients;
+      else if (Array.isArray((clientsData as any).data)) list = (clientsData as any).data;
+    }
+    return list;
+  }, [clientsData]);
+
+  // Fetch IP Bindings to match AP devices and bypassed comments
+  const { data: bindingsData } = useSWR(
+    routerId && isConnected ? `router-ip-bindings-${routerId}` : null,
+    () => fetchIpBindingsAPI(routerId!),
+    { dedupingInterval: 10000, revalidateOnFocus: false }
+  );
+
+  const clientPortOverrides = useMemo<Record<string, string>>(() => {
+    try {
+      const cached = localStorage.getItem(`@router_client_ports_${routerId}`);
+      return cached ? JSON.parse(cached) : {};
+    } catch {
+      return {};
+    }
+  }, [routerId]);
+
+  const bindingsMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (Array.isArray(bindingsData)) {
+      bindingsData.forEach((b: any) => {
+        const comment = (b.comment || '').toLowerCase().trim();
+        const mac = (b.macAddress || b.mac || '').toLowerCase().replace(/[^a-f0-9]/g, '');
+        const ip = (b.address || b.ip || '').trim();
+
+        let matchedPort = '';
+        for (const [k, v] of Object.entries(portApMap)) {
+          if (k !== 'bridge' && k !== 'all') {
+            const cleanK = k.toLowerCase().trim();
+            const cleanV = (v || '').toLowerCase().trim();
+            if ((cleanV && comment.includes(cleanV)) || (cleanK && comment.includes(cleanK))) {
+              matchedPort = k;
+              break;
+            }
+          }
+        }
+
+        if (matchedPort) {
+          if (mac) map.set(mac, matchedPort);
+          if (ip) map.set(ip, matchedPort);
+        }
+      });
+    }
+    return map;
+  }, [bindingsData, portApMap]);
+
+  const portUserCounts = useMemo(() => {
+    const userMap: Record<string, { signedUsers: number; totalDevices: number }> = {};
+    parsedClients.forEach((c) => {
+      const res = resolveClientPortAndAp(c, portApMap, clientPortOverrides, bindingsMap);
+      const port = res.port;
+      if (port) {
+        if (!userMap[port]) {
+          userMap[port] = { signedUsers: 0, totalDevices: 0 };
+        }
+        userMap[port].totalDevices += 1;
+        if (checkIsSignedUser(c)) {
+          userMap[port].signedUsers += 1;
+        }
+      }
+    });
+    return userMap;
+  }, [parsedClients, portApMap, clientPortOverrides, bindingsMap]);
+
+  const portList = useMemo(() => {
+    const ifaces = ifaceData?.interfaces || [];
+    const seenPorts = new Set<string>();
+
+    const result: Array<{
+      name: string;
+      type: string;
+      running: boolean;
+      disabled: boolean;
+      apName: string;
+      signedUsers: number;
+      totalDevices: number;
+      isWireless: boolean;
+    }> = [];
+
+    ifaces.forEach((iface) => {
+      const name = iface.name.trim();
+      seenPorts.add(name);
+      const isWireless = iface.type === 'wlan' || name.startsWith('wlan') || name.startsWith('wifi');
+      const isEther = iface.type === 'ether' || name.startsWith('ether') || name.startsWith('sfp');
+      const counts = portUserCounts[name] || { signedUsers: 0, totalDevices: 0 };
+      const isUp = !!iface.running || counts.totalDevices > 0;
+
+      // Only show running / active UP ports in the dashboard (hide down / disconnected ports)
+      if (isUp && (isEther || isWireless || counts.totalDevices > 0)) {
+        const ap = iface.apName || portApMap[name] || '';
+        result.push({
+          name,
+          type: iface.type,
+          running: !!iface.running,
+          disabled: !!iface.disabled,
+          apName: ap,
+          signedUsers: counts.signedUsers,
+          totalDevices: counts.totalDevices,
+          isWireless,
+        });
+      }
+    });
+
+    Object.entries(portUserCounts).forEach(([pName, counts]) => {
+      if (!seenPorts.has(pName) && counts.totalDevices > 0) {
+        const isWireless = pName.startsWith('wlan') || pName.startsWith('wifi');
+        result.push({
+          name: pName,
+          type: isWireless ? 'wlan' : 'ether',
+          running: true,
+          disabled: false,
+          apName: portApMap[pName] || '',
+          signedUsers: counts.signedUsers,
+          totalDevices: counts.totalDevices,
+          isWireless,
+        });
+      }
+    });
+
+    return result.sort((a, b) => {
+      const isEthA = a.name.startsWith('ether');
+      const isEthB = b.name.startsWith('ether');
+      const isWlanA = a.isWireless;
+      const isWlanB = b.isWireless;
+
+      if (isEthA && !isEthB) return -1;
+      if (!isEthA && isEthB) return 1;
+      if (isWlanA && !isWlanB) return -1;
+      if (!isWlanA && isWlanB) return 1;
+      return a.name.localeCompare(b.name, undefined, { numeric: true });
+    });
+  }, [ifaceData, portApMap, portUserCounts]);
+
+  const activePortsCount = useMemo(() => {
+    return portList.length;
+  }, [portList]);
 
   if (isStatusLoading) {
     return <LoadingScreen compact loadingTitle={t('common.loading') || 'Loading router status...'} />;
@@ -364,7 +568,7 @@ export default function RouterDashboardPage() {
 
           <StatRow icon={Thermometer} label={t('header.temp') || 'Temp'} value={isConnected && tmpDisp ? tmpDisp : '—'} accentColor="#f59e0b" />
           <StatRow icon={Clock} label={t('header.uptime') || 'Uptime'} value={isConnected && upDisp ? upDisp : '—'} accentColor="#a855f7" />
-          <StatRow icon={Users} label={t('dashboard.activeSessions') || 'Users'} value={isConnected && status?.activeUsers != null ? status.activeUsers : '—'} accentColor="#06b6d4" />
+          <StatRow icon={Users} label={t('dashboard.activeSessions') || 'Users'} value={isConnected && status?.activeUsers != null ? status.activeUsers : '—'} accentColor="#3b82f6" />
           <StatRow
             icon={Wifi}
             label={t('header.ssid') || 'SSID'}
@@ -375,11 +579,18 @@ export default function RouterDashboardPage() {
         </div>
       </div>
 
-      {/* Quick actions */}
+      {/* Quick actions (Placed directly above Ports Stats) */}
       <div>
         <StatLabel icon={Ticket} title={t('dashboard.quickActions') || 'Quick Actions'} />
         <div className="quick-actions-grid">
-          {([ { Icon: Ticket, tk: 'vouchers', slug: 'vouchers' }, { Icon: Layers, tk: 'profiles', slug: 'profiles' }, { Icon: Printer, tk: 'batchPrint', slug: 'batch' }, { Icon: TrendingUp, tk: 'revenue', slug: 'revenue' }, { Icon: Settings, tk: 'settings', slug: 'settings' } ] as const).map(({ Icon, tk, slug }) => (
+          {([
+            { Icon: Ticket, tk: 'vouchers', slug: 'vouchers' },
+            { Icon: Layers, tk: 'profiles', slug: 'profiles' },
+            { Icon: Printer, tk: 'batchPrint', slug: 'batch' },
+            { Icon: TrendingUp, tk: 'revenue', slug: 'revenue' },
+            { Icon: Laptop, tk: 'devices', slug: 'aps' },
+            { Icon: Settings, tk: 'settings', slug: 'settings' }
+          ] as const).map(({ Icon, tk, slug }) => (
             <Link key={slug} to={`/${routerId}/${slug}`} className="responsive-card hover-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '8px 6px', textDecoration: 'none', color: 'var(--foreground)' }}>
               <Icon size={16} style={{ color: 'var(--primary)' }} />
               <span style={{ fontSize: '10px', fontWeight: 700, textAlign: 'center' }}>{t(`sidebar.${tk}`) || tk}</span>
@@ -387,6 +598,225 @@ export default function RouterDashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* ─── Compact Ports & APs Statistics ─── */}
+      {isConnected && portList.length > 0 && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Network size={13} style={{ color: 'var(--primary)' }} />
+              <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {t('dashboard.portsStatus') || 'Ports & APs Statistics'}
+              </span>
+              <span style={{ fontSize: '9.5px', fontWeight: 700, color: 'var(--primary)', backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: '1px 6px', borderRadius: '6px' }}>
+                {activePortsCount}/{portList.length} {t('dashboard.portUp') || 'Active'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Link
+                to={`/${routerId}/settings#ports`}
+                title={t('dashboard.managePorts') || 'Edit Port AP Names'}
+                className="hover-card"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  background: 'var(--primary)',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Tag size={11} />
+                <span>{t('dashboard.managePorts') || 'Port Names'}</span>
+              </Link>
+
+              <Link
+                to={`/${routerId}/users`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '2px',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  color: 'var(--primary)',
+                  textDecoration: 'none',
+                }}
+              >
+                <span>{t('sidebar.users') || 'All Users'}</span>
+                {isRtl ? <ChevronLeft size={11} /> : <ChevronRight size={11} />}
+              </Link>
+            </div>
+          </div>
+
+          {/* Compact Port Badges Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+              gap: '6px',
+            }}
+          >
+            {portList.map((p) => {
+              const hasUsers = p.signedUsers > 0;
+              const isUp = p.running;
+
+              return (
+                <Link
+                  key={p.name}
+                  to={`/${routerId}/users?port=${p.name}`}
+                  className="responsive-card hover-card"
+                  style={{
+                    padding: '7px 9px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    textDecoration: 'none',
+                    border: hasUsers ? '1px solid rgba(59, 130, 246, 0.35)' : isUp ? '1px solid rgba(34, 197, 94, 0.25)' : '1px solid var(--glass-border)',
+                    background: hasUsers ? 'rgba(59, 130, 246, 0.06)' : isUp ? 'var(--card-bg)' : 'rgba(0, 0, 0, 0.15)',
+                    borderRadius: '9px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {/* Row 1: Port Name, Port Icon & Running Status Dot */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '4px',
+                          backgroundColor: isUp ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: isUp ? '#22c55e' : 'var(--text-muted)',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {p.isWireless ? <Wifi size={10} /> : <Network size={10} />}
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          color: 'var(--foreground)',
+                          fontFamily: "'JetBrains Mono', monospace",
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {p.name}
+                      </span>
+                    </div>
+
+                    {/* Status Pill: Up / Down */}
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        backgroundColor: isUp ? 'rgba(34, 197, 94, 0.12)' : 'rgba(148, 163, 184, 0.1)',
+                        color: isUp ? '#22c55e' : '#94a3b8',
+                        border: isUp ? '1px solid rgba(34, 197, 94, 0.25)' : '1px solid rgba(148, 163, 184, 0.15)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '4.5px',
+                          height: '4.5px',
+                          borderRadius: '50%',
+                          backgroundColor: isUp ? '#22c55e' : '#94a3b8',
+                        }}
+                      />
+                      <span>{isUp ? (t('dashboard.portUp') || 'Up') : (t('dashboard.portDown') || 'Down')}</span>
+                    </div>
+                  </div>
+
+                  {/* Row 2: AP Name if configured */}
+                  {p.apName ? (
+                    <div
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        color: 'var(--primary, #3b82f6)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <Tag size={9} style={{ flexShrink: 0, opacity: 0.8 }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.apName}
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '9.5px', color: 'var(--text-muted)', opacity: 0.5, fontStyle: 'italic' }}>
+                      —
+                    </div>
+                  )}
+
+                  {/* Row 3: User count strip */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginTop: '2px',
+                      paddingTop: '3px',
+                      borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        color: hasUsers ? 'var(--primary, #3b82f6)' : 'var(--text-muted)',
+                        fontSize: '10.5px',
+                        fontWeight: hasUsers ? 800 : 600,
+                      }}
+                    >
+                      <Users size={11} color={hasUsers ? 'var(--primary, #3b82f6)' : 'var(--text-muted)'} />
+                      <span>{p.signedUsers} {t('sidebar.users') || 'users'}</span>
+                    </div>
+
+                    {p.totalDevices > p.signedUsers && (
+                      <span
+                        style={{
+                          fontSize: '9px',
+                          color: 'var(--text-muted)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                          padding: '1px 4px',
+                          borderRadius: '3px',
+                        }}
+                        title={`Total connected devices: ${p.totalDevices}`}
+                      >
+                        +{p.totalDevices - p.signedUsers}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Revenue summary */}
       {revenue && (

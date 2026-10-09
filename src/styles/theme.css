@@ -258,26 +258,21 @@ input, textarea { font-family: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background-color: var(--card-bg);
-  border: 1px solid var(--glass-border);
-  transition: background-color 0.2s, border-color 0.2s;
+  background-color: transparent;
+  border: none;
+  transition: opacity 0.2s ease, transform 0.15s ease;
   cursor: pointer;
   box-sizing: border-box;
-  padding: 0;
+  padding: 4px;
   text-decoration: none;
   flex-shrink: 0;
 }
-.header-action-btn:hover { background-color: var(--secondary); }
-
-@media (max-width: 768px) {
-  .header-action-btn {
-    width: 36px !important;
-    height: 36px !important;
-    border-radius: 10px !important;
-  }
+.header-action-btn:hover {
+  opacity: 0.75;
+  background-color: transparent;
+}
+.header-action-btn:active {
+  transform: scale(0.92);
 }
 
 @media (min-width: 769px) {
@@ -495,13 +490,13 @@ input, textarea { font-family: inherit; }
 
 .quick-actions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  grid-template-columns: repeat(6, 1fr);
   gap: 8px;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .quick-actions-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
   }
 }
@@ -659,4 +654,29 @@ input, textarea { font-family: inherit; }
     gap: 12px;
     margin-bottom: 16px;
   }
+}
+
+/* ─── Global Solid Button Tokens (No Outline/Ghost Themes) ─── */
+.btn-solid-primary,
+.page-header-btn-primary {
+  background: var(--primary, #3b82f6) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35) !important;
+}
+
+.btn-solid-success {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
+}
+
+.btn-solid-secondary {
+  background: #334155 !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 700 !important;
 }

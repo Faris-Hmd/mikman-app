@@ -199,6 +199,26 @@ export default function SettingsPage() {
     }
   }, [status?.wifiName, status?.timezone]);
 
+  // Auto-scroll to #ports section if present in URL
+  useEffect(() => {
+    if (window.location.hash === '#ports' || window.location.search.includes('tab=ports') || window.location.search.includes('section=ports')) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById('ports');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.style.transition = 'box-shadow 0.4s ease, border-color 0.4s ease';
+          el.style.boxShadow = '0 0 24px rgba(6, 182, 212, 0.4)';
+          el.style.borderColor = 'rgba(6, 182, 212, 0.7)';
+          setTimeout(() => {
+            el.style.boxShadow = '';
+            el.style.borderColor = '';
+          }, 3000);
+        }
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   const safeOwners = Array.isArray(infoForm.owners)
     ? infoForm.owners
     : typeof infoForm.owners === 'string'
@@ -1418,9 +1438,9 @@ export default function SettingsPage() {
         </form>
 
         {/* ── 2c. Ethernet Ports & Access Points (APs) Mapping Card ── */}
-        <form onSubmit={handleSavePortMap} style={cardStyle}>
+        <form onSubmit={handleSavePortMap} id="ports" style={cardStyle}>
           <div style={sectionHeaderStyle}>
-            <div style={iconCircleStyle('rgba(6, 182, 212, 0.15)', '#06b6d4')}>
+            <div style={iconCircleStyle('rgba(59, 130, 246, 0.15)', '#3b82f6')}>
               <Radio size={16} />
             </div>
             <div style={{ flex: 1 }}>
@@ -1464,8 +1484,25 @@ export default function SettingsPage() {
               </div>
             ) : (
               (() => {
-                const ifaces = ifaceData?.interfaces || [];
-                const sortedIfaces = ifaces.length > 0 ? [...ifaces].sort((a: any, b: any) => {
+                const ifaces: any[] = ifaceData?.interfaces && ifaceData.interfaces.length > 0 ? [...ifaceData.interfaces] : [
+                  { id: '1', name: 'ether1', type: 'ether', running: true, disabled: false, clientCount: 0 },
+                  { id: '2', name: 'ether2', type: 'ether', running: true, disabled: false, clientCount: 0 },
+                  { id: '3', name: 'ether3', type: 'ether', running: true, disabled: false, clientCount: 0 },
+                  { id: '4', name: 'ether4', type: 'ether', running: false, disabled: false, clientCount: 0 },
+                  { id: '5', name: 'ether5', type: 'ether', running: false, disabled: false, clientCount: 0 },
+                  { id: '6', name: 'wlan1', type: 'wlan', running: true, disabled: false, clientCount: 0 },
+                ];
+
+                if (!ifaces.some((i: any) => i.name === 'bridge')) {
+                  ifaces.push({ id: 'bridge', name: 'bridge', type: 'bridge', running: true, disabled: false, clientCount: 0 });
+                }
+
+                const sortedIfaces = [...ifaces].sort((a: any, b: any) => {
+                  const isBridgeA = a.name.toLowerCase().includes('bridge');
+                  const isBridgeB = b.name.toLowerCase().includes('bridge');
+                  if (isBridgeA && !isBridgeB) return 1;
+                  if (!isBridgeA && isBridgeB) return -1;
+
                   const isEthA = a.name.startsWith('ether');
                   const isEthB = b.name.startsWith('ether');
                   const isWlanA = a.name.startsWith('wlan') || a.name.startsWith('wifi');
@@ -1475,17 +1512,11 @@ export default function SettingsPage() {
                   if (isWlanA && !isWlanB) return -1;
                   if (!isWlanA && isWlanB) return 1;
                   return a.name.localeCompare(b.name, undefined, { numeric: true });
-                }) : [
-                  { id: '1', name: 'ether1', type: 'ether', running: true, clientCount: 0 },
-                  { id: '2', name: 'ether2', type: 'ether', running: true, clientCount: 0 },
-                  { id: '3', name: 'ether3', type: 'ether', running: true, clientCount: 0 },
-                  { id: '4', name: 'ether4', type: 'ether', running: false, clientCount: 0 },
-                  { id: '5', name: 'ether5', type: 'ether', running: false, clientCount: 0 },
-                  { id: '6', name: 'wlan1', type: 'wlan', running: true, clientCount: 0 },
-                ];
+                });
 
                 return sortedIfaces.map((iface: any) => {
                   const portName = iface.name;
+                  const isBridge = portName === 'bridge' || iface.type === 'bridge';
                   const isWireless = portName.startsWith('wlan') || portName.startsWith('wifi') || iface.type === 'wlan';
                   const isEthernet = portName.startsWith('ether') || iface.type === 'ether';
                   const clientCount = iface.clientCount || 0;
@@ -1563,7 +1594,9 @@ export default function SettingsPage() {
                             </span>
                           ) : (
                             <span style={{ fontSize: '9.5px', color: 'var(--text-muted)' }}>
-                              {isWireless
+                              {isBridge
+                                ? t('users.bridgePort') || 'Bridge / LAN'
+                                : isWireless
                                 ? t('users.wirelessPort') || 'Wi-Fi'
                                 : isEthernet
                                 ? t('users.ethernetPort') || 'Ethernet'
@@ -1597,10 +1630,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={isSavingPortMap}
-              style={{
-                ...primaryBtnStyle(isSavingPortMap),
-                background: isSavingPortMap ? 'var(--text-muted)' : 'linear-gradient(135deg, #06b6d4, #0891b2)',
-              }}
+              style={primaryBtnStyle(isSavingPortMap)}
             >
               <Save size={13} />
               <span>{isSavingPortMap ? t('settings.saving') : (t('users.savePortMap') || 'حفظ تعيينات المنافذ')}</span>

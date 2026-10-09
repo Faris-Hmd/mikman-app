@@ -142,15 +142,23 @@ export function generateWireguardPrivateKey(): string {
 }
 
 /**
- * Get or create a persistent private key for the user.
+ * Get or create a persistent private key for the user and specific device slot (pc, phone, etc).
  */
-export function getOrCreateUserPrivateKey(userIdentifier: string): string {
-  const key = `@wg_user_privkey_${userIdentifier.toLowerCase().trim() || 'default'}`;
+export function getOrCreateUserPrivateKey(userIdentifier: string, deviceSlot = 'pc'): string {
+  const normalized = userIdentifier.toLowerCase().trim() || 'default';
+  const slotKey = `@wg_user_privkey_${normalized}_${deviceSlot}`;
+  const legacyKey = `@wg_user_privkey_${normalized}`;
   try {
-    let existing = localStorage.getItem(key);
+    let existing = localStorage.getItem(slotKey);
+    if (!existing && deviceSlot === 'pc') {
+      existing = localStorage.getItem(legacyKey);
+      if (existing) {
+        localStorage.setItem(slotKey, existing);
+      }
+    }
     if (!existing || existing.length < 40) {
       existing = generateWireguardPrivateKey();
-      localStorage.setItem(key, existing);
+      localStorage.setItem(slotKey, existing);
     }
     return existing;
   } catch {
@@ -159,11 +167,26 @@ export function getOrCreateUserPrivateKey(userIdentifier: string): string {
 }
 
 /**
- * Derive a stable client IP in the 10.8.250.x subnet from the user identifier.
+ * Regenerate / replace the private key for a user and device slot.
  */
-function deriveClientIp(userIdentifier: string): string {
+export function resetUserPrivateKey(userIdentifier: string, deviceSlot = 'pc'): string {
+  const normalized = userIdentifier.toLowerCase().trim() || 'default';
+  const slotKey = `@wg_user_privkey_${normalized}_${deviceSlot}`;
+  const newKey = generateWireguardPrivateKey();
+  try {
+    localStorage.setItem(slotKey, newKey);
+  } catch (e) {
+    console.error('Failed to store new private key:', e);
+  }
+  return newKey;
+}
+
+/**
+ * Derive a stable client IP in the 10.8.250.x subnet from the user identifier and device slot.
+ */
+function deriveClientIp(userIdentifier: string, deviceSlot = 'pc'): string {
   let hash = 0;
-  const str = userIdentifier.toLowerCase().trim() || 'mikman-user';
+  const str = `${userIdentifier.toLowerCase().trim() || 'mikman-user'}_${deviceSlot}`;
   for (let i = 0; i < str.length; i++) {
     hash = (hash << 5) - hash + str.charCodeAt(i);
     hash |= 0;
@@ -181,7 +204,10 @@ export async function generateUserVpnConfig(
   profiles: RouterConfig[],
   customServerPublicKey?: string,
   customEndpointHost?: string,
-  customEndpointPort?: number | string
+  customEndpointPort?: number | string,
+  deviceSlot = 'pc',
+  customPrivateKey?: string,
+  customClientIp?: string
 ): Promise<VpnClientConfig> {
   const normalizedEmail = userEmail.toLowerCase().trim();
 
@@ -210,7 +236,13 @@ export async function generateUserVpnConfig(
   // Build strictly isolated AllowedIPs list: ONLY this user's router VPN IPs
   const routerIps: string[] = [];
   userRouters.forEach((r) => {
-    const rawIp = r.vpnIp || (r.wgClientIp ? r.wgClientIp.split('/')[0] : '') || r.ip || '';
+    const rawIp = (r.vpnIp && r.vpnIp.split('/')[0].trim() !== '10.8.0.1')
+      ? r.vpnIp.split('/')[0].trim()
+      : (r.wgClientIp && r.wgClientIp.split('/')[0].trim() !== '10.8.0.1')
+      ? r.wgClientIp.split('/')[0].trim()
+      : (r.ip && r.ip.split('/')[0].trim() !== '10.8.0.1')
+      ? r.ip.split('/')[0].trim()
+      : (r.vpnIp || r.wgClientIp || r.ip || '').split('/')[0].trim();
     if (rawIp && !routerIps.includes(rawIp)) {
       routerIps.push(rawIp);
     }
@@ -224,15 +256,16 @@ export async function generateUserVpnConfig(
     allowedIpsString = '10.8.0.0/16';
   }
 
-  const privateKey = getOrCreateUserPrivateKey(normalizedEmail);
+  const privateKey = customPrivateKey || getOrCreateUserPrivateKey(normalizedEmail, deviceSlot);
   const publicKey = getPublicKeyFromPrivateKey(privateKey);
-  const clientIp = deriveClientIp(normalizedEmail);
+  const clientIp = customClientIp || deriveClientIp(normalizedEmail, deviceSlot);
 
   // Construct standard WireGuard .conf file
   const confText = [
     '# ==========================================================',
     '# MIKMAN Cloud Router Management - WireGuard VPN Configuration',
     `# User: ${normalizedEmail || 'Admin'}`,
+    `# Device: ${deviceSlot.toUpperCase()}`,
     `# Generated: ${new Date().toISOString()}`,
     '# Tenant Security: ISOLATED (Access restricted to owned routers)',
     '# ==========================================================',

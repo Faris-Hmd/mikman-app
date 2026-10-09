@@ -109,3 +109,37 @@ export const cleanDisplayName = (name?: string | null, fallback = 'MikroTik'): s
   }
   return name;
 };
+
+export const getRouterVpnIp = (
+  router?: { vpnIp?: string; wgClientIp?: string; ip?: string; host?: string } | null,
+  status?: { vpnIp?: string; ip?: string } | null
+): string => {
+  if (!router) return '';
+
+  // 1. Router's dedicated WireGuard VPN peer IP (e.g. 10.8.0.2, 10.8.0.3, 10.8.1.5)
+  if (router.vpnIp && router.vpnIp.split('/')[0].trim() !== '10.8.0.1') {
+    return router.vpnIp.split('/')[0].trim();
+  }
+  if (router.wgClientIp) {
+    const clean = router.wgClientIp.split('/')[0].trim();
+    if (clean && clean !== '10.8.0.1') return clean;
+  }
+  // 2. Live telemetry status IP from WireGuard status
+  if (status?.vpnIp && status.vpnIp.split('/')[0].trim() !== '10.8.0.1') {
+    return status.vpnIp.split('/')[0].trim();
+  }
+  if (status?.ip && status.ip.split('/')[0].trim() !== '10.8.0.1') {
+    return status.ip.split('/')[0].trim();
+  }
+  // 3. Fallback to router.ip or router.host if not 10.8.0.1
+  if (router.ip && router.ip.split('/')[0].trim() !== '10.8.0.1') {
+    return router.ip.split('/')[0].trim();
+  }
+  if (router.host && router.host.split('/')[0].trim() !== '10.8.0.1') {
+    return router.host.split('/')[0].trim();
+  }
+
+  // 4. Fallback if only 10.8.0.1 exists
+  const raw = router.vpnIp || router.wgClientIp || status?.vpnIp || status?.ip || router.ip || router.host || '';
+  return raw.split('/')[0].trim();
+};
