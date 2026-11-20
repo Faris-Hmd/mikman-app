@@ -9,7 +9,7 @@ import { useVpnModal } from '../context/VpnModalContext';
 
 export default function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { isVpnModalOpen, selectedRouterVpnIp, closeVpnModal } = useVpnModal();
+  const { isVpnModalOpen, selectedRouterVpnIp, initialTab, closeVpnModal } = useVpnModal();
 
   return (
     <div className="layout-container" style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--background)', overflow: 'hidden' }}>
@@ -45,6 +45,7 @@ export default function AppShell() {
         isOpen={isVpnModalOpen}
         onClose={closeVpnModal}
         selectedRouterVpnIp={selectedRouterVpnIp}
+        initialTab={initialTab}
       />
     </div>
   );

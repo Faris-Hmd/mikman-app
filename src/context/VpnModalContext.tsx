@@ -3,7 +3,8 @@ import React, { createContext, useContext, useState } from 'react';
 export interface VpnModalContextType {
   isVpnModalOpen: boolean;
   selectedRouterVpnIp: string | null;
-  openVpnModal: (routerVpnIp?: string) => void;
+  initialTab?: string;
+  openVpnModal: (routerVpnIp?: string, initialTab?: string) => void;
   closeVpnModal: () => void;
 }
 
@@ -12,9 +13,11 @@ const VpnModalContext = createContext<VpnModalContextType | undefined>(undefined
 export function VpnModalProvider({ children }: { children: React.ReactNode }) {
   const [isVpnModalOpen, setIsVpnModalOpen] = useState(false);
   const [selectedRouterVpnIp, setSelectedRouterVpnIp] = useState<string | null>(null);
+  const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
 
-  const openVpnModal = (routerVpnIp?: string) => {
+  const openVpnModal = (routerVpnIp?: string, tab?: string) => {
     setSelectedRouterVpnIp(routerVpnIp || null);
+    setInitialTab(tab);
     setIsVpnModalOpen(true);
   };
 
@@ -28,6 +31,7 @@ export function VpnModalProvider({ children }: { children: React.ReactNode }) {
       value={{
         isVpnModalOpen,
         selectedRouterVpnIp,
+        initialTab,
         openVpnModal,
         closeVpnModal,
       }}

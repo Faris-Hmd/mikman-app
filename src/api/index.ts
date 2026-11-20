@@ -1108,18 +1108,41 @@ export const fetchUserVpnPeersStatusAPI = async (clientPublicKey?: string): Prom
     if (clientPublicKey) {
       path += `?clientPublicKey=${encodeURIComponent(clientPublicKey)}`;
     }
-    const res = await apiCall<{ success: boolean; peers: UserPeerStatusItem[] }>(path, { cache: 'no-store' });
-    return res.peers || [];
+    const res = await apiCall<{ success: boolean; peers: any[] }>(path, { cache: 'no-store' });
+    const rawPeers = res.peers || [];
+    return rawPeers
+      .map((p: any) => {
+        const pk = (p.publicKey || p.clientPublicKey || p.public_key || p.key || '').trim();
+        const ip = (p.clientIp || p.ip || p.client_ip || '').trim();
+        const name = (p.name || p.deviceName || p.device_name || '').trim();
+        const rawType = (p.deviceType || p.device_type || '').toLowerCase();
+        const isPhone = rawType === 'phone' || name.toLowerCase().includes('phone');
+        const deviceType = (isPhone ? 'phone' : 'pc') as 'pc' | 'phone' | 'device';
+        return {
+          publicKey: pk,
+          clientIp: ip,
+          name: name || (isPhone ? 'Admin Phone' : 'Admin PC'),
+          deviceType,
+          endpoint: p.endpoint,
+          latestHandshake: p.latestHandshake || 0,
+          lastHandshakeHuman: p.lastHandshakeHuman || p.last_handshake_human || 'Never',
+          isOnline: Boolean(p.isOnline ?? p.online),
+          transferRx: p.transferRx || 0,
+          transferTx: p.transferTx || 0,
+        };
+      })
+      // Only keep records that have at least a public key or an assigned client IP
+      .filter((p: UserPeerStatusItem) => (p.publicKey && p.publicKey.length > 0) || (p.clientIp && p.clientIp.length > 0));
   } catch (e) {
     return [];
   }
 };
 
-export const deleteUserVpnPeerAPI = async (publicKey: string): Promise<boolean> => {
+export const deleteUserVpnPeerAPI = async (publicKey: string, clientIp?: string): Promise<boolean> => {
   try {
     const res = await apiCall<{ success: boolean; message: string }>('/user/vpn-peers/delete', {
       method: 'POST',
-      body: { publicKey },
+      body: { publicKey, clientIp },
     });
     return Boolean(res?.success);
   } catch (e: any) {

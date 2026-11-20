@@ -139,7 +139,8 @@ export const getRouterVpnIp = (
     return router.host.split('/')[0].trim();
   }
 
-  // 4. Fallback if only 10.8.0.1 exists
+  // 4. Fallback if only 10.8.0.1 exists - NEVER return 10.8.0.1 as it is the VPS gateway, not a router
   const raw = router.vpnIp || router.wgClientIp || status?.vpnIp || status?.ip || router.ip || router.host || '';
-  return raw.split('/')[0].trim();
+  const trimmed = raw.split('/')[0].trim();
+  return trimmed === '10.8.0.1' ? '' : trimmed;
 };

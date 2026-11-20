@@ -125,6 +125,104 @@ export function getPublicKeyFromPrivateKey(privBase64: string): string {
   }
 }
 
+// ── Lightweight pure-JS SHA-256 for deterministic, persistent Curve25519 key seeds ──
+function sha256Sync(ascii: string): Uint8Array {
+  function rightRotate(value: number, amount: number): number {
+    return (value >>> amount) | (value << (32 - amount));
+  }
+  const mathPow = Math.pow;
+  const maxWord = mathPow(2, 32);
+  const lengthProperty = 'length';
+  let i: number;
+  let j: number;
+  const words: number[] = [];
+  const asciiBitLength = ascii[lengthProperty] * 8;
+  const hash: number[] = [];
+  const k: number[] = [];
+  let primeCounter = 0;
+  const isComposite: Record<number, number> = {};
+  for (let candidate = 2; primeCounter < 64; candidate++) {
+    if (!isComposite[candidate]) {
+      for (i = 0; i < 313; i += candidate) {
+        isComposite[i] = candidate;
+      }
+      hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+      k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+    }
+  }
+  ascii += '\x80';
+  while ((ascii[lengthProperty] % 64) - 56) ascii += '\x00';
+  for (i = 0; i < ascii[lengthProperty]; i++) {
+    j = ascii.charCodeAt(i);
+    words[i >> 2] |= j << ((3 - (i % 4)) * 8);
+  }
+  words[words[lengthProperty]] = (asciiBitLength / maxWord) | 0;
+  words[words[lengthProperty]] = asciiBitLength;
+  for (j = 0; j < words[lengthProperty]; ) {
+    const w = words.slice(j, (j += 16));
+    const oldHash = hash.slice(0);
+    for (i = 0; i < 64; i++) {
+      const w15 = w[i - 15];
+      const w2 = w[i - 2];
+      const a = hash[0];
+      const e = hash[4];
+      const temp1 =
+        hash[7] +
+        (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) +
+        ((e & hash[5]) ^ (~e & hash[6])) +
+        k[i] +
+        (w[i] =
+          i < 16
+            ? w[i]
+            : (w[i - 16] +
+                (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) +
+                w[i - 7] +
+                (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) |
+              0);
+      const temp2 =
+        (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) +
+        ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+      hash[7] = hash[6];
+      hash[6] = hash[5];
+      hash[5] = hash[4];
+      hash[4] = (hash[3] + temp1) | 0;
+      hash[3] = hash[2];
+      hash[2] = hash[1];
+      hash[1] = hash[0];
+      hash[0] = (temp1 + temp2) | 0;
+    }
+    for (i = 0; i < 8; i++) {
+      hash[i] = (hash[i] + oldHash[i]) | 0;
+    }
+  }
+  const bytes = new Uint8Array(32);
+  for (i = 0; i < 8; i++) {
+    for (j = 3; j >= 0; j--) {
+      bytes[i * 4 + (3 - j)] = (hash[i] >> (j * 8)) & 255;
+    }
+  }
+  return bytes;
+}
+
+/**
+ * Deterministically derive a cryptographically valid WireGuard Curve25519 private key
+ * from the user's unique identity and device slot. Ensures the tunnel never breaks across
+ * page reloads, browser switches, or cache clears.
+ */
+export function deriveDeterministicPrivateKey(userIdentifier: string, deviceSlot = 'pc'): string {
+  const normalized = userIdentifier.toLowerCase().trim() || 'default';
+  const seed = `${normalized}::${deviceSlot}::mikman-vpn-key-v1`;
+  const bytes = sha256Sync(seed);
+  bytes[0] &= 248;
+  bytes[31] &= 127;
+  bytes[31] |= 64;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 /**
  * Generate a cryptographically strong WireGuard Curve25519 private key.
  */
@@ -143,6 +241,7 @@ export function generateWireguardPrivateKey(): string {
 
 /**
  * Get or create a persistent private key for the user and specific device slot (pc, phone, etc).
+ * Uses deterministic derivation fallback so keys remain 100% stable across devices and sessions.
  */
 export function getOrCreateUserPrivateKey(userIdentifier: string, deviceSlot = 'pc'): string {
   const normalized = userIdentifier.toLowerCase().trim() || 'default';
@@ -152,17 +251,18 @@ export function getOrCreateUserPrivateKey(userIdentifier: string, deviceSlot = '
     let existing = localStorage.getItem(slotKey);
     if (!existing && deviceSlot === 'pc') {
       existing = localStorage.getItem(legacyKey);
-      if (existing) {
+      if (existing && existing.length >= 40) {
         localStorage.setItem(slotKey, existing);
       }
     }
-    if (!existing || existing.length < 40) {
-      existing = generateWireguardPrivateKey();
-      localStorage.setItem(slotKey, existing);
+    if (existing && existing.length >= 40) {
+      return existing;
     }
-    return existing;
+    const stableKey = deriveDeterministicPrivateKey(normalized, deviceSlot);
+    localStorage.setItem(slotKey, stableKey);
+    return stableKey;
   } catch {
-    return generateWireguardPrivateKey();
+    return deriveDeterministicPrivateKey(normalized, deviceSlot);
   }
 }
 
@@ -196,8 +296,8 @@ function deriveClientIp(userIdentifier: string, deviceSlot = 'pc'): string {
 }
 
 /**
- * Generate WireGuard client configuration ensuring strict tenant isolation.
- * AllowedIPs is restricted ONLY to the specific VPN IPs of the routers owned by this user.
+ * Generate WireGuard client configuration ensuring persistent access.
+ * AllowedIPs routes 10.8.0.0/16 so newly added routers are reachable immediately without re-configuring the peer.
  */
 export async function generateUserVpnConfig(
   userEmail: string,
@@ -207,7 +307,8 @@ export async function generateUserVpnConfig(
   customEndpointPort?: number | string,
   deviceSlot = 'pc',
   customPrivateKey?: string,
-  customClientIp?: string
+  customClientIp?: string,
+  customAllowedIps?: string
 ): Promise<VpnClientConfig> {
   const normalizedEmail = userEmail.toLowerCase().trim();
 
@@ -217,7 +318,6 @@ export async function generateUserVpnConfig(
     const hasIp = Boolean(p.vpnIp || p.wgClientIp || p.ip);
     if (!hasIp) return false;
 
-    // Check ownership if owners array exists
     if (p.owners && Array.isArray(p.owners) && p.owners.length > 0) {
       const isOwner = p.owners.some((o) => typeof o === 'string' && o.toLowerCase().trim() === normalizedEmail);
       if (isOwner) return true;
@@ -229,50 +329,38 @@ export async function generateUserVpnConfig(
   });
 
   // Authoritative server WireGuard parameters
-  let serverPublicKey = customServerPublicKey || '5OI5UlxA6qJQKLU/29S1Ox6oCZKR91SWLEq1DvXVuks=';
-  let endpointHost = customEndpointHost || '192.236.234.151';
-  let endpointPort = customEndpointPort ? String(customEndpointPort) : '13231';
+  const serverPublicKey = (customServerPublicKey || '5OI5UlxA6qJQKLU/29S1Ox6oCZKR91SWLEq1DvXVuks=').trim();
+  const endpointHost = (customEndpointHost || 'vpn.mikman.net').trim();
+  const endpointPort = customEndpointPort ? String(customEndpointPort).trim() : '13231';
 
-  // Build strictly isolated AllowedIPs list: ONLY this user's router VPN IPs
-  const routerIps: string[] = [];
-  userRouters.forEach((r) => {
-    const rawIp = (r.vpnIp && r.vpnIp.split('/')[0].trim() !== '10.8.0.1')
-      ? r.vpnIp.split('/')[0].trim()
-      : (r.wgClientIp && r.wgClientIp.split('/')[0].trim() !== '10.8.0.1')
-      ? r.wgClientIp.split('/')[0].trim()
-      : (r.ip && r.ip.split('/')[0].trim() !== '10.8.0.1')
-      ? r.ip.split('/')[0].trim()
-      : (r.vpnIp || r.wgClientIp || r.ip || '').split('/')[0].trim();
-    if (rawIp && !routerIps.includes(rawIp)) {
-      routerIps.push(rawIp);
+  // Build persistent AllowedIPs list
+  // Routing 10.8.0.0/16 guarantees that whenever any new router is added to the user's account,
+  // the client tunnel automatically routes to it without breaking or requiring re-scanning the QR code.
+  let allowedIpsString = '10.8.0.0/16';
+  if (customAllowedIps && customAllowedIps.trim().length > 0) {
+    const trimmed = customAllowedIps.trim();
+    if (trimmed.includes('10.8.0.0/16')) {
+      allowedIpsString = trimmed;
+    } else {
+      allowedIpsString = `${trimmed}, 10.8.0.0/16`;
     }
-  });
-
-  let allowedIpsString = '';
-  if (routerIps.length > 0) {
-    allowedIpsString = routerIps.map((ip) => `${ip}/32`).join(', ');
-  } else {
-    // Fallback if no routers are registered yet
-    allowedIpsString = '10.8.0.0/16';
   }
 
   const privateKey = customPrivateKey || getOrCreateUserPrivateKey(normalizedEmail, deviceSlot);
   const publicKey = getPublicKeyFromPrivateKey(privateKey);
-  const clientIp = customClientIp || deriveClientIp(normalizedEmail, deviceSlot);
 
-  // Construct standard WireGuard .conf file
+  // Clean and sanitize client IP address (prevent double masks like 10.8.250.2/24/16)
+  const rawClientIp = (customClientIp || deriveClientIp(normalizedEmail, deviceSlot)).trim();
+  const clientIpOnly = rawClientIp.split('/')[0].trim();
+  const clientCidr = rawClientIp.includes('/') ? rawClientIp.split('/')[1].trim() : '24';
+  const clientAddress = `${clientIpOnly}/${clientCidr}`;
+
+  // Standard clean WireGuard INI config (No leading comments so official mobile app parses without "Unknown config" errors)
   const confText = [
-    '# ==========================================================',
-    '# MIKMAN Cloud Router Management - WireGuard VPN Configuration',
-    `# User: ${normalizedEmail || 'Admin'}`,
-    `# Device: ${deviceSlot.toUpperCase()}`,
-    `# Generated: ${new Date().toISOString()}`,
-    '# Tenant Security: ISOLATED (Access restricted to owned routers)',
-    '# ==========================================================',
-    '',
     '[Interface]',
     `PrivateKey = ${privateKey}`,
-    `Address = ${clientIp}/16`,
+    `Address = ${clientAddress}`,
+    'DNS = 1.1.1.1',
     'MTU = 1280',
     '',
     '[Peer]',
@@ -304,12 +392,12 @@ export async function generateUserVpnConfig(
     qrDataUrl,
     privateKey,
     publicKey,
-    clientIp,
+    clientIp: clientIpOnly,
     serverPublicKey,
     endpoint: `${endpointHost}:${endpointPort}`,
     allowedIps: allowedIpsString,
     userRouters,
-    hasValidRouters: routerIps.length > 0,
+    hasValidRouters: allowedIpsString !== '10.8.0.0/16',
   };
 }
 
