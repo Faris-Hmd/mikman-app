@@ -2,10 +2,16 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import https from 'node:https';
+import dns from 'node:dns';
+
+// Ensure IPv4 lookup priority to prevent ETIMEDOUT when IPv6 routes are unreachable
+dns.setDefaultResultOrder('ipv4first');
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const targetUrl = env.VITE_VPS_URL || process.env.VITE_VPS_URL || 'https://api.mikman.net';
+  const httpsAgent = targetUrl.startsWith('https:') ? new https.Agent({ family: 4, keepAlive: true }) : undefined;
 
   return {
     plugins: [react(), tailwindcss()],
@@ -50,6 +56,16 @@ export default defineConfig(({ mode }) => {
           target: targetUrl,
           changeOrigin: true,
           secure: false,
+          agent: httpsAgent,
+          configure: (proxy) => {
+            proxy.on('error', (err, _req, res: any) => {
+              console.error('[Vite Proxy Error]:', err.message);
+              if (res && !res.headersSent && typeof res.writeHead === 'function') {
+                res.writeHead(502, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: `Proxy Error: ${err.message}` }));
+              }
+            });
+          },
         },
       },
     },

@@ -946,19 +946,35 @@ export default function VouchersPage() {
     }
   };
 
+  const sortedActiveVouchers = useMemo(() => {
+    return sortByLoginDate(batchDetail?.activeVouchers || []);
+  }, [batchDetail?.activeVouchers]);
+
+  const sortedExpiredVouchers = useMemo(() => {
+    return sortByLoginDate(batchDetail?.expiredVouchers || []);
+  }, [batchDetail?.expiredVouchers]);
+
+  const expiredNamesSet = useMemo(() => {
+    return new Set((batchDetail?.expiredVouchers || []).map((ev) => ev.name || (ev as any)['.id']));
+  }, [batchDetail?.expiredVouchers]);
+
+  const activeNamesSet = useMemo(() => {
+    return new Set((batchDetail?.activeVouchers || []).map((av) => av.name || (av as any)['.id']));
+  }, [batchDetail?.activeVouchers]);
+
   // Filtering Voucher Details inside Modal
   const modalFilteredVouchers = useMemo(() => {
     if (!batchDetail) return [];
     let list: (VoucherSummary | ActiveVoucher | ExpiredVoucher)[] = [];
 
     if (detailTab === 'unused') list = batchDetail.unusedVouchers || [];
-    else if (detailTab === 'active') list = sortByLoginDate(batchDetail.activeVouchers || []);
-    else if (detailTab === 'expired') list = sortByLoginDate(batchDetail.expiredVouchers || []);
+    else if (detailTab === 'active') list = sortedActiveVouchers;
+    else if (detailTab === 'expired') list = sortedExpiredVouchers;
     else {
       list = [
         ...(batchDetail.unusedVouchers || []),
-        ...sortByLoginDate(batchDetail.activeVouchers || []),
-        ...sortByLoginDate(batchDetail.expiredVouchers || []),
+        ...sortedActiveVouchers,
+        ...sortedExpiredVouchers,
       ];
     }
 
@@ -968,7 +984,13 @@ export default function VouchersPage() {
     }
 
     return list;
-  }, [batchDetail, detailTab, detailSearch]);
+  }, [batchDetail, detailTab, detailSearch, sortedActiveVouchers, sortedExpiredVouchers]);
+
+  const [modalDisplayLimit, setModalDisplayLimit] = useState(60);
+
+  useEffect(() => {
+    setModalDisplayLimit(60);
+  }, [detailTab, detailSearch, selectedBatchModal]);
 
   const ChevronIcon = isRtl ? ChevronLeft : ChevronRight;
 
@@ -2342,14 +2364,14 @@ export default function VouchersPage() {
                     gap: '8px',
                   }}
                 >
-                  {modalFilteredVouchers.map((vItem, idx) => {
+                  {modalFilteredVouchers.slice(0, modalDisplayLimit).map((vItem, idx) => {
                     const isCopied = copiedCode === vItem.name;
                     const vAny = vItem as any;
                     const vName = vItem.name || vAny['.id'] || '';
 
                     // Determine Voucher Status — trust the backend classification from batchDetail arrays
-                    const isInExpiredList = (batchDetail?.expiredVouchers || []).some((ev) => ev.name === vName);
-                    const isInActiveList = (batchDetail?.activeVouchers || []).some((av) => av.name === vName);
+                    const isInExpiredList = expiredNamesSet.has(vName);
+                    const isInActiveList = activeNamesSet.has(vName);
                     const isExp = Boolean(
                       vAny.isExpired === true ||
                       (vAny.disabled === true || vAny.disabled === 'true') ||
@@ -2670,6 +2692,29 @@ export default function VouchersPage() {
                       </div>
                     );
                   })}
+                  {modalFilteredVouchers.length > modalDisplayLimit && (
+                    <button
+                      onClick={() => setModalDisplayLimit((prev) => prev + 60)}
+                      style={{
+                        background: 'var(--primary, #2563eb)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '10px 16px',
+                        fontWeight: 700,
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        width: '100%',
+                        textAlign: 'center',
+                        marginTop: '8px',
+                        boxShadow: '0 2px 6px rgba(37, 99, 235, 0.3)',
+                      }}
+                    >
+                      {isRtl
+                        ? `عرض المزيد (${modalFilteredVouchers.length - modalDisplayLimit} كرت متبقي)`
+                        : `Load More (${modalFilteredVouchers.length - modalDisplayLimit} remaining)`}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

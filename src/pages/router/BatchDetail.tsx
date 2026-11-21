@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import useSWR, { mutate } from 'swr';
 import {
@@ -216,6 +216,11 @@ export default function BatchDetailPage() {
   const [searchResults, setSearchResults] = useState<VoucherSearchResult[] | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showAllModal, setShowAllModal] = useState<'unused' | 'active' | 'expired' | null>(null);
+  const [showAllDisplayLimit, setShowAllDisplayLimit] = useState(60);
+
+  useEffect(() => {
+    setShowAllDisplayLimit(60);
+  }, [showAllModal]);
   const [allVouchers, setAllVouchers] = useState<(VoucherSummary | ActiveVoucher | ExpiredVoucher)[] | null>(null);
   const [allVouchersLoading, setAllVouchersLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -254,6 +259,15 @@ export default function BatchDetailPage() {
       : null,
     () => fetchVoucherBatchDetailAPI(routerId!, profile, comment, printLabel, batchId),
     { revalidateOnFocus: true, refreshInterval: 15000, dedupingInterval: 2000, keepPreviousData: true }
+  );
+
+  const sortedActiveVouchers = useMemo(
+    () => sortByLoginDate(batchDetail?.activeVouchers || []),
+    [batchDetail?.activeVouchers]
+  );
+  const sortedExpiredVouchers = useMemo(
+    () => sortByLoginDate(batchDetail?.expiredVouchers || []),
+    [batchDetail?.expiredVouchers]
   );
 
   const handleManualRefresh = async () => {
@@ -1719,8 +1733,8 @@ export default function BatchDetailPage() {
       : true;
 
     const unusedVouchers = detail?.unusedVouchers || [];
-    const activeVouchers = sortByLoginDate(detail?.activeVouchers || []);
-    const expiredVouchers = sortByLoginDate(detail?.expiredVouchers || []);
+    const activeVouchers = sortedActiveVouchers;
+    const expiredVouchers = sortedExpiredVouchers;
 
     const getVisibleVouchers = () => {
       if (searchResults) return { search: searchResults };
@@ -2303,69 +2317,94 @@ export default function BatchDetailPage() {
             {allVouchersLoading ? (
               <p style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>
             ) : allVouchers && allVouchers.length > 0 ? (
-              allVouchers.map((v) => {
-                const name = v.name || (v as any)['.id'] || '';
-                return (
-                  <div
-                    key={name}
+              <>
+                {allVouchers.slice(0, showAllDisplayLimit).map((v) => {
+                  const name = v.name || (v as any)['.id'] || '';
+                  return (
+                    <div
+                      key={name}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 12px',
+                        background: 'rgba(var(--primary-rgb), 0.04)',
+                        borderRadius: '10px',
+                        border: '1px solid var(--glass-border)',
+                      }}
+                    >
+                      <span style={{ fontFamily: 'monospace', fontSize: '13px', flex: 1 }}>{name}</span>
+                      <button
+                        onClick={() => copySingleCode(name)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          color: copiedCode === name ? 'var(--success)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {copiedCode === name ? <Check size={14} /> : <Copy size={14} />}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setInfoVoucher(v as any);
+                          setInfoStatus(showAllModal);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          color: 'var(--text-muted)',
+                        }}
+                        title="View details"
+                      >
+                        <Info size={14} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          confirmDeleteSingle(name, () => {
+                            setAllVouchers((prev) => prev?.filter((x) => (x.name || (x as any)['.id']) !== name) || null);
+                          });
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
+                {allVouchers.length > showAllDisplayLimit && (
+                  <button
+                    onClick={() => setShowAllDisplayLimit((prev) => prev + 60)}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '10px 12px',
-                      background: 'rgba(var(--primary-rgb), 0.04)',
-                      borderRadius: '10px',
-                      border: '1px solid var(--glass-border)',
+                      background: 'var(--primary, #2563eb)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '10px 16px',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      width: '100%',
+                      textAlign: 'center',
+                      marginTop: '8px',
+                      boxShadow: '0 2px 6px rgba(37, 99, 235, 0.3)',
                     }}
                   >
-                    <span style={{ fontFamily: 'monospace', fontSize: '13px', flex: 1 }}>{name}</span>
-                    <button
-                      onClick={() => copySingleCode(name)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        color: copiedCode === name ? 'var(--success)' : 'var(--text-muted)',
-                      }}
-                    >
-                      {copiedCode === name ? <Check size={14} /> : <Copy size={14} />}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setInfoVoucher(v as any);
-                        setInfoStatus(showAllModal);
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        color: 'var(--text-muted)',
-                      }}
-                      title="View details"
-                    >
-                      <Info size={14} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        confirmDeleteSingle(name, () => {
-                          setAllVouchers((prev) => prev?.filter((x) => (x.name || (x as any)['.id']) !== name) || null);
-                        });
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        color: 'var(--text-muted)',
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                );
-              })
+                    {isRtl
+                      ? `عرض المزيد (${allVouchers.length - showAllDisplayLimit} كرت متبقي)`
+                      : `Load More (${allVouchers.length - showAllDisplayLimit} remaining)`}
+                  </button>
+                )}
+              </>
             ) : (
               <p style={{ color: 'var(--text-muted)' }}>No {showAllModal} vouchers found.</p>
             )}
