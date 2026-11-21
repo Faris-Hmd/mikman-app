@@ -501,6 +501,25 @@ export default function VouchersPage() {
     }
   );
 
+  const prefetchBatchDetail = useCallback(
+    (batch: VoucherBatch) => {
+      if (!routerId || !batch.profile) return;
+      const key = `batch-detail-${routerId}-${batch.profile}-${batch.batchId || ''}-${batch.comment || ''}`;
+      mutate(
+        key,
+        fetchVoucherBatchDetailAPI(
+          routerId,
+          batch.profile,
+          batch.comment,
+          batch.printLabel,
+          batch.batchId
+        ),
+        { revalidate: false }
+      );
+    },
+    [routerId]
+  );
+
   // Handle Manual Refresh
   const handleManualRefresh = async () => {
     if (!routerId || isRefreshing) return;
@@ -745,15 +764,40 @@ export default function VouchersPage() {
     if (!routerId || !selectedBatchModal) return;
     setIsGeneratingPdf(true);
     try {
-      const res = await getVoucherCodesAPI(
-        routerId,
-        selectedBatchModal.profile,
-        selectedBatchModal.comment,
-        selectedBatchModal.printLabel,
-        'all',
-        selectedBatchModal.batchId
-      );
-      const codes = res?.codes || [];
+      let codes: string[] = [];
+      const filter = (selectedBatchModal as any).printFilter || 'all';
+
+      // 1. Instant RAM Cache: Use already loaded batchDetail vouchers if available
+      if (batchDetail) {
+        if (filter === 'unused' && batchDetail.unusedVouchers?.length) {
+          codes = batchDetail.unusedVouchers.map((v) => v.name || (v as any)['.id']);
+        } else if (filter === 'active' && batchDetail.activeVouchers?.length) {
+          codes = batchDetail.activeVouchers.map((v) => v.name || (v as any)['.id']);
+        } else {
+          const all: (VoucherSummary | ActiveVoucher | ExpiredVoucher)[] = [
+            ...(batchDetail.unusedVouchers || []),
+            ...(batchDetail.activeVouchers || []),
+            ...(batchDetail.expiredVouchers || []),
+          ];
+          if (all.length > 0) {
+            codes = all.map((v) => v.name || (v as any)['.id']);
+          }
+        }
+      }
+
+      // 2. Fallback to API if batchDetail was not yet in memory
+      if (codes.length === 0) {
+        const res = await getVoucherCodesAPI(
+          routerId,
+          selectedBatchModal.profile,
+          selectedBatchModal.comment,
+          selectedBatchModal.printLabel,
+          filter,
+          selectedBatchModal.batchId
+        );
+        codes = res?.codes || [];
+      }
+
       if (codes.length === 0) {
         showToast('No voucher codes found to print', 'error');
         return;
@@ -1424,6 +1468,7 @@ export default function VouchersPage() {
                         key={batch.batchId || bIdx}
                         className="responsive-card"
                         onClick={() => setSelectedBatchModal(batch)}
+                        onTouchStart={() => prefetchBatchDetail(batch)}
                         style={{
                           padding: '10px 12px',
                           cursor: 'pointer',
@@ -1435,6 +1480,7 @@ export default function VouchersPage() {
                           borderRadius: '10px',
                         }}
                         onMouseEnter={(e) => {
+                          prefetchBatchDetail(batch);
                           e.currentTarget.style.borderColor = 'var(--primary, #3b82f6)';
                           e.currentTarget.style.transform = 'translateY(-1px)';
                         }}

@@ -255,7 +255,7 @@ export default function BatchDetailPage() {
   // Fetch batch detail with 15s auto-refresh
   const { data: batchDetail, isLoading: detailLoading, mutate: mutateDetail } = useSWR(
     routerId && profile
-      ? `batch-detail-${routerId}-${profile}-${batchId || comment || 'none'}`
+      ? `batch-detail-${routerId}-${profile}-${batchId || ''}-${comment || ''}`
       : null,
     () => fetchVoucherBatchDetailAPI(routerId!, profile, comment, printLabel, batchId),
     { revalidateOnFocus: true, refreshInterval: 15000, dedupingInterval: 2000, keepPreviousData: true }
@@ -484,7 +484,7 @@ export default function BatchDetailPage() {
         vouchersToPrint = batchDetail.unusedVouchers;
       }
 
-      if (vouchersToPrint.length === 0 || (batchDetail && batchDetail.unusedCount > vouchersToPrint.length)) {
+      if (vouchersToPrint.length === 0) {
         const result = await getAllVouchersByStatusAPI(
           routerId,
           profile,
