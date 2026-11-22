@@ -47,14 +47,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         if (typeof engFallback === 'string') {
           result = engFallback;
         } else {
-          return key;
+          return key.includes('.') ? '' : key;
         }
         break;
       }
     }
 
     if (typeof result !== 'string') {
-      return key;
+      return key.includes('.') ? '' : key;
     }
 
     let text = result;

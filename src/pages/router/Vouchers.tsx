@@ -669,6 +669,41 @@ export default function VouchersPage() {
           activeCount: 0,
           expiredCount: 0,
         };
+
+        if (res?.pins && Array.isArray(res.pins) && res.pins.length > 0) {
+          const detailKey = `batch-detail-${routerId}-${newBatch.profile}-${newBatch.batchId || ''}-${newBatch.comment || ''}`;
+          mutate(detailKey, {
+            batchId: newBatch.batchId,
+            profile: newBatch.profile,
+            printLabel: newBatch.printLabel,
+            comment: newBatch.comment,
+            createdAt: new Date().toISOString(),
+            originalCount: count,
+            totalCount: count,
+            total: count,
+            unusedCount: count,
+            activeCount: 0,
+            expiredCount: 0,
+            isProfileGroup: false,
+            unusedVouchers: res.pins.map((pin: string) => ({
+              id: pin,
+              name: pin,
+              profile: newBatch.profile,
+              comment: newBatch.comment,
+              limitBytesTotal: 0,
+              remainingBytes: null,
+              remainingSeconds: null,
+              timeLeftText: '',
+              status: 'unused',
+              inUse: false,
+              isExpired: false,
+              disabled: false
+            })),
+            activeVouchers: [],
+            expiredVouchers: []
+          }, false);
+        }
+
         setSelectedBatchModal(newBatch);
       }, 500);
     } catch (err: any) {
@@ -1468,7 +1503,6 @@ export default function VouchersPage() {
                         key={batch.batchId || bIdx}
                         className="responsive-card"
                         onClick={() => setSelectedBatchModal(batch)}
-                        onTouchStart={() => prefetchBatchDetail(batch)}
                         style={{
                           padding: '10px 12px',
                           cursor: 'pointer',
@@ -1480,7 +1514,6 @@ export default function VouchersPage() {
                           borderRadius: '10px',
                         }}
                         onMouseEnter={(e) => {
-                          prefetchBatchDetail(batch);
                           e.currentTarget.style.borderColor = 'var(--primary, #3b82f6)';
                           e.currentTarget.style.transform = 'translateY(-1px)';
                         }}

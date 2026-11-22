@@ -7,7 +7,6 @@ import {
   formatUptimeAPI,
   fetchUserVpnPeersStatusAPI,
   deleteUserVpnPeerAPI,
-  fetchUserVpnConfigAPI,
   UserPeerStatusItem,
 } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -168,8 +167,9 @@ export default function LandingPage() {
   const userName = userData?.name || currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0] : '');
 
 
+  const normalizedUserEmail = currentUser?.email?.toLowerCase().trim() || '';
   const { data: peerTelemetryList, mutate: mutatePeers } = useSWR(
-    currentUser?.email ? ['user-vpn-peers-telemetry', currentUser.email] : null,
+    normalizedUserEmail ? ['user-vpn-peers-telemetry', normalizedUserEmail] : null,
     async () => {
       try {
         // Query live peer statuses for this authenticated user.
@@ -192,7 +192,7 @@ export default function LandingPage() {
         // Clean up local storage key if it corresponds to this peer slot
         const email = currentUser?.email?.toLowerCase().trim() || '';
         if (email) {
-          ['pc', 'phone', 'default'].forEach((slot) => {
+          ['pc', 'phone', 'device', 'client', 'default'].forEach((slot) => {
             const priv = localStorage.getItem(`@wg_user_privkey_${email}_${slot}`);
             if (priv && (getPublicKeyFromPrivateKey(priv) === peerToDelete.publicKey || !peerToDelete.publicKey)) {
               localStorage.removeItem(`@wg_user_privkey_${email}_${slot}`);
@@ -227,43 +227,13 @@ export default function LandingPage() {
     }
   };
 
-  // Pre-provision persistent WireGuard peers on VPS once if user has routers but zero registered peers
-  const hasAutoProvisionedRef = useRef(false);
-  useEffect(() => {
-    if (hasAutoProvisionedRef.current) return;
-    if (!currentUser?.email) return;
-    const profilesList = routerData?.profiles || [];
-    if (profilesList.length > 0 && Array.isArray(peerTelemetryList) && peerTelemetryList.length === 0) {
-      hasAutoProvisionedRef.current = true;
-      const email = currentUser.email.toLowerCase().trim();
-      const phoneKey = getOrCreateUserPrivateKey(email, 'phone');
-      const phonePub = getPublicKeyFromPrivateKey(phoneKey);
-      const phoneName = localStorage.getItem(`@wg_dev_name_phone_${email}`) || 'Admin Phone';
-
-      const pcKey = getOrCreateUserPrivateKey(email, 'pc');
-      const pcPub = getPublicKeyFromPrivateKey(pcKey);
-      const pcName = localStorage.getItem(`@wg_dev_name_pc_${email}`) || 'Admin PC';
-
-      Promise.all([
-        fetchUserVpnConfigAPI(phonePub, phoneName, 'phone'),
-        fetchUserVpnConfigAPI(pcPub, pcName, 'pc'),
-      ])
-        .then(() => {
-          mutatePeers();
-        })
-        .catch((err) => {
-          console.error('Failed to pre-provision persistent peers:', err);
-        });
-    }
-  }, [currentUser?.email, routerData?.profiles, peerTelemetryList, mutatePeers]);
-
   // peerTelemetryList states:
   //  undefined = SWR still loading (show skeleton)
   //  []        = server confirmed zero peers (show empty state)
   //  [...]     = real peers to render
   const isPeersLoading = peerTelemetryList === undefined;
   const livePeers = (peerTelemetryList || []).filter(
-    (p) => Boolean(p.publicKey && p.publicKey.trim().length > 0) || Boolean(p.clientIp && p.clientIp.trim().length > 0)
+    (p) => Boolean(p.publicKey && p.publicKey.trim().length > 20)
   );
 
   return (
@@ -527,7 +497,7 @@ export default function LandingPage() {
             return (
               <div
                 key={peer.publicKey || peer.clientIp || idx}
-                onClick={() => openVpnModal()}
+                onClick={() => openVpnModal(undefined, isPhone ? 'phone' : 'pc')}
                 style={{
                   background: 'var(--card-bg)',
                   border: '1px solid var(--glass-border)',

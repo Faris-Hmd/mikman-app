@@ -1155,18 +1155,40 @@ export const deleteUserVpnPeerAPI = async (publicKey: string, clientIp?: string)
 export const fetchUserVpnConfigAPI = async (
   clientPublicKey?: string,
   deviceName?: string,
-  deviceType?: 'pc' | 'phone' | 'device'
+  deviceType?: 'pc' | 'phone' | 'device',
+  register = false
 ): Promise<ServerVpnConfigResponse | null> => {
   try {
     const params = new URLSearchParams();
     if (clientPublicKey) params.append('clientPublicKey', clientPublicKey);
     if (deviceName) params.append('deviceName', deviceName);
     if (deviceType) params.append('deviceType', deviceType);
+    if (register) params.append('register', 'true');
     const queryString = params.toString();
     const path = `/user/vpn-config${queryString ? `?${queryString}` : ''}`;
     return await apiCall<ServerVpnConfigResponse>(path, { cache: 'no-store' });
   } catch (e) {
     // Graceful fallback to client generation
+    return null;
+  }
+};
+
+export const saveUserVpnPeerAPI = async (
+  clientPublicKey: string,
+  deviceName: string,
+  deviceType: 'pc' | 'phone' | 'device'
+): Promise<ServerVpnConfigResponse | null> => {
+  try {
+    return await apiCall<ServerVpnConfigResponse>('/user/vpn-config', {
+      method: 'POST',
+      body: {
+        clientPublicKey,
+        deviceName,
+        deviceType,
+        register: true,
+      },
+    });
+  } catch (e) {
     return null;
   }
 };
