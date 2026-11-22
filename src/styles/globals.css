@@ -422,3 +422,136 @@ html, body, #root {
     height: 13px !important;
   }
 }
+
+/* ─── Mobile Native App Feel & Interactions ─── */
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+button, a, input[type="button"], input[type="submit"], [role="button"], .clickable {
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+button:active:not(:disabled),
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+  transition: transform 0.08s ease;
+}
+
+.layout-main,
+.layout-content-wrapper,
+.batch-detail-modal-content,
+.scrollable-content {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sheet drag handle indicator (shown on mobile bottom sheets) */
+.sheet-drag-handle {
+  display: none;
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, 0.28);
+  margin: 10px auto 4px auto;
+  flex-shrink: 0;
+}
+
+/* Create Batch Drawer Desktop & Mobile Styles */
+.create-batch-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.create-batch-drawer-content {
+  width: 100%;
+  max-width: 500px;
+  height: 100%;
+  background: var(--card-bg, #1a1a1a);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+@media (min-width: 641px) {
+  .create-batch-drawer-content {
+    animation: drawerSlideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes drawerSlideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Mobile Native Bottom-Sheet Transform for Modals */
+@media (max-width: 640px) {
+  .modal-overlay,
+  .batch-detail-modal-overlay,
+  .create-batch-drawer-overlay {
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding: 0 !important;
+  }
+
+  .batch-detail-modal-content,
+  .modal-sheet-content,
+  .modal-overlay > div:not(.non-sheet) {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.7) !important;
+    animation: sheetSlideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .create-batch-drawer-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 94vh !important;
+    height: auto !important;
+    border-radius: 20px 20px 0 0 !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.7) !important;
+    animation: sheetSlideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    overflow: hidden !important;
+  }
+
+  .batch-detail-modal-content,
+  .modal-sheet-content {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .create-batch-drawer-footer {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .sheet-drag-handle {
+    display: block !important;
+  }
+}
+
+@keyframes sheetSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

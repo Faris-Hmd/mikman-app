@@ -7,7 +7,6 @@ import {
   createVouchersAPI,
   fetchVoucherJobStatusAPI,
   deleteVouchersAPI,
-  enableVouchersAPI,
   formatLoginDateDisplay,
   sortByLoginDate,
   fetchProfilesAPI,
@@ -34,6 +33,7 @@ import {
   Calendar,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   LayoutGrid,
   List,
   Filter,
@@ -56,7 +56,6 @@ import {
   Download,
   Loader2,
   Play,
-  RotateCcw,
   Smartphone,
   Wifi,
 } from 'lucide-react';
@@ -352,7 +351,6 @@ export default function VouchersPage() {
   const [detailSearch, setDetailSearch] = useState<string>('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isDeletingBatch, setIsDeletingBatch] = useState<boolean>(false);
-  const [isEnablingVouchers, setIsEnablingVouchers] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Print Modal State
@@ -768,23 +766,6 @@ export default function VouchersPage() {
         }
       }
     );
-  };
-
-  // Handle Enable Vouchers
-  const handleEnableVouchers = async (names: string[]) => {
-    if (!routerId || !names || names.length === 0) return;
-    try {
-      setIsEnablingVouchers(true);
-      const res = await enableVouchersAPI(routerId, names);
-      showToast(`تم إعادة تفعيل ${res.enabledCount || names.length} كرت بنجاح!`, 'success');
-      revalidateRouterCache(routerId);
-      mutateBatches();
-    } catch (err: any) {
-      console.error('Failed to enable vouchers:', err);
-      showToast(err.message || 'فشل تفعيل الكروت.', 'error');
-    } finally {
-      setIsEnablingVouchers(false);
-    }
   };
 
   // Copy Code to Clipboard
@@ -1650,491 +1631,454 @@ export default function VouchersPage() {
         </div>
       )}
 
-      {/* ─── 5. Slide-Over Drawer: Create Voucher Batch ─── */}
+      {/* ─── 5. Slide-Over / Native Mobile Bottom Drawer: Create Voucher Batch ─── */}
       {isCreateDrawerOpen && (
         <div
+          className="create-batch-drawer-overlay"
           style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            display: 'flex',
             justifyContent: isRtl ? 'flex-start' : 'flex-end',
-            background: 'rgba(0, 0, 0, 0.65)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
           }}
           onClick={() => {
             if (!isSubmitting) setIsCreateDrawerOpen(false);
           }}
         >
           <div
+            className="create-batch-drawer-content"
             style={{
-              width: '100%',
-              maxWidth: '520px',
-              height: '100%',
-              background: 'var(--card-bg, #1a1a1a)',
+              direction: isRtl ? 'rtl' : 'ltr',
               borderLeft: isRtl ? 'none' : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
               borderRight: isRtl ? '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))' : 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.5)',
-              direction: isRtl ? 'rtl' : 'ltr',
-              overflow: 'hidden',
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Sheet Drag Handle for Mobile */}
+            <div className="sheet-drag-handle" style={{ margin: '8px auto 2px auto' }} />
+
             {/* Drawer Header */}
             <div
               style={{
-                padding: '20px',
+                padding: '10px 16px',
                 borderBottom: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                flexShrink: 0,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div
                   style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '10px',
-                    background: 'rgba(59, 130, 246, 0.15)',
-                    color: '#3b82f6',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '8px',
+                    background: '#2563eb',
+                    color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Sparkles size={20} />
+                  <Sparkles size={16} />
                 </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--foreground)' }}>
-                    {t('vouchers.generateBatchTitle') || 'إنشاء دفعة كروت جديدة'}
-                  </h3>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {t('vouchers.generateBatchSubtitle') || 'توليد كروت جديدة بكميات'}
-                  </span>
-                </div>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
+                  {t('vouchers.generateBatchTitle') || 'إنشاء دفعة كروت جديدة'}
+                </h3>
               </div>
 
               <button
+                type="button"
                 onClick={() => setIsCreateDrawerOpen(false)}
                 disabled={isSubmitting}
                 style={{
-                  background: 'transparent',
+                  background: 'rgba(255, 255, 255, 0.08)',
                   border: 'none',
-                  color: 'var(--text-muted)',
+                  color: 'var(--foreground)',
                   cursor: 'pointer',
                   padding: '6px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                <X size={20} />
+                <X size={16} />
               </button>
             </div>
 
-            {/* Drawer Content Form */}
+            {/* Drawer Form with Scrollable Body & Sticky Footer */}
             <form
               onSubmit={handleGenerateBatch}
               style={{
                 flex: 1,
-                overflowY: 'auto',
-                padding: '20px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '18px',
+                overflow: 'hidden',
+                minHeight: 0,
               }}
             >
-              {errorMsg && (
-                <div
-                  style={{
-                    background: 'rgba(239, 68, 68, 0.12)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    borderRadius: '10px',
-                    padding: '12px 14px',
-                    color: '#f87171',
-                    fontSize: '13px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
-              {successMsg && (
-                <div
-                  style={{
-                    background: 'rgba(34, 197, 94, 0.12)',
-                    border: '1px solid rgba(34, 197, 94, 0.3)',
-                    borderRadius: '10px',
-                    padding: '12px 14px',
-                    color: '#4ade80',
-                    fontSize: '13px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
-                  <span>{successMsg}</span>
-                </div>
-              )}
-
-              {/* 1. Profile Selection */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--foreground)' }}>
-                  {t('vouchers.profileLabel') || 'البروفايل (باقة الكروت)'}
-                </label>
-
-                {/* Profile Select Chips Bar */}
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', maxHeight: '120px', overflowY: 'auto' }}>
-                  {profileList.map((p) => {
-                    const pName = p.name || p.id;
-                    const isSelected = createProfile === pName;
-                    const pInfo = getProfileInfoDetails(pName, profileList);
-                    const badgeText = (pInfo.statsSummary || p.validity || '').toUpperCase();
-                    return (
-                      <button
-                        key={pName}
-                        type="button"
-                        onClick={() => setCreateProfile(pName)}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          border: isSelected
-                            ? '1px solid var(--primary, #3b82f6)'
-                            : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-                          background: isSelected
-                            ? 'rgba(59, 130, 246, 0.2)'
-                            : 'var(--input-bg, rgba(255, 255, 255, 0.05))',
-                          color: isSelected ? '#3b82f6' : 'var(--foreground)',
-                          fontSize: '12px',
-                          fontWeight: isSelected ? 700 : 500,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                        }}
-                      >
-                        <Layers size={13} />
-                        <span>{pName}</span>
-                        {pInfo.validityBadge && (
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: 800,
-                              background: isSelected ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.1)',
-                              border: isSelected ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid rgba(255, 255, 255, 0.15)',
-                              padding: '1px 6px',
-                              borderRadius: '4px',
-                              color: isSelected ? '#60a5fa' : 'var(--foreground)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '2px',
-                            }}
-                          >
-                            <Clock size={9} />
-                            {pInfo.validityBadge}
-                          </span>
-                        )}
-                        {pInfo.dataBadge && (
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: 800,
-                              background: isSelected ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.1)',
-                              border: isSelected ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.15)',
-                              padding: '1px 6px',
-                              borderRadius: '4px',
-                              color: isSelected ? '#34d399' : 'var(--foreground)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '2px',
-                            }}
-                          >
-                            <HardDrive size={9} />
-                            {pInfo.dataBadge}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 2. Voucher Quantity */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--foreground)' }}>
-                  {t('vouchers.quantityLabel') || 'عدد الكروت المطلوبة'}
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Ticket
-                    size={16}
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      [isRtl ? 'right' : 'left']: '12px',
-                      color: 'var(--text-muted)',
-                      pointerEvents: 'none',
-                    }}
-                  />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={countInput}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '' || /^\d+$/.test(val)) setCountInput(val);
-                    }}
-                    style={{
-                      width: '100%',
-                      background: 'var(--input-bg, rgba(255, 255, 255, 0.05))',
-                      border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.12))',
-                      borderRadius: '10px',
-                      padding: `10px ${isRtl ? '36px' : '12px'} 10px ${isRtl ? '12px' : '36px'}`,
-                      color: 'var(--foreground)',
-                      fontSize: '13px',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-                {/* Quantity Presets */}
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {[100, 500, 1000, 2000].map((q) => (
-                    <button
-                      key={q}
-                      type="button"
-                      onClick={() => setCountInput(String(q))}
-                      style={{
-                        padding: '4px 10px',
-                        fontSize: '11px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-                        background: count === q ? 'var(--primary, #3b82f6)' : 'var(--input-bg, rgba(255, 255, 255, 0.05))',
-                        color: count === q ? '#fff' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 3. Code Length */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--foreground)' }}>
-                  {t('vouchers.lengthLabel') || 'طول كود الـ PIN'}
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <KeyRound
-                    size={16}
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      [isRtl ? 'right' : 'left']: '12px',
-                      color: 'var(--text-muted)',
-                      pointerEvents: 'none',
-                    }}
-                  />
-                  <input
-                    type="number"
-                    min={3}
-                    max={16}
-                    value={length}
-                    onChange={(e) => setLength(Math.max(3, Math.min(16, parseInt(e.target.value) || 6)))}
-                    style={{
-                      width: '100%',
-                      background: 'var(--input-bg, rgba(255, 255, 255, 0.05))',
-                      border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.12))',
-                      borderRadius: '10px',
-                      padding: `10px ${isRtl ? '36px' : '12px'} 10px ${isRtl ? '12px' : '36px'}`,
-                      color: 'var(--foreground)',
-                      fontSize: '13px',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-                {/* Length Presets */}
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {[4, 5, 6, 7, 8].map((l) => (
-                    <button
-                      key={l}
-                      type="button"
-                      onClick={() => setLength(l)}
-                      style={{
-                        padding: '4px 10px',
-                        fontSize: '11px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-                        background: length === l ? 'var(--primary, #3b82f6)' : 'var(--input-bg, rgba(255, 255, 255, 0.05))',
-                        color: length === l ? '#fff' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {l} {t('vouchers.digits') || 'أرقام'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 4. Batch Name / Print Comment */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--foreground)' }}>
-                  {t('vouchers.batchNameLabel') || 'اسم الدفعة / ملاحظة الطباعة (اختياري)'}
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Tag
-                    size={16}
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      [isRtl ? 'right' : 'left']: '12px',
-                      color: 'var(--text-muted)',
-                      pointerEvents: 'none',
-                    }}
-                  />
-                  <input
-                    type="text"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder={t('vouchers.batchNamePlaceholder') || 'مثال: عروض الصيف، شبكة ضيوف...'}
-                    style={{
-                      width: '100%',
-                      background: 'var(--input-bg, rgba(255, 255, 255, 0.05))',
-                      border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.12))',
-                      borderRadius: '10px',
-                      padding: `10px ${isRtl ? '36px' : '12px'} 10px ${isRtl ? '12px' : '36px'}`,
-                      color: 'var(--foreground)',
-                      fontSize: '13px',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Live Ticket Replica Card Preview */}
               <div
                 style={{
-                  background: 'rgba(26, 26, 29, 0.5)',
-                  border: '1px dashed rgba(255, 255, 255, 0.2)',
-                  borderRadius: '14px',
-                  padding: '16px',
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '12px 16px',
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'center',
                   gap: '10px',
                 }}
               >
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  {t('vouchers.printLayoutNotice') || 'شكل الكرت في ورقة الطباعة A4'}
-                </span>
+                {errorMsg && (
+                  <div
+                    style={{
+                      background: '#ef4444',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      color: '#ffffff',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
 
-                {/* 7x14 Ticket Mockup */}
-                <div
-                  style={{
-                    width: '180px',
-                    height: '80px',
-                    backgroundColor: '#ffffff',
-                    color: '#000000',
-                    border: '1px solid #444444',
-                    borderRadius: '6px',
-                    padding: '6px 10px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#000', textAlign: 'center' }}>
-                    {comment.trim() || 'MikMan Wi-Fi'}
+                {successMsg && (
+                  <div
+                    style={{
+                      background: '#16a34a',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      color: '#ffffff',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
+                    <span>{successMsg}</span>
                   </div>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#000', fontFamily: 'monospace' }}>
-                    {'9'.repeat(Math.ceil(length / 2)) + '4'.repeat(Math.floor(length / 2))}
+                )}
+
+                {/* 1. Profile Dropdown Menu */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
+                    {t('vouchers.profileLabel') || 'البروفايل (باقة الكروت)'}
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={createProfile}
+                      onChange={(e) => setCreateProfile(e.target.value)}
+                      style={{
+                        width: '100%',
+                        height: '38px',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        borderRadius: '8px',
+                        padding: isRtl ? '0 12px 0 32px' : '0 32px 0 12px',
+                        color: '#ffffff',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        outline: 'none',
+                        cursor: 'pointer',
+                        boxSizing: 'border-box',
+                        appearance: 'none',
+                        WebkitAppearance: 'none',
+                      }}
+                    >
+                      <option value="" disabled style={{ background: '#1e293b', color: '#94a3b8' }}>
+                        {t('vouchers.selectProfile') || 'اختر باقة الكروت...'}
+                      </option>
+                      {profileList.map((p) => {
+                        const pName = p.name || p.id;
+                        const pInfo = getProfileInfoDetails(pName, profileList);
+                        const details = [pInfo.validity, pInfo.dataLimit].filter(Boolean).join(' • ');
+                        return (
+                          <option
+                            key={pName}
+                            value={pName}
+                            style={{ background: '#1e293b', color: '#ffffff', fontWeight: 600 }}
+                          >
+                            {pName} {details ? `(${details})` : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <ChevronDown
+                      size={15}
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        [isRtl ? 'left' : 'right']: '12px',
+                        color: 'var(--text-muted)',
+                        pointerEvents: 'none',
+                      }}
+                    />
                   </div>
-                  <div style={{ fontSize: '10px', color: '#444', textAlign: 'center' }}>
-                    {createProfile || 'Profile'}
+                </div>
+
+                {/* 2. Voucher Quantity: Wide Input Field + Predefined Dropdown Beside It */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
+                    {t('vouchers.quantityLabel') || 'عدد الكروت'}
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {/* Wide Numeric Input Field */}
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={countInput}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^\d+$/.test(val)) setCountInput(val);
+                        }}
+                        placeholder={t('vouchers.quantityLabel') || 'أدخل عدد الكروت'}
+                        style={{
+                          width: '100%',
+                          height: '38px',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          borderRadius: '8px',
+                          padding: '0 12px',
+                          color: '#ffffff',
+                          fontSize: '14px',
+                          fontWeight: 800,
+                          textAlign: isRtl ? 'right' : 'left',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+
+                    {/* Predefined Dropdown Beside Input */}
+                    <div style={{ width: '130px', flexShrink: 0, position: 'relative' }}>
+                      <select
+                        value={[50, 100, 250, 500, 1000, 2000].includes(count) ? String(count) : 'custom'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val !== 'custom') {
+                            setCountInput(val);
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          height: '38px',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          borderRadius: '8px',
+                          padding: isRtl ? '0 10px 0 28px' : '0 28px 0 10px',
+                          color: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          outline: 'none',
+                          cursor: 'pointer',
+                          boxSizing: 'border-box',
+                          appearance: 'none',
+                          WebkitAppearance: 'none',
+                        }}
+                      >
+                        <option value="" disabled style={{ background: '#1e293b', color: '#94a3b8' }}>
+                          كمية محددة...
+                        </option>
+                        {[50, 100, 250, 500, 1000, 2000].map((q) => (
+                          <option key={q} value={String(q)} style={{ background: '#1e293b', color: '#ffffff', fontWeight: 600 }}>
+                            {q} كرت
+                          </option>
+                        ))}
+                        <option value="custom" style={{ background: '#1e293b', color: '#60a5fa', fontWeight: 700 }}>
+                          مخصص
+                        </option>
+                      </select>
+                      <ChevronDown
+                        size={14}
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          [isRtl ? 'left' : 'right']: '10px',
+                          color: 'var(--text-muted)',
+                          pointerEvents: 'none',
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Code Length Segmented Bar */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
+                      {t('vouchers.lengthLabel') || 'طول كود الـ PIN'}
+                    </label>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#3b82f6' }}>
+                      {length} {t('vouchers.digits') || 'أرقام'}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(5, 1fr)',
+                      background: 'rgba(0, 0, 0, 0.25)',
+                      padding: '3px',
+                      borderRadius: '8px',
+                      gap: '3px',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                    }}
+                  >
+                    {[4, 5, 6, 7, 8].map((l) => {
+                      const isSelected = length === l;
+                      return (
+                        <button
+                          key={l}
+                          type="button"
+                          onClick={() => setLength(l)}
+                          style={{
+                            height: '32px',
+                            fontSize: '13px',
+                            fontWeight: isSelected ? 800 : 700,
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: isSelected ? '#2563eb' : 'transparent',
+                            color: isSelected ? '#ffffff' : '#94a3b8',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {l}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. Batch Name / Print Comment */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
+                    {t('vouchers.batchNameLabel') || 'اسم الدفعة / ملاحظة (اختياري)'}
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Tag
+                      size={14}
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        [isRtl ? 'right' : 'left']: '10px',
+                        color: 'var(--text-muted)',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                    <input
+                      type="text"
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder={t('vouchers.batchNamePlaceholder') || 'مثال: عروض الصيف، شبكة ضيوف...'}
+                      style={{
+                        width: '100%',
+                        height: '38px',
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        borderRadius: '8px',
+                        padding: `0 ${isRtl ? '30px' : '10px'} 0 ${isRtl ? '10px' : '30px'}`,
+                        color: 'var(--foreground)',
+                        fontSize: '12px',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting || !createProfile}
+              {/* Sticky Action Footer */}
+              <div
+                className="create-batch-drawer-footer"
                 style={{
-                  marginTop: 'auto',
-                  padding: '14px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '14px',
-                  border: 'none',
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  flexShrink: 0,
+                  padding: '10px 16px',
+                  background: 'var(--card-bg, #1a1a1a)',
+                  borderTop: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
-                  opacity: isSubmitting ? 0.7 : 1,
+                  flexDirection: 'column',
+                  gap: '6px',
                 }}
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    <span>
-                      {jobProgress !== null ? `${t('vouchers.generating')} ${jobProgress}%` : t('vouchers.generating')}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={18} />
-                    <span>{t('vouchers.generateBtn') || 'إنشاء الكروت الآن'}</span>
-                  </>
-                )}
-              </button>
-
-              {jobProgress !== null && (
-                <div
-                  style={{
-                    width: '100%',
-                    height: '4px',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    borderRadius: '2px',
-                    overflow: 'hidden',
-                    marginTop: '-8px',
-                  }}
-                >
+                {jobProgress !== null && (
                   <div
                     style={{
-                      width: `${jobProgress}%`,
-                      height: '100%',
-                      background: 'linear-gradient(90deg, #3b82f6 0%, #22c55e 100%)',
-                      transition: 'width 0.3s ease',
+                      width: '100%',
+                      height: '3px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      borderRadius: '2px',
+                      overflow: 'hidden',
                     }}
-                  />
-                </div>
-              )}
+                  >
+                    <div
+                      style={{
+                        width: `${jobProgress}%`,
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #3b82f6 0%, #22c55e 100%)',
+                        transition: 'width 0.3s ease',
+                      }}
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !createProfile || count <= 0}
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '14px',
+                    border: 'none',
+                    cursor: isSubmitting || !createProfile || count <= 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)',
+                    opacity: isSubmitting || !createProfile || count <= 0 ? 0.6 : 1,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>
+                        {jobProgress !== null ? `${t('vouchers.generating')} ${jobProgress}%` : t('vouchers.generating')}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} />
+                      <span>{t('vouchers.generateBtn') || 'إنشاء الكروت الآن'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* ─── 6. Batch Detail Modal Overlay ─── */}
+      {/* ─── 6. Batch Detail Modal Overlay (Responsive Bottom Sheet on Mobile) ─── */}
       {selectedBatchModal && (
         <div
+          className="modal-overlay batch-detail-modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
@@ -2146,6 +2090,7 @@ export default function VouchersPage() {
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
             padding: '16px',
+            boxSizing: 'border-box',
           }}
           onClick={() => {
             setSelectedBatchModal(null);
@@ -2153,6 +2098,7 @@ export default function VouchersPage() {
           }}
         >
           <div
+            className="batch-detail-modal-content"
             style={{
               width: '100%',
               maxWidth: '680px',
@@ -2165,13 +2111,17 @@ export default function VouchersPage() {
               boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
               direction: isRtl ? 'rtl' : 'ltr',
               overflow: 'hidden',
+              boxSizing: 'border-box',
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Sheet Drag Handle for Mobile */}
+            <div className="sheet-drag-handle" />
+
             {/* Modal Header */}
             <div
               style={{
-                padding: '16px 20px',
+                padding: '14px 20px',
                 borderBottom: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
                 display: 'flex',
                 alignItems: 'center',
@@ -2203,74 +2153,6 @@ export default function VouchersPage() {
                         {selectedBatchModal.printLabel}
                       </span>
                     )}
-                    {(() => {
-                      const pInfo = getProfileInfoDetails(selectedBatchModal.profile, profileList);
-                      return (
-                        <>
-                          {pInfo.validityBadge && (
-                            <span
-                              className="item-badge"
-                              style={{
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                padding: '1px 6px',
-                                borderRadius: '5px',
-                                background: 'rgba(255, 255, 255, 0.08)',
-                                color: '#38bdf8',
-                                border: '1px solid var(--glass-border)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                textTransform: 'uppercase',
-                              }}
-                            >
-                              <Clock size={10} style={{ opacity: 0.8 }} />
-                              {pInfo.validityBadge}
-                            </span>
-                          )}
-                          {pInfo.dataBadge && (
-                            <span
-                              className="item-badge"
-                              style={{
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                padding: '1px 6px',
-                                borderRadius: '5px',
-                                background: 'rgba(255, 255, 255, 0.08)',
-                                color: '#c084fc',
-                                border: '1px solid var(--glass-border)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                textTransform: 'uppercase',
-                              }}
-                            >
-                              <HardDrive size={10} style={{ opacity: 0.8 }} />
-                              {pInfo.dataBadge}
-                            </span>
-                          )}
-                          {pInfo.price && (
-                            <span
-                              className="item-badge"
-                              style={{
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                padding: '1px 6px',
-                                borderRadius: '5px',
-                                background: 'rgba(34, 197, 94, 0.15)',
-                                color: '#22c55e',
-                                border: '1px solid rgba(34, 197, 94, 0.3)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                              }}
-                            >
-                              ${pInfo.price}
-                            </span>
-                          )}
-                        </>
-                      );
-                    })()}
                   </div>
                 </div>
               </div>
@@ -2286,16 +2168,18 @@ export default function VouchersPage() {
                   color: 'var(--text-muted)',
                   cursor: 'pointer',
                   padding: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
                 }}
               >
                 <X size={20} />
               </button>
             </div>
 
-            {/* Action Bar (Print PDF / Delete Batch) */}
+            {/* Action Bar (Print PDF / Delete Batch - Solid High Contrast) */}
             <div
               style={{
-                padding: '12px 20px',
+                padding: '10px 16px',
                 background: 'var(--secondary, rgba(255, 255, 255, 0.04))',
                 borderBottom: '1px solid var(--glass-border, rgba(255, 255, 255, 0.08))',
                 display: 'flex',
@@ -2307,20 +2191,21 @@ export default function VouchersPage() {
               <button
                 onClick={handleOpenPrintModal}
                 style={{
-                  padding: '8px 14px',
+                  padding: '8px 16px',
                   borderRadius: '8px',
-                  background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
-                  color: '#fff',
-                  fontWeight: 700,
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  fontWeight: 800,
                   fontSize: '12px',
                   border: 'none',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)',
                 }}
               >
-                <Printer size={14} />
+                <Printer size={15} />
                 <span>{t('batch.print') || 'طباعة PDF'}</span>
               </button>
 
@@ -2328,67 +2213,77 @@ export default function VouchersPage() {
                 onClick={handleDeleteEntireBatch}
                 disabled={isDeletingBatch}
                 style={{
-                  padding: '8px 14px',
+                  padding: '8px 16px',
                   borderRadius: '8px',
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  color: '#f87171',
-                  fontWeight: 700,
+                  background: '#dc2626',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontWeight: 800,
                   fontSize: '12px',
                   cursor: isDeletingBatch ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
+                  boxShadow: '0 2px 8px rgba(220, 38, 38, 0.35)',
                 }}
               >
-                <Trash2 size={14} />
+                <Trash2 size={15} />
                 <span>{isDeletingBatch ? 'جاري الحذف...' : t('batch.deleteBatch') || 'حذف الدفعة'}</span>
               </button>
             </div>
 
-            {/* Status Filter Tabs */}
+            {/* Status Filter Tabs - Native Segmented Control */}
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 10px 0 10px',
-                borderBottom: '1px solid var(--glass-border, rgba(255, 255, 255, 0.08))',
+                padding: '10px 16px 4px 16px',
                 width: '100%',
                 boxSizing: 'border-box',
               }}
             >
-              {[
-                { key: 'all', label: `الكل (${selectedBatchModal.originalCount})` },
-                { key: 'unused', label: `غير مستخدمة (${selectedBatchModal.unusedCount})`, color: '#22c55e' },
-                { key: 'active', label: `نشطة (${selectedBatchModal.activeCount})`, color: '#3b82f6' },
-                { key: 'expired', label: `منتهية (${selectedBatchModal.expiredCount})`, color: '#eab308' },
-              ].map((tab) => {
-                const isActive = detailTab === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => setDetailTab(tab.key as any)}
-                    style={{
-                      flex: 1,
-                      textAlign: 'center',
-                      padding: '6px 2px 8px 2px',
-                      fontSize: '11px',
-                      fontWeight: isActive ? 750 : 500,
-                      color: isActive ? tab.color || 'var(--foreground)' : 'var(--text-muted)',
-                      border: 'none',
-                      borderBottom: isActive
-                        ? `2.5px solid ${tab.color || 'var(--primary, #3b82f6)'}`
-                        : '2.5px solid transparent',
-                      background: 'transparent',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  borderRadius: '10px',
+                  padding: '3px',
+                  gap: '2px',
+                }}
+              >
+                {[
+                  { key: 'all', label: `الكل (${selectedBatchModal.originalCount})` },
+                  { key: 'unused', label: `غير مستخدمة (${selectedBatchModal.unusedCount})` },
+                  { key: 'active', label: `نشطة (${selectedBatchModal.activeCount})` },
+                  { key: 'expired', label: `منتهية (${selectedBatchModal.expiredCount})` },
+                ].map((tab) => {
+                  const isActive = detailTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setDetailTab(tab.key as any)}
+                      style={{
+                        flex: 1,
+                        textAlign: 'center',
+                        padding: '7px 4px',
+                        fontSize: '11px',
+                        fontWeight: isActive ? 800 : 600,
+                        color: isActive ? '#ffffff' : 'var(--text-muted)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        background: isActive
+                          ? (tab.key === 'unused' ? '#16a34a' : tab.key === 'active' ? '#2563eb' : tab.key === 'expired' ? '#ca8a04' : '#334155')
+                          : 'transparent',
+                        boxShadow: isActive ? '0 2px 6px rgba(0,0,0,0.3)' : 'none',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Search Input Box */}
@@ -2740,32 +2635,6 @@ export default function VouchersPage() {
                                 </span>
                               </span>
                             )}
-
-                            {/* Re-enable Button for Expired/Disabled Voucher */}
-                            {(vStatus === 'expired' || vAny.isDisabled === true || vAny.disabled === true || vAny.disabled === 'true') && (
-                              <button
-                                onClick={() => handleEnableVouchers([vName])}
-                                disabled={isEnablingVouchers}
-                                title="تفعيل الكرت"
-                                style={{
-                                  background: 'rgba(34, 197, 94, 0.15)',
-                                  border: '1px solid rgba(34, 197, 94, 0.3)',
-                                  color: '#22c55e',
-                                  borderRadius: '5px',
-                                  padding: '2px 8px',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  cursor: isEnablingVouchers ? 'not-allowed' : 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  flexShrink: 0,
-                                }}
-                              >
-                                <RotateCcw size={11} />
-                                <span>تفعيل</span>
-                              </button>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -2804,6 +2673,7 @@ export default function VouchersPage() {
       {/* ─── 7. Print PDF Config Modal ─── */}
       {isPrintModalOpen && selectedBatchModal && (
         <div
+          className="modal-overlay mobile-bottom-sheet-overlay"
           style={{
             position: 'fixed',
             inset: 0,
@@ -2815,10 +2685,12 @@ export default function VouchersPage() {
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
             padding: '16px',
+            boxSizing: 'border-box',
           }}
           onClick={() => setIsPrintModalOpen(false)}
         >
           <div
+            className="mobile-bottom-sheet-content"
             style={{
               width: '100%',
               maxWidth: '440px',
@@ -2830,9 +2702,11 @@ export default function VouchersPage() {
               flexDirection: 'column',
               gap: '16px',
               direction: isRtl ? 'rtl' : 'ltr',
+              boxSizing: 'border-box',
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="sheet-drag-handle" />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Printer size={18} style={{ color: '#3b82f6' }} />
@@ -3019,7 +2893,7 @@ export default function VouchersPage() {
                 {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
                 <span>مشاركة PDF</span>
               </button>
-            </div>
+            </div>5h
           </div>
         </div>
       )}

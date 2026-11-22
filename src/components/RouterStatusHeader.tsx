@@ -366,14 +366,14 @@ export default function RouterStatusHeader() {
         )}
 
         {status?.cpuLoad != null && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('header.cpuLoad')}>
+          <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('header.cpuLoad')}>
             <Cpu size={13} style={{ color: '#fb923c' }} />
             <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{status.cpuLoad}%</span>
           </div>
         )}
 
         {status?.totalMemory != null && status?.freeMemory != null && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('header.ram') || 'RAM'}>
+          <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('header.ram') || 'RAM'}>
             <Activity size={13} style={{ color: '#a78bfa' }} />
             <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>
               {Math.round((Number(status.totalMemory) - Number(status.freeMemory)) / (1024 * 1024))}MB

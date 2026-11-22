@@ -4,7 +4,6 @@ import useSWR, { mutate } from 'swr';
 import {
   fetchVoucherBatchDetailAPI,
   deleteVouchersAPI,
-  enableVouchersAPI,
   formatLoginDateDisplay,
   sortByLoginDate,
   searchVouchersAPI,
@@ -45,7 +44,6 @@ import {
   MessageSquare,
   RefreshCw,
   Calendar,
-  RotateCcw,
 } from 'lucide-react';
 
 type StatusFilter = 'all' | 'unused' | 'active' | 'expired';
@@ -242,7 +240,6 @@ export default function BatchDetailPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeleteBatchModal, setShowDeleteBatchModal] = useState(false);
   const [deleteBatchLoading, setDeleteBatchLoading] = useState(false);
-  const [isEnablingVouchers, setIsEnablingVouchers] = useState(false);
 
   // Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -405,22 +402,6 @@ export default function BatchDetailPage() {
       showToast(err?.message || 'Failed to delete batch.', 'error');
     } finally {
       setDeleteBatchLoading(false);
-    }
-  };
-
-  const handleEnableVouchers = async (names: string[]) => {
-    if (!routerId || !names || names.length === 0) return;
-    try {
-      setIsEnablingVouchers(true);
-      const res = await enableVouchersAPI(routerId, names);
-      showToast(`تم إعادة تفعيل ${res.enabledCount || names.length} كرت بنجاح!`, 'success');
-      revalidateRouterCache(routerId);
-      mutateDetail();
-    } catch (err: any) {
-      console.error('Failed to enable vouchers:', err);
-      showToast(err.message || 'فشل تفعيل الكروت.', 'error');
-    } finally {
-      setIsEnablingVouchers(false);
     }
   };
 
@@ -1194,32 +1175,6 @@ export default function BatchDetailPage() {
                   {cleanDeviceName}
                 </span>
               </span>
-            )}
-
-            {/* Re-enable Button for Expired Voucher */}
-            {status === 'expired' && (
-              <button
-                onClick={() => handleEnableVouchers([name])}
-                disabled={isEnablingVouchers}
-                title="تفعيل الكرت"
-                style={{
-                  background: 'rgba(34, 197, 94, 0.15)',
-                  border: '1px solid rgba(34, 197, 94, 0.3)',
-                  color: '#22c55e',
-                  borderRadius: '5px',
-                  padding: '2px 8px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: isEnablingVouchers ? 'not-allowed' : 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  flexShrink: 0,
-                }}
-              >
-                <RotateCcw size={11} />
-                <span>تفعيل</span>
-              </button>
             )}
 
             {/* Details Action Button */}

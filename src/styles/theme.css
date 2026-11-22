@@ -296,7 +296,7 @@ input, textarea { font-family: inherit; }
 @media (max-width: 768px) {
   .desktop-nav { display: none !important; }
   .mobile-bottom-bar { display: flex !important; }
-  .layout-page-content { padding-bottom: 70px !important; }
+  .layout-page-content { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; }
 }
 
 /* ─── Gateway Landing ─── */

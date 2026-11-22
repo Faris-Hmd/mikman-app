@@ -6,7 +6,7 @@ export default function BottomNavBar() {
   const location = useLocation();
   const pathname = location.pathname;
   const params = useParams();
-  const { t } = useLanguage();
+  const { t, isRtl } = useLanguage();
 
   // Extract routerId if present in route params or path
   const routerId = params?.routerId as string | undefined;
@@ -14,56 +14,56 @@ export default function BottomNavBar() {
   const routerNavItems = routerId ? [
     {
       href: `/${routerId}`,
-      label: t('sidebar.dashboard'),
+      label: isRtl ? 'الرئيسية' : 'Home',
       icon: LayoutDashboard,
       isActive: pathname === `/${routerId}`
     },
     {
       href: `/${routerId}/vouchers`,
-      label: t('sidebar.vouchers'),
+      label: isRtl ? 'الكروت' : 'Vouchers',
       icon: Ticket,
       isActive: pathname.startsWith(`/${routerId}/vouchers`) || pathname.startsWith(`/${routerId}/batch`)
     },
     {
       href: `/${routerId}/profiles`,
-      label: t('sidebar.profiles'),
+      label: isRtl ? 'الباقات' : 'Profiles',
       icon: Layers,
       isActive: pathname.startsWith(`/${routerId}/profiles`)
     },
     {
       href: `/${routerId}/revenue`,
-      label: t('sidebar.revenue'),
+      label: isRtl ? 'المبيعات' : 'Revenue',
       icon: TrendingUp,
       isActive: pathname.startsWith(`/${routerId}/revenue`)
     },
     {
       href: `/${routerId}/users`,
-      label: t('sidebar.users'),
+      label: isRtl ? 'المتصلين' : 'Users',
       icon: Users,
       isActive: pathname.startsWith(`/${routerId}/users`)
     },
     {
       href: `/${routerId}/settings`,
-      label: t('sidebar.settings'),
+      label: isRtl ? 'الإعدادات' : 'Settings',
       icon: Settings,
       isActive: pathname.startsWith(`/${routerId}/settings`)
     }
   ] : [
     {
       href: '/',
-      label: t('sidebar.mainMenu') || 'الرئيسية',
+      label: isRtl ? 'الرئيسية' : 'Home',
       icon: Home,
       isActive: pathname === '/'
     },
     {
       href: '/register-router',
-      label: t('dashboard.addRouterLong') || 'إضافة راوتر',
+      label: isRtl ? 'إضافة راوتر' : 'Add Router',
       icon: PlusCircle,
       isActive: pathname === '/register-router'
     },
     {
       href: '/account',
-      label: t('sidebar.account') || 'الحساب',
+      label: isRtl ? 'الحساب' : 'Account',
       icon: User,
       isActive: pathname === '/account'
     }
@@ -76,19 +76,21 @@ export default function BottomNavBar() {
         bottom: 0,
         left: 0,
         right: 0,
-        height: '62px',
+        height: '60px',
         backgroundColor: 'var(--header-bg)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         borderTop: '1px solid var(--glass-border)',
         zIndex: 999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-around',
-        padding: '0 4px',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        padding: '2px 4px',
+        paddingBottom: 'max(6px, env(safe-area-inset-bottom, 0px))',
         boxSizing: 'border-box',
-        boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)'
+        boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.3)',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
       }}>
       {routerNavItems.map((item, idx) => {
         const Icon = item.icon;
@@ -105,45 +107,42 @@ export default function BottomNavBar() {
               justifyContent: 'center',
               gap: '2px',
               height: '100%',
-              padding: '4px 1px',
+              padding: '2px 1px',
               textDecoration: 'none',
-              color: item.isActive ? 'var(--primary)' : 'var(--text-muted)',
-              transition: 'all 0.2s ease',
-              position: 'relative'
+              transition: 'all 0.15s ease',
+              position: 'relative',
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
-            {item.isActive && (
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                width: '24px',
-                height: '3px',
-                borderRadius: '0 0 4px 4px',
-                backgroundColor: 'var(--primary)',
-                boxShadow: '0 2px 8px rgba(var(--primary-rgb), 0.6)'
-              }} />
-            )}
             <div style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transform: item.isActive ? 'scale(1.08)' : 'scale(1)',
-              transition: 'transform 0.2s ease'
+              padding: '3px 10px',
+              borderRadius: '12px',
+              backgroundColor: item.isActive ? 'rgba(59, 130, 246, 0.16)' : 'transparent',
+              transform: item.isActive ? 'scale(1.04)' : 'scale(1)',
+              transition: 'all 0.15s ease',
             }}>
-              <Icon size={18} color={item.isActive ? 'var(--primary)' : 'var(--text-muted)'} />
+              <Icon
+                size={18}
+                color={item.isActive ? 'var(--primary, #3b82f6)' : 'var(--text-muted)'}
+                strokeWidth={item.isActive ? 2.4 : 1.8}
+              />
             </div>
             <span style={{
-              fontSize: 'var(--font-2xs)',
-              fontWeight: item.isActive ? '700' : '500',
+              fontSize: '10px',
+              fontWeight: item.isActive ? '800' : '500',
               lineHeight: 1.15,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
-              textOverflow: 'clip',
+              textOverflow: 'ellipsis',
               maxWidth: '100%',
               width: '100%',
               textAlign: 'center',
-              letterSpacing: '-0.2px',
-              padding: '0 1px'
+              letterSpacing: '-0.1px',
+              padding: '0 1px',
+              color: item.isActive ? 'var(--primary, #3b82f6)' : 'var(--text-muted)',
             }}>
               {item.label}
             </span>
