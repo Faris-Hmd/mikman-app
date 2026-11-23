@@ -27,12 +27,7 @@ import {
 } from 'lucide-react';
 import '../../styles/vouchers.css';
 import type { Profile } from '../../components/vouchers/types';
-import {
-  formatBatchAge,
-  getCleanComment,
-  formatPriceBadge,
-  getProfileInfoDetails,
-} from '../../components/vouchers/voucherHelpers';
+import { formatRelativeAge } from '../../components/vouchers/voucherHelpers';
 import { CreateBatchDrawer } from '../../components/vouchers/CreateBatchDrawer';
 import { BatchDetailModal } from '../../components/vouchers/BatchDetailModal';
 import { PrintConfigModal } from '../../components/vouchers/PrintConfigModal';
@@ -199,33 +194,14 @@ export default function VouchersPage() {
 
   return (
     <div
-      className="responsive-container"
-      style={{
-        direction: isRtl ? 'rtl' : 'ltr',
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '16px',
-      }}
+      className="responsive-container vouchers-page-container"
+      style={{ direction: isRtl ? 'rtl' : 'ltr' }}
     >
       {/* Toast Notification */}
       {toastMessage && (
         <div
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            [isRtl ? 'left' : 'right']: '24px',
-            zIndex: 10000,
-            background: toastMessage.type === 'success' ? '#10b981' : '#ef4444',
-            color: '#fff',
-            padding: '12px 20px',
-            borderRadius: '12px',
-            fontWeight: 600,
-            fontSize: '13px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
+          className={`voucher-toast-notification ${toastMessage.type}`}
+          style={{ [isRtl ? 'left' : 'right']: '24px' }}
         >
           {toastMessage.type === 'success' ? <Check size={16} /> : <AlertCircle size={16} />}
           <span>{toastMessage.text}</span>
@@ -234,16 +210,16 @@ export default function VouchersPage() {
 
       {/* ─── 1. Header Bar ─── */}
       <div className="page-header-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        <div className="drawer-title-group">
           <div className="page-header-icon">
             <Ticket />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h2 className="page-header-title">
-              {t('vouchers.title') || 'الكروت والدفعات'}
+              {t('vouchers.title')}
             </h2>
             <p className="page-header-subtitle">
-              {t('vouchers.subtitle') || 'إدارة وتوليد كروت الهوتسبوت'}
+              {t('vouchers.subtitle')}
             </p>
           </div>
         </div>
@@ -252,13 +228,12 @@ export default function VouchersPage() {
           <button
             onClick={handleManualRefresh}
             disabled={isRefreshing || batchesLoading}
-            title={t('common.refresh') || 'تحديث'}
+            title={t('common.refresh')}
             className="page-header-btn"
-            style={{ cursor: isRefreshing || batchesLoading ? 'not-allowed' : 'pointer' }}
           >
             <RefreshCw size={14} className={isRefreshing || batchesLoading ? 'animate-spin' : ''} />
-            <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>
-              {t('common.refresh') || 'تحديث'}
+            <span className="hide-sm-only">
+              {t('common.refresh')}
             </span>
           </button>
 
@@ -267,7 +242,7 @@ export default function VouchersPage() {
             className="page-header-btn page-header-btn-primary"
           >
             <Plus size={14} />
-            <span style={{ whiteSpace: 'nowrap' }}>{t('common.add') || 'إضافة'}</span>
+            <span>{t('common.add')}</span>
           </button>
         </div>
       </div>
@@ -281,7 +256,7 @@ export default function VouchersPage() {
           </div>
           <div className="voucher-stat-info">
             <span className="voucher-stat-label">
-              {t('batch.totalBatches') || 'إجمالي الدفعات'}
+              {t('batch.totalBatches')}
             </span>
             <strong className="voucher-stat-value">
               {stats.totalBatches}
@@ -296,7 +271,7 @@ export default function VouchersPage() {
           </div>
           <div className="voucher-stat-info">
             <span className="voucher-stat-label">
-              {t('batch.totalVouchers') || 'إجمالي الكروت'}
+              {t('batch.totalVouchers')}
             </span>
             <strong className="voucher-stat-value">
               {stats.totalVouchers}
@@ -311,7 +286,7 @@ export default function VouchersPage() {
           </div>
           <div className="voucher-stat-info">
             <span className="voucher-stat-label">
-              {t('batch.unusedVouchers') || 'غير مستخدمة'}
+              {t('batch.unusedVouchers')}
             </span>
             <strong className="voucher-stat-value unused">
               {stats.totalUnused}
@@ -326,7 +301,7 @@ export default function VouchersPage() {
           </div>
           <div className="voucher-stat-info">
             <span className="voucher-stat-label">
-              {t('batch.activeVouchers') || 'نشطة الآن'}
+              {t('batch.activeVouchers')}
             </span>
             <strong className="voucher-stat-value active">
               {stats.totalActive}
@@ -347,7 +322,7 @@ export default function VouchersPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('batch.searchPlaceholder') || 'البحث باسم الدفعة أو البروفايل...'}
+            placeholder={t('batch.searchPlaceholder')}
             className="vouchers-search-input"
             style={{
               padding: `8px ${isRtl ? '34px' : '12px'} 8px ${isRtl ? '12px' : '34px'}`,
@@ -366,46 +341,30 @@ export default function VouchersPage() {
           ))}
         </div>
       ) : filteredBatches.length === 0 ? (
-        <div
-          className="responsive-card"
-          style={{
-            textAlign: 'center',
-            padding: '40px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '12px',
-          }}
-        >
+        <div className="responsive-card vouchers-empty-card">
           <Ticket size={36} style={{ color: 'var(--text-muted)' }} />
-          <h4 style={{ margin: 0, fontSize: '15px', color: 'var(--foreground)' }}>
-            {t('batch.noBatchesFound') || 'لا توجد دفعات كروت'}
+          <h4 className="vouchers-empty-title">
+            {t('batch.noBatchesFound')}
           </h4>
-          <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
-            {t('batch.noBatchesDesc') || 'قم بإنشاء دفعتك الأولى لبدء طباعة الكروت وإدارتها.'}
+          <p className="vouchers-empty-desc">
+            {t('batch.noBatchesDesc')}
           </p>
           <button
             onClick={() => setIsCreateDrawerOpen(true)}
-            style={{
-              marginTop: '8px',
-              padding: '8px 16px',
-              borderRadius: '10px',
-              background: 'var(--primary, #3b82f6)',
-              color: '#fff',
-              border: 'none',
-              fontWeight: 700,
-              fontSize: '12px',
-              cursor: 'pointer',
-            }}
+            className="vouchers-empty-btn"
           >
-            + {t('batch.createBatch') || 'إنشاء دفعة كروت'}
+            + {t('batch.createBatch')}
           </button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {groupedProfileBatches.map((pGroup) => {
-            const pInfo = getProfileInfoDetails(pGroup.profile, profileList, pGroup.batches[0]);
+            const firstBatch = pGroup.batches[0];
+            const validityBadge = firstBatch?.validityBadge || '∞';
+            const dataBadge = firstBatch?.dataBadge || '∞';
+            const formattedPrice = firstBatch?.formattedPrice;
+            const rateLimit = firstBatch?.rateLimit;
+
             return (
               <div key={pGroup.profile} className="profile-group-card">
                 {/* Profile Section Header */}
@@ -417,31 +376,34 @@ export default function VouchersPage() {
 
                   {/* Profile Metadata Pills Stack */}
                   <div className="profile-pills-stack">
-                    {pInfo.validityBadge && (
+                    {validityBadge && validityBadge !== '∞' && (
                       <span className="profile-meta-pill time">
-                        <Clock size={10} style={{ opacity: 0.8 }} />
-                        {pInfo.validityBadge}
+                        <Clock size={10} />
+                        {validityBadge}
                       </span>
                     )}
-                    {pInfo.dataBadge && (
+                    {dataBadge && dataBadge !== '∞' && (
                       <span className="profile-meta-pill data">
-                        <HardDrive size={10} style={{ opacity: 0.8 }} />
-                        {pInfo.dataBadge}
+                        <HardDrive size={10} />
+                        {dataBadge}
                       </span>
                     )}
-                    {pInfo.price && (
+                    {formattedPrice && (
                       <span className="profile-meta-pill price">
-                        <DollarSign size={10} style={{ opacity: 0.8 }} />
-                        {formatPriceBadge(pInfo.price)}
+                        <DollarSign size={10} />
+                        {formattedPrice}
                       </span>
                     )}
-                    {pInfo.rateLimit && (
+                    {rateLimit && (
                       <span className="profile-meta-pill muted">
-                        {pInfo.rateLimit}
+                        {rateLimit}
                       </span>
                     )}
                     <span className="profile-meta-pill muted">
-                      {pGroup.batches.length} {pGroup.batches.length === 1 ? 'دفعة' : 'دفعات'}
+                      {pGroup.batches.length}{' '}
+                      {pGroup.batches.length === 1
+                        ? t('batch.batchUnitSingle')
+                        : t('batch.batchesUnit')}
                     </span>
                   </div>
                 </div>
@@ -449,8 +411,8 @@ export default function VouchersPage() {
                 {/* Batch Cards Grid */}
                 <div className="batch-cards-grid">
                   {pGroup.batches.map((batch, bIdx) => {
-                    const ageStr = formatBatchAge(batch.batchId, batch.comment, batch.createdAt, isRtl);
-                    const cleanComm = batch.cleanComment ?? getCleanComment(batch.comment);
+                    const ageStr = formatRelativeAge(batch.createdAt, isRtl);
+                    const cleanComm = batch.cleanComment ?? batch.comment;
 
                     return (
                       <div
@@ -462,17 +424,17 @@ export default function VouchersPage() {
                         <div className="batch-card-top">
                           <div className="batch-pills-row">
                             <span className="batch-pill">
-                              {batch.originalCount} {t('batch.totalVouchers') || 'إجمالي'}
+                              {batch.originalCount} {t('batch.totalVouchers')}
                             </span>
                             <span className="batch-pill unused">
-                              {batch.unusedCount} {t('batch.statusUnused') || 'غير مستخدم'}
+                              {batch.unusedCount} {t('batch.statusUnused')}
                             </span>
                             <span className="batch-pill active">
-                              {batch.activeCount} {t('batch.statusActive') || 'نشط'}
+                              {batch.activeCount} {t('batch.statusActive')}
                             </span>
                             {batch.expiredCount > 0 && (
                               <span className="batch-pill expired">
-                                {batch.expiredCount} {t('batch.statusExpired') || 'منتهي'}
+                                {batch.expiredCount} {t('batch.statusExpired')}
                               </span>
                             )}
                           </div>
@@ -481,7 +443,7 @@ export default function VouchersPage() {
 
                         {/* Bottom Metadata (Age + Clean Comment) */}
                         <div className="batch-card-bottom">
-                          <span>{ageStr || (isRtl ? 'بدون تاريخ' : 'No date')}</span>
+                          <span>{ageStr || t('batch.noDate')}</span>
                           {cleanComm && (
                             <>
                               <span>•</span>

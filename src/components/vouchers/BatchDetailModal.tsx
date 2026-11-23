@@ -19,8 +19,6 @@ import {
   fetchVoucherBatchDetailAPI,
   deleteVouchersAPI,
   getVoucherCodesAPI,
-  sortByLoginDate,
-  formatLoginDateDisplay,
   revalidateRouterCache,
   type VoucherBatch,
   type VoucherSummary,
@@ -28,7 +26,6 @@ import {
   type ExpiredVoucher,
 } from '../../api';
 import type { Profile } from './types';
-import { formatBytes, getProfileInfoDetails } from './voucherHelpers';
 
 interface BatchDetailModalProps {
   selectedBatch: VoucherBatch | null;
@@ -44,7 +41,6 @@ interface BatchDetailModalProps {
 export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
   selectedBatch,
   routerId,
-  profileList,
   isRtl,
   onClose,
   onOpenPrint,
@@ -68,7 +64,6 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
   const {
     data: batchDetail,
     isLoading: detailLoading,
-    mutate: mutateDetail,
   } = useSWR(
     routerId && selectedBatch?.profile
       ? `batch-detail-${routerId}-${selectedBatch.profile}-${selectedBatch.batchId || ''}-${selectedBatch.comment || ''}`
@@ -89,35 +84,19 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
     }
   );
 
-  const sortedActiveVouchers = useMemo(() => {
-    return sortByLoginDate(batchDetail?.activeVouchers || []);
-  }, [batchDetail?.activeVouchers]);
-
-  const sortedExpiredVouchers = useMemo(() => {
-    return sortByLoginDate(batchDetail?.expiredVouchers || []);
-  }, [batchDetail?.expiredVouchers]);
-
-  const expiredNamesSet = useMemo(() => {
-    return new Set((batchDetail?.expiredVouchers || []).map((ev) => ev.name || (ev as any)['.id']));
-  }, [batchDetail?.expiredVouchers]);
-
-  const activeNamesSet = useMemo(() => {
-    return new Set((batchDetail?.activeVouchers || []).map((av) => av.name || (av as any)['.id']));
-  }, [batchDetail?.activeVouchers]);
-
   // Filtered Vouchers List
   const modalFilteredVouchers = useMemo(() => {
     if (!batchDetail) return [];
     let list: (VoucherSummary | ActiveVoucher | ExpiredVoucher)[] = [];
 
     if (detailTab === 'unused') list = batchDetail.unusedVouchers || [];
-    else if (detailTab === 'active') list = sortedActiveVouchers;
-    else if (detailTab === 'expired') list = sortedExpiredVouchers;
+    else if (detailTab === 'active') list = batchDetail.activeVouchers || [];
+    else if (detailTab === 'expired') list = batchDetail.expiredVouchers || [];
     else {
       list = [
         ...(batchDetail.unusedVouchers || []),
-        ...sortedActiveVouchers,
-        ...sortedExpiredVouchers,
+        ...(batchDetail.activeVouchers || []),
+        ...(batchDetail.expiredVouchers || []),
       ];
     }
 
@@ -129,7 +108,7 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
     }
 
     return list;
-  }, [batchDetail, detailTab, detailSearch, sortedActiveVouchers, sortedExpiredVouchers]);
+  }, [batchDetail, detailTab, detailSearch]);
 
   if (!selectedBatch) return null;
 
@@ -144,8 +123,8 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
   const handleDeleteEntireBatch = async () => {
     if (!routerId || !selectedBatch) return;
     showConfirm(
-      t('common.delete') || 'Delete Batch',
-      t('batch.deleteBatchConfirm') || 'Are you sure you want to delete all vouchers in this batch?',
+      t('common.delete'),
+      t('batch.deleteBatchConfirm'),
       async () => {
         try {
           setIsDeletingBatch(true);
@@ -159,15 +138,15 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
           );
           const codes = res?.codes || [];
           if (codes.length === 0) {
-            showToast(t('batch.noVouchersInBatch') || 'No vouchers found to delete', 'error');
+            showToast(t('batch.noVouchersInBatch'), 'error');
             return;
           }
           await deleteVouchersAPI(routerId, codes);
-          showToast(t('batch.batchDeletedSuccess') || 'Batch deleted successfully', 'success');
+          showToast(t('batch.batchDeletedSuccess'), 'success');
           revalidateRouterCache(routerId);
           onBatchDeleted();
         } catch (err: any) {
-          showToast(err?.message || 'Failed to delete batch', 'error');
+          showToast(err?.message || t('batch.noBatchesFound'), 'error');
         } finally {
           setIsDeletingBatch(false);
         }
@@ -175,136 +154,69 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
     );
   };
 
+  const tabs = [
+    { key: 'all', label: t('batch.allCount').replace('{count}', String(selectedBatch.originalCount || 0)) },
+    { key: 'unused', label: t('batch.unusedCount').replace('{count}', String(selectedBatch.unusedCount || 0)) },
+    { key: 'active', label: t('batch.activeCount').replace('{count}', String(selectedBatch.activeCount || 0)) },
+    { key: 'expired', label: t('batch.expiredCount').replace('{count}', String(selectedBatch.expiredCount || 0)) },
+  ];
+
   return (
     <div
-      className="modal-overlay batch-detail-modal-overlay"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9998,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        padding: '16px',
-        boxSizing: 'border-box',
-      }}
+      className="batch-detail-modal-overlay"
       onClick={onClose}
     >
       <div
         className="batch-detail-modal-content"
-        style={{
-          width: '100%',
-          maxWidth: '680px',
-          maxHeight: '85vh',
-          background: 'var(--card-bg, #1a1a1a)',
-          border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-          borderRadius: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
-          direction: isRtl ? 'rtl' : 'ltr',
-          overflow: 'hidden',
-          boxSizing: 'border-box',
-        }}
+        style={{ direction: isRtl ? 'rtl' : 'ltr' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Sheet Drag Handle for Mobile */}
         <div className="sheet-drag-handle" />
 
         {/* Modal Header */}
         <div className="batch-detail-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'rgba(99, 102, 241, 0.15)',
-                color: '#6366f1',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+          <div className="drawer-title-group">
+            <div className="batch-detail-icon">
               <Layers size={18} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
+              <h3 className="batch-detail-title">
                 {selectedBatch.profile || selectedBatch.printLabel}
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
-                {selectedBatch.printLabel && selectedBatch.printLabel !== selectedBatch.profile && (
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    {selectedBatch.printLabel}
-                  </span>
-                )}
-              </div>
+              {selectedBatch.printLabel && selectedBatch.printLabel !== selectedBatch.profile && (
+                <div className="batch-detail-subtitle">
+                  {selectedBatch.printLabel}
+                </div>
+              )}
             </div>
           </div>
 
           <button
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              padding: '6px',
-              display: 'flex',
-              alignItems: 'center',
-            }}
+            className="batch-detail-close-btn"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Action Bar (Print PDF / Delete Batch - Solid High Contrast) */}
+        {/* Action Bar (Solid High Contrast Buttons) */}
         <div className="batch-detail-actions-bar">
           <button
             onClick={onOpenPrint}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              background: '#2563eb',
-              color: '#ffffff',
-              fontWeight: 800,
-              fontSize: '12px',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)',
-            }}
+            className="batch-detail-print-btn"
           >
             <Printer size={15} />
-            <span>{t('batch.print') || 'طباعة PDF'}</span>
+            <span>{t('batch.print')}</span>
           </button>
 
           <button
             onClick={handleDeleteEntireBatch}
             disabled={isDeletingBatch}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              background: '#dc2626',
-              border: 'none',
-              color: '#ffffff',
-              fontWeight: 800,
-              fontSize: '12px',
-              cursor: isDeletingBatch ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 8px rgba(220, 38, 38, 0.35)',
-            }}
+            className="batch-detail-delete-btn"
           >
             <Trash2 size={15} />
             <span>
-              {isDeletingBatch ? 'جاري الحذف...' : t('batch.deleteBatch') || 'حذف الدفعة'}
+              {isDeletingBatch ? t('batch.deletingBatch') : t('batch.deleteBatch')}
             </span>
           </button>
         </div>
@@ -312,32 +224,14 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
         {/* Status Filter Tabs */}
         <div className="batch-detail-tabs-bar">
           <div className="batch-detail-tabs-track">
-            {[
-              { key: 'all', label: `الكل (${selectedBatch.originalCount})` },
-              { key: 'unused', label: `غير مستخدمة (${selectedBatch.unusedCount})` },
-              { key: 'active', label: `نشطة (${selectedBatch.activeCount})` },
-              { key: 'expired', label: `منتهية (${selectedBatch.expiredCount})` },
-            ].map((tab) => {
+            {tabs.map((tab) => {
               const isActive = detailTab === tab.key;
+              const statusClass = tab.key === 'active' ? 'active-status' : tab.key;
               return (
                 <button
                   key={tab.key}
                   onClick={() => setDetailTab(tab.key as any)}
-                  className="batch-detail-tab-btn"
-                  style={{
-                    fontWeight: isActive ? 800 : 600,
-                    color: isActive ? '#ffffff' : 'var(--text-muted)',
-                    background: isActive
-                      ? tab.key === 'unused'
-                        ? '#16a34a'
-                        : tab.key === 'active'
-                        ? '#2563eb'
-                        : tab.key === 'expired'
-                        ? '#ca8a04'
-                        : '#334155'
-                      : 'transparent',
-                    boxShadow: isActive ? '0 2px 6px rgba(0,0,0,0.3)' : 'none',
-                  }}
+                  className={`batch-detail-tab-btn ${isActive ? `active ${statusClass}` : ''}`}
                 >
                   {tab.label}
                 </button>
@@ -348,32 +242,20 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
 
         {/* Search Input Box */}
         <div className="batch-detail-search-area">
-          <div style={{ position: 'relative' }}>
+          <div className="vouchers-search-input-wrapper">
             <Search
               size={14}
-              style={{
-                position: 'absolute',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                [isRtl ? 'right' : 'left']: '10px',
-                color: 'var(--text-muted)',
-              }}
+              className="vouchers-search-icon"
+              style={{ [isRtl ? 'right' : 'left']: '10px' }}
             />
             <input
               type="text"
               value={detailSearch}
               onChange={(e) => setDetailSearch(e.target.value)}
-              placeholder="البحث في كروت هذه الدفعة..."
+              placeholder={t('batch.searchVouchersPlaceholder')}
+              className="vouchers-search-input"
               style={{
-                width: '100%',
-                background: 'var(--input-bg, rgba(32, 32, 36, 0.75))',
-                border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-                borderRadius: '8px',
                 padding: `6px ${isRtl ? '30px' : '10px'} 6px ${isRtl ? '10px' : '30px'}`,
-                color: 'var(--foreground)',
-                fontSize: '12px',
-                outline: 'none',
-                boxSizing: 'border-box',
               }}
             />
           </div>
@@ -382,270 +264,72 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
         {/* Scrollable Vouchers List */}
         <div className="batch-detail-cards-scroll">
           {detailLoading ? (
-            <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-              <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px auto' }} />
-              <span>جاري تحميل كروت الدفعة...</span>
+            <div className="voucher-loading-state">
+              <Loader2 size={24} className="animate-spin" />
+              <div>{t('batch.loadingVouchers')}</div>
             </div>
           ) : modalFilteredVouchers.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', fontSize: '13px' }}>
-              لا توجد كروت مطابقة للفلاتر الحالية.
+            <div className="voucher-empty-state">
+              {t('batch.noMatchingVouchers')}
             </div>
           ) : (
             <>
               {modalFilteredVouchers.slice(0, modalDisplayLimit).map((vItem, idx) => {
                 const isCopied = copiedCode === vItem.name;
-                const vAny = vItem as any;
-                const vName = vItem.name || vAny['.id'] || '';
-
-                const isInExpiredList = expiredNamesSet.has(vName);
-                const isInActiveList = activeNamesSet.has(vName);
-                const isExp = Boolean(
-                  vAny.isExpired === true ||
-                    vAny.disabled === true ||
-                    vAny.disabled === 'true' ||
-                    isInExpiredList
-                );
-                const isAct =
-                  !isExp &&
-                  Boolean(
-                    isInActiveList ||
-                      (vAny.address && vAny.disabled !== true && vAny.disabled !== 'true')
-                  );
-                const vStatus: 'unused' | 'active' | 'expired' = isExp
-                  ? 'expired'
-                  : isAct
-                  ? 'active'
-                  : 'unused';
-
-                // Data Left
-                const limitBytesNum = Number(vAny.limitBytesTotal ?? vAny['limit-bytes-total'] ?? 0);
-                const bIn = Number(vAny.bytesIn ?? vAny['bytes-in'] ?? 0);
-                const bOut = Number(vAny.bytesOut ?? vAny['bytes-out'] ?? 0);
-                const usedBytes = bIn + bOut;
-
-                let dataLeftStr: string | null = null;
-                let dataPct: number | null = null;
-
-                if (vStatus !== 'unused') {
-                  const rawRemBytes = vAny.remainingBytes ?? vAny['remaining-bytes'];
-                  if (rawRemBytes != null && rawRemBytes !== '') {
-                    const num = Number(rawRemBytes);
-                    if (!isNaN(num)) dataLeftStr = formatBytes(num);
-                    if (limitBytesNum > 0 && !isNaN(num)) {
-                      dataPct = Math.min(100, Math.max(0, (num / limitBytesNum) * 100));
-                    }
-                  }
-                  if (!dataLeftStr && limitBytesNum > 0) {
-                    const rem = Math.max(0, limitBytesNum - usedBytes);
-                    dataLeftStr = formatBytes(rem);
-                    dataPct = Math.min(100, Math.max(0, (rem / limitBytesNum) * 100));
-                  }
-                  if (!dataLeftStr && vStatus === 'expired') {
-                    dataLeftStr = '0 MB';
-                  }
-                }
-
-                // Time Left
-                let timeLeftStr: string | null = null;
-                let timePct: number | null = null;
-
-                if (vStatus === 'active') {
-                  timeLeftStr = vAny.timeLeftText || null;
-                  const remainingSec =
-                    vAny.remainingSeconds != null ? Number(vAny.remainingSeconds) : null;
-                  const totalSec =
-                    vAny.limitUptimeSeconds != null ? Number(vAny.limitUptimeSeconds) : null;
-
-                  if (!timeLeftStr && remainingSec != null) {
-                    if (!isNaN(remainingSec) && remainingSec >= 0) {
-                      const hrs = Math.floor(remainingSec / 3600);
-                      const mins = Math.floor((remainingSec % 3600) / 60);
-                      timeLeftStr = `${hrs}h ${mins}m`;
-                    }
-                  }
-                  if (remainingSec != null && totalSec != null && totalSec > 0) {
-                    timePct = Math.min(100, Math.max(0, (remainingSec / totalSec) * 100));
-                  }
-                } else if (vStatus === 'expired') {
-                  timeLeftStr = '0s';
-                }
-
-                // Device Name
-                const rawDevName = (vAny.deviceName || vAny.hostName || vAny['host-name'] || '').trim();
-                let cleanDeviceName = '';
-                if (rawDevName) {
-                  const lowerDev = rawDevName.toLowerCase();
-                  const lowerName = vName.toLowerCase();
-                  if (
-                    lowerDev !== lowerName &&
-                    !lowerDev.includes('#metadata:') &&
-                    !lowerDev.includes('batch_') &&
-                    !lowerDev.includes('login:') &&
-                    !lowerDev.includes('exp:') &&
-                    lowerDev !== 'active client' &&
-                    lowerDev !== 'unnamed client'
-                  ) {
-                    cleanDeviceName = rawDevName;
-                  }
-                }
+                const vName = vItem.name || (vItem as any)['.id'] || '';
 
                 return (
-                  <div key={vItem['.id'] || vName || idx} className="voucher-card-item">
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '8px',
-                        width: '100%',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-                        {vAny.isDisabled === true || vAny.disabled === true || vAny.disabled === 'true' ? (
-                          <span
-                            className="item-badge"
-                            style={{
-                              fontSize: '9px',
-                              fontWeight: 700,
-                              padding: '0 5px',
-                              borderRadius: '5px',
-                              height: '18px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              background: 'rgba(249, 115, 22, 0.12)',
-                              color: '#f97316',
-                              border: '1px solid rgba(249, 115, 22, 0.25)',
-                              flexShrink: 0,
-                            }}
-                          >
+                  <div key={(vItem as any)['.id'] || vName || idx} className="voucher-card-item">
+                    <div className="voucher-card-row">
+                      <div className="voucher-card-left">
+                        {vItem.disabled && (
+                          <span className="voucher-disabled-badge">
                             Disabled
                           </span>
-                        ) : null}
+                        )}
 
-                        {/* PIN / Voucher Code */}
                         <strong className="voucher-card-code">{vName}</strong>
 
-                        {/* Copy Button */}
                         <button
                           onClick={() => handleCopyCode(vName)}
-                          title={t('common.copy') || 'نسخ الكود'}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: isCopied ? '#22c55e' : 'var(--text-muted)',
-                            cursor: 'pointer',
-                            padding: '2px',
-                            flexShrink: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                          }}
+                          title={t('common.copy')}
+                          className={`voucher-copy-btn ${isCopied ? 'copied' : ''}`}
                         >
                           {isCopied ? <Check size={13} /> : <Copy size={13} />}
                         </button>
                       </div>
 
-                      {/* Action & Metadata Badges */}
                       <div
+                        className="voucher-badges-stack"
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          flexWrap: 'nowrap',
-                          overflowX: 'auto',
-                          scrollbarWidth: 'none',
                           marginLeft: isRtl ? '0' : 'auto',
                           marginRight: isRtl ? 'auto' : '0',
                         }}
                       >
-                        {/* Remaining Time Badge */}
-                        {timeLeftStr && timeLeftStr !== '0s' && (
-                          <span
-                            className="item-badge"
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: 700,
-                              padding: '0 6px',
-                              borderRadius: '5px',
-                              height: '20px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                              background: 'rgba(56, 189, 248, 0.12)',
-                              border: '1px solid rgba(56, 189, 248, 0.3)',
-                              color: '#38bdf8',
-                              whiteSpace: 'nowrap',
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Clock size={10} style={{ flexShrink: 0 }} />
-                            <span>{timeLeftStr}</span>
-                            {timePct !== null && (
-                              <span style={{ fontSize: '9px', opacity: 0.85, fontWeight: 600 }}>
-                                ({Math.round(timePct)}%)
-                              </span>
+                        {/* Pre-normalized Remaining Time */}
+                        {vItem.timeLeft && vItem.timeLeft !== '0s' && (
+                          <span className="voucher-badge-pill time">
+                            <Clock size={10} />
+                            <span>{vItem.timeLeft}</span>
+                          </span>
+                        )}
+
+                        {/* Pre-normalized Remaining Data */}
+                        {vItem.dataLeft && vItem.dataLeft !== '0 MB' && (
+                          <span className="voucher-badge-pill data">
+                            <HardDrive size={10} />
+                            <span>{vItem.dataLeft}</span>
+                            {vItem.dataPercent != null && (
+                              <span>({vItem.dataPercent}%)</span>
                             )}
                           </span>
                         )}
 
-                        {/* Remaining Data Badge */}
-                        {dataLeftStr && dataLeftStr !== '0 MB' && (
-                          <span
-                            className="item-badge"
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: 700,
-                              padding: '0 6px',
-                              borderRadius: '5px',
-                              height: '20px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                              background: 'rgba(192, 132, 252, 0.12)',
-                              border: '1px solid rgba(192, 132, 252, 0.3)',
-                              color: '#c084fc',
-                              whiteSpace: 'nowrap',
-                              flexShrink: 0,
-                            }}
-                          >
-                            <HardDrive size={10} style={{ flexShrink: 0 }} />
-                            <span>{dataLeftStr}</span>
-                            {dataPct !== null && (
-                              <span style={{ fontSize: '9px', opacity: 0.85, fontWeight: 600 }}>
-                                ({Math.round(dataPct)}%)
-                              </span>
-                            )}
-                          </span>
-                        )}
-
-                        {/* Device Name Badge */}
-                        {cleanDeviceName && (
-                          <span
-                            className="item-badge"
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: 600,
-                              color: '#3b82f6',
-                              background: 'rgba(59, 130, 246, 0.1)',
-                              border: '1px solid rgba(59, 130, 246, 0.25)',
-                              borderRadius: '5px',
-                              padding: '0 6px',
-                              height: '20px',
-                              maxWidth: '120px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              flexShrink: 0,
-                            }}
-                            title={cleanDeviceName}
-                          >
-                            <Smartphone size={10} style={{ flexShrink: 0 }} />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {cleanDeviceName}
-                            </span>
+                        {/* Pre-normalized Device Name */}
+                        {vItem.deviceName && (
+                          <span className="voucher-badge-pill device" title={vItem.deviceName}>
+                            <Smartphone size={10} />
+                            <span>{vItem.deviceName}</span>
                           </span>
                         )}
                       </div>
@@ -657,24 +341,12 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
               {modalFilteredVouchers.length > modalDisplayLimit && (
                 <button
                   onClick={() => setModalDisplayLimit((prev) => prev + 60)}
-                  style={{
-                    background: 'var(--primary, #2563eb)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '10px 16px',
-                    fontWeight: 700,
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                    width: '100%',
-                    textAlign: 'center',
-                    marginTop: '8px',
-                    boxShadow: '0 2px 6px rgba(37, 99, 235, 0.3)',
-                  }}
+                  className="voucher-load-more-btn"
                 >
-                  {isRtl
-                    ? `عرض المزيد (${modalFilteredVouchers.length - modalDisplayLimit} كرت متبقي)`
-                    : `Load More (${modalFilteredVouchers.length - modalDisplayLimit} remaining)`}
+                  {t('batch.loadMoreRemaining').replace(
+                    '{count}',
+                    String(modalFilteredVouchers.length - modalDisplayLimit)
+                  )}
                 </button>
               )}
             </>

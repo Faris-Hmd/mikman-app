@@ -271,7 +271,10 @@ export interface VoucherBatch {
   expiredCount: number;
   price?: number;
   revenue?: number;
+  formattedPrice?: string;
   validity?: string;
+  validityBadge?: string;
+  dataBadge?: string;
   dataLimitMB?: number;
   limitMB?: number;
   limitBytesTotal?: number;
@@ -286,11 +289,17 @@ export interface VoucherSummary {
   comment: string;
   cleanComment?: string;
   profile: string;
-  'limit-bytes-total': string;
+  'limit-bytes-total'?: string;
   limitBytesTotal?: number;
   remainingBytes?: number | null;
   remainingSeconds?: number | null;
   timeLeftText?: string;
+  dataLeft?: string | null;
+  dataPercent?: number | null;
+  timeLeft?: string | null;
+  timePercent?: number | null;
+  deviceName?: string | null;
+  loginDate?: string | null;
   status?: string;
   inUse?: boolean;
   isExpired?: boolean;
@@ -298,28 +307,28 @@ export interface VoucherSummary {
 }
 
 export interface ActiveVoucher extends VoucherSummary {
-  startDate: string | null;
-  startTime: string | null;
-  expDate: string | null;
+  startDate?: string | null;
+  startTime?: string | null;
+  expDate?: string | null;
   loginDate: string | null;
   remainingSeconds: number | null;
   remainingBytes: number | null;
-  limitBytesTotal: number;
+  limitBytesTotal?: number;
   timeLeftText: string;
-  deviceName: string;
-  isOnline: boolean;
-  sessionId: string | null;
-  ipAddress: string | null;
-  uptime: string | null;
-  bytesIn: string | null;
-  bytesOut: string | null;
+  deviceName: string | null;
+  isOnline?: boolean;
+  sessionId?: string | null;
+  ipAddress?: string | null;
+  uptime?: string | null;
+  bytesIn?: string | number | null;
+  bytesOut?: string | number | null;
 }
 
 export interface ExpiredVoucher extends VoucherSummary {
-  expDate: string | null;
+  expDate?: string | null;
   loginDate: string | null;
   remainingBytes: number | null;
-  limitBytesTotal: number;
+  limitBytesTotal?: number;
   timeLeftText: string;
 }
 
@@ -332,7 +341,10 @@ export interface VoucherBatchDetail {
   createdAt?: string;
   price?: number;
   revenue?: number;
+  formattedPrice?: string;
   validity?: string;
+  validityBadge?: string;
+  dataBadge?: string;
   originalCount: number;
   totalCount?: number;
   total?: number;

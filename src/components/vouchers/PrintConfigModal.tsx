@@ -60,7 +60,7 @@ export const PrintConfigModal: React.FC<PrintConfigModalProps> = ({
       const codes = res?.codes || [];
 
       if (codes.length === 0) {
-        showToast('No voucher codes found to print', 'error');
+        showToast(t('batch.noVouchersFound'), 'error');
         return;
       }
 
@@ -237,17 +237,17 @@ export const PrintConfigModal: React.FC<PrintConfigModalProps> = ({
             text: 'Voucher Batch PDF',
           });
           onClose();
-          showToast('PDF shared successfully!', 'success');
+          showToast(t('batch.pdfShared'), 'success');
           return;
         }
       }
 
       doc.save(fileName);
       onClose();
-      showToast('PDF downloaded successfully!', 'success');
+      showToast(t('batch.pdfDownloaded'), 'success');
     } catch (err: any) {
       console.error('Failed to generate PDF:', err);
-      showToast('Failed to generate PDF document.', 'error');
+      showToast(err?.message || t('batch.noVouchersFound'), 'error');
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -271,16 +271,16 @@ export const PrintConfigModal: React.FC<PrintConfigModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sheet-drag-handle" />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="batch-detail-header" style={{ padding: 0, border: 'none' }}>
+          <div className="drawer-title-group">
             <Printer size={18} style={{ color: '#3b82f6' }} />
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--foreground)' }}>
-              إعدادات طباعة الدفعة
+            <h3 className="drawer-title">
+              {t('batch.printSettings')}
             </h3>
           </div>
           <button
             onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+            className="batch-detail-close-btn"
           >
             <X size={18} />
           </button>
@@ -288,139 +288,72 @@ export const PrintConfigModal: React.FC<PrintConfigModalProps> = ({
 
         {/* Print Quantity Summary Banner */}
         <div className="print-count-banner">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="print-count-label-group">
             <Ticket size={16} />
-            <span style={{ fontSize: '13px', fontWeight: 700 }}>
-              {isRtl ? 'عدد الكروت للطباعة:' : 'Cards to print:'}
+            <span className="print-count-label">
+              {t('batch.cardsToPrint')}
             </span>
           </div>
-          <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--foreground)' }}>
-            {cardCount} {isRtl ? 'كرت' : 'cards'} ({pageCount} {isRtl ? 'صفحة A4' : 'A4 pages'})
+          <div className="print-count-value">
+            {cardCount} {t('batch.cardsUnit')} ({pageCount} {t('batch.a4Pages')})
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--foreground)' }}>
-            اسم شبكة الـ Wi-Fi الظاهر على الكروت
+        <div className="drawer-field-group">
+          <label className="drawer-field-label">
+            {t('batch.printedWifiName')}
           </label>
           <input
             type="text"
             value={printWifiName}
             onChange={(e) => setPrintWifiName(e.target.value)}
             placeholder="MikMan Wi-Fi"
-            style={{
-              width: '100%',
-              background: 'var(--input-bg, rgba(32, 32, 36, 0.75))',
-              border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-              borderRadius: '8px',
-              padding: '10px 12px',
-              color: 'var(--foreground)',
-              fontSize: '13px',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
+            className="drawer-input-field"
+            style={{ padding: '0 12px' }}
           />
         </div>
 
         {/* Live Voucher Card Preview */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--foreground)' }}>
-            {t('vouchers.liveMock') || 'معاينة كرت الطباعة'}
+        <div className="drawer-field-group">
+          <label className="drawer-field-label">
+            {t('vouchers.liveMock')}
           </label>
           <div className="print-card-preview">
-            <div
-              style={{
-                width: '100%',
-                textAlign: 'center',
-                padding: '3px 0',
-                background: '#f1f5f9',
-                borderRadius: '4px',
-                fontSize: '11px',
-                fontWeight: 800,
-                color: '#1e293b',
-              }}
-            >
+            <div className="print-preview-wifi">
               {printWifiName.trim() || selectedBatch.printLabel || 'Wi-Fi Hotspot'}
             </div>
-            <div
-              style={{
-                fontFamily: 'monospace',
-                fontSize: '18px',
-                fontWeight: 900,
-                letterSpacing: '2px',
-                color: '#0f172a',
-                padding: '4px 0',
-              }}
-            >
+            <div className="print-preview-pin">
               8837105
             </div>
-            <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
+            <div className="print-preview-profile">
               {selectedBatch.profile}
             </div>
           </div>
         </div>
 
-        <div
-          style={{
-            background: 'var(--secondary, rgba(255, 255, 255, 0.04))',
-            border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.08))',
-            padding: '10px 12px',
-            borderRadius: '10px',
-            fontSize: '11px',
-            color: 'var(--text-muted)',
-            lineHeight: 1.5,
-          }}
-        >
-          سيتم توليد ملف PDF عالي الكثافة يحتوي على 98 كرت في كل صفحة (شبكة 14x7) جاهز للطباعة على ورقة A4.
+        <div className="print-notice-box">
+          {t('batch.printLayoutDesc')}
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+        <div className="print-actions-row">
           <button
             type="button"
             onClick={() => handleDownloadPDF('download')}
             disabled={isGeneratingPdf}
-            style={{
-              flex: 1,
-              padding: '10px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, var(--primary, #3b82f6) 0%, #2563eb 100%)',
-              color: '#fff',
-              fontWeight: 800,
-              fontSize: '12px',
-              border: 'none',
-              cursor: isGeneratingPdf ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-            }}
+            className="print-action-btn download"
           >
             {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-            <span>تحميل PDF</span>
+            <span>{t('batch.downloadPdf')}</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleDownloadPDF('share')}
             disabled={isGeneratingPdf}
-            style={{
-              flex: 1,
-              padding: '10px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: '#fff',
-              fontWeight: 800,
-              fontSize: '12px',
-              border: 'none',
-              cursor: isGeneratingPdf ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-            }}
+            className="print-action-btn share"
           >
             {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
-            <span>مشاركة PDF</span>
+            <span>{t('batch.sharePdf')}</span>
           </button>
         </div>
       </div>

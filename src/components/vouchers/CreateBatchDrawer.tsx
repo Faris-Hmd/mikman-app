@@ -3,7 +3,6 @@ import { Sparkles, X, ChevronDown, Tag, AlertCircle, CheckCircle2, Loader2 } fro
 import { useLanguage } from '../../context/LanguageContext';
 import { createVouchersAPI, fetchVoucherJobStatusAPI, type VoucherBatch } from '../../api';
 import type { Profile } from './types';
-import { getProfileInfoDetails } from './voucherHelpers';
 
 interface CreateBatchDrawerProps {
   isOpen: boolean;
@@ -52,12 +51,12 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
   const handleGenerateBatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!routerId || !createProfile) {
-      setErrorMsg(t('vouchers.selectProfileFirst') || 'Please select a profile first.');
+      setErrorMsg(t('vouchers.selectProfileFirst'));
       return;
     }
 
     if (count > 5000) {
-      setErrorMsg(t('vouchers.maxLimitError') || 'Maximum voucher count limit is 5000 cards per batch.');
+      setErrorMsg(t('vouchers.maxLimitError'));
       return;
     }
 
@@ -76,10 +75,7 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
       );
 
       if (res?.jobId) {
-        setSuccessMsg(
-          t('vouchers.pushingToRouter') ||
-            (isRtl ? 'جاري كتابة الكروت في الراوتر...' : 'Pushing vouchers to router...')
-        );
+        setSuccessMsg(t('vouchers.pushingToRouter'));
         setJobProgress(5);
         let done = false;
         let attempts = 0;
@@ -144,44 +140,19 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
     >
       <div
         className="create-batch-drawer-content"
-        style={{
-          direction: isRtl ? 'rtl' : 'ltr',
-          borderLeft: isRtl ? 'none' : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-          borderRight: isRtl ? '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))' : 'none',
-        }}
+        style={{ direction: isRtl ? 'rtl' : 'ltr' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Sheet Drag Handle for Mobile */}
-        <div className="sheet-drag-handle" style={{ margin: '8px auto 2px auto' }} />
+        <div className="sheet-drag-handle" />
 
         {/* Drawer Header */}
-        <div
-          style={{
-            padding: '10px 16px',
-            borderBottom: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div
-              style={{
-                width: '30px',
-                height: '30px',
-                borderRadius: '8px',
-                background: '#2563eb',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+        <div className="drawer-header">
+          <div className="drawer-title-group">
+            <div className="drawer-header-icon">
               <Sparkles size={16} />
             </div>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
-              {t('vouchers.generateBatchTitle') || 'إنشاء دفعة كروت جديدة'}
+            <h3 className="drawer-title">
+              {t('vouchers.generateBatchTitle')}
             </h3>
           </div>
 
@@ -189,17 +160,7 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: 'none',
-              color: 'var(--foreground)',
-              cursor: 'pointer',
-              padding: '6px',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            className="drawer-close-btn"
           >
             <X size={16} />
           </button>
@@ -209,39 +170,15 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
         <form onSubmit={handleGenerateBatch} className="drawer-form-container">
           <div className="drawer-form-body">
             {errorMsg && (
-              <div
-                style={{
-                  background: '#ef4444',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <AlertCircle size={15} style={{ flexShrink: 0 }} />
+              <div className="drawer-alert-error">
+                <AlertCircle size={15} />
                 <span>{errorMsg}</span>
               </div>
             )}
 
             {successMsg && (
-              <div
-                style={{
-                  background: '#16a34a',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
+              <div className="drawer-alert-success">
+                <CheckCircle2 size={15} />
                 <span>{successMsg}</span>
               </div>
             )}
@@ -249,9 +186,9 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
             {/* 1. Profile Dropdown Menu */}
             <div className="drawer-field-group">
               <label className="drawer-field-label">
-                {t('vouchers.profileLabel') || 'البروفايل (باقة الكروت)'}
+                {t('vouchers.profileLabel')}
               </label>
-              <div style={{ position: 'relative' }}>
+              <div className="vouchers-search-input-wrapper">
                 <select
                   value={createProfile}
                   onChange={(e) => setCreateProfile(e.target.value)}
@@ -260,45 +197,33 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
                     padding: isRtl ? '0 12px 0 32px' : '0 32px 0 12px',
                   }}
                 >
-                  <option value="" disabled style={{ background: '#1e293b', color: '#94a3b8' }}>
-                    {t('vouchers.selectProfile') || 'اختر باقة الكروت...'}
+                  <option value="" disabled>
+                    {t('vouchers.selectProfile')}
                   </option>
                   {profileList.map((p) => {
                     const pName = p.name || p.id;
-                    const pInfo = getProfileInfoDetails(pName, profileList);
-                    const details = [pInfo.validity, pInfo.dataLimit].filter(Boolean).join(' • ');
                     return (
-                      <option
-                        key={pName}
-                        value={pName}
-                        style={{ background: '#1e293b', color: '#ffffff', fontWeight: 600 }}
-                      >
-                        {pName} {details ? `(${details})` : ''}
+                      <option key={pName} value={pName}>
+                        {pName}
                       </option>
                     );
                   })}
                 </select>
                 <ChevronDown
                   size={15}
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    [isRtl ? 'left' : 'right']: '12px',
-                    color: 'var(--text-muted)',
-                    pointerEvents: 'none',
-                  }}
+                  className="drawer-select-chevron"
+                  style={{ [isRtl ? 'left' : 'right']: '12px' }}
                 />
               </div>
             </div>
 
-            {/* 2. Voucher Quantity: Wide Input Field + Predefined Dropdown Beside It */}
+            {/* 2. Voucher Quantity */}
             <div className="drawer-field-group">
               <label className="drawer-field-label">
-                {t('vouchers.quantityLabel') || 'عدد الكروت'}
+                {t('vouchers.quantityLabel')}
               </label>
               <div className="drawer-input-row">
-                <div style={{ flex: 1, position: 'relative' }}>
+                <div style={{ flex: 1 }}>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -307,10 +232,9 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
                       const val = e.target.value;
                       if (val === '' || /^\d+$/.test(val)) setCountInput(val);
                     }}
-                    placeholder={t('vouchers.quantityLabel') || 'أدخل عدد الكروت'}
+                    placeholder={t('vouchers.enterQuantity')}
                     className="drawer-input-field"
                     style={{
-                      fontWeight: 800,
                       textAlign: isRtl ? 'right' : 'left',
                       padding: '0 12px',
                     }}
@@ -328,39 +252,25 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
                     }}
                     className="drawer-select-field"
                     style={{
-                      fontSize: '12px',
                       padding: isRtl ? '0 10px 0 28px' : '0 28px 0 10px',
                     }}
                   >
-                    <option value="" disabled style={{ background: '#1e293b', color: '#94a3b8' }}>
-                      كمية محددة...
+                    <option value="" disabled>
+                      {t('vouchers.presetQuantity')}
                     </option>
                     {[50, 100, 250, 500, 1000, 2000].map((q) => (
-                      <option
-                        key={q}
-                        value={String(q)}
-                        style={{ background: '#1e293b', color: '#ffffff', fontWeight: 600 }}
-                      >
-                        {q} كرت
+                      <option key={q} value={String(q)}>
+                        {q} {t('vouchers.vouchersUnit')}
                       </option>
                     ))}
-                    <option
-                      value="custom"
-                      style={{ background: '#1e293b', color: '#60a5fa', fontWeight: 700 }}
-                    >
-                      مخصص
+                    <option value="custom">
+                      {t('vouchers.custom')}
                     </option>
                   </select>
                   <ChevronDown
                     size={14}
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      [isRtl ? 'left' : 'right']: '10px',
-                      color: 'var(--text-muted)',
-                      pointerEvents: 'none',
-                    }}
+                    className="drawer-select-chevron"
+                    style={{ [isRtl ? 'left' : 'right']: '10px' }}
                   />
                 </div>
               </div>
@@ -370,10 +280,10 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
             <div className="drawer-field-group">
               <div className="drawer-field-header">
                 <label className="drawer-field-label">
-                  {t('vouchers.lengthLabel') || 'طول كود الـ PIN'}
+                  {t('vouchers.lengthLabel')}
                 </label>
                 <span className="drawer-field-badge">
-                  {length} {t('vouchers.digits') || 'أرقام'}
+                  {length} {t('vouchers.digits')}
                 </span>
               </div>
 
@@ -397,27 +307,19 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
             {/* 4. Batch Name / Print Comment */}
             <div className="drawer-field-group">
               <label className="drawer-field-label">
-                {t('vouchers.batchNameLabel') || 'اسم الدفعة / ملاحظة (اختياري)'}
+                {t('vouchers.batchNameLabel')}
               </label>
-              <div style={{ position: 'relative' }}>
+              <div className="vouchers-search-input-wrapper">
                 <Tag
                   size={14}
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    [isRtl ? 'right' : 'left']: '10px',
-                    color: 'var(--text-muted)',
-                    pointerEvents: 'none',
-                  }}
+                  className="vouchers-search-icon"
+                  style={{ [isRtl ? 'right' : 'left']: '10px' }}
                 />
                 <input
                   type="text"
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder={
-                    t('vouchers.batchNamePlaceholder') || 'مثال: عروض الصيف، شبكة ضيوف...'
-                  }
+                  placeholder={t('vouchers.batchNamePlaceholder')}
                   className="drawer-input-field"
                   style={{
                     padding: `0 ${isRtl ? '30px' : '10px'} 0 ${isRtl ? '10px' : '30px'}`,
@@ -428,35 +330,12 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
           </div>
 
           {/* Sticky Action Footer */}
-          <div
-            className="create-batch-drawer-footer"
-            style={{
-              flexShrink: 0,
-              padding: '10px 16px',
-              background: 'var(--card-bg, #1a1a1a)',
-              borderTop: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px',
-            }}
-          >
+          <div className="create-batch-drawer-footer">
             {jobProgress !== null && (
-              <div
-                style={{
-                  width: '100%',
-                  height: '3px',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  borderRadius: '2px',
-                  overflow: 'hidden',
-                }}
-              >
+              <div className="drawer-progress-track">
                 <div
-                  style={{
-                    width: `${jobProgress}%`,
-                    height: '100%',
-                    background: 'linear-gradient(90deg, #3b82f6 0%, #22c55e 100%)',
-                    transition: 'width 0.3s ease',
-                  }}
+                  className="drawer-progress-fill"
+                  style={{ width: `${jobProgress}%` }}
                 />
               </div>
             )}
@@ -478,7 +357,7 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
               ) : (
                 <>
                   <Sparkles size={16} />
-                  <span>{t('vouchers.generateBtn') || 'إنشاء الكروت الآن'}</span>
+                  <span>{t('vouchers.generateBtn')}</span>
                 </>
               )}
             </button>
