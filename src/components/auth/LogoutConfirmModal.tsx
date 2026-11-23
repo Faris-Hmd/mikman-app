@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { LogOut } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
+import '../layout/shell.css';
 
 interface LogoutConfirmModalProps {
   onClose: () => void;
@@ -25,90 +26,38 @@ export default function LogoutConfirmModal({ onClose, onSigningOut }: LogoutConf
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
+    <div className="modal-overlay z-[9999]" onClick={onClose}>
       <div
-        className="modal-content"
+        className="shell-modal-content"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '90%',
-          maxWidth: '380px',
-          backgroundColor: 'var(--card-bg)',
-          border: '1px solid var(--glass-border)',
-          borderRadius: '20px',
-          padding: '24px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(16px)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          gap: '16px',
-        }}
       >
-        <div
-          style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(239, 68, 68, 0.12)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#ef4444',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
-          }}
-        >
+        <div className="shell-modal-icon-danger">
           <LogOut size={28} />
         </div>
 
         <div>
-          <h2 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--foreground)', margin: '0 0 8px 0' }}>
-            {t('account.signOutConfirmTitle') || t('sidebar.signOut')}
-          </h2>
-          <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', margin: 0, lineHeight: '1.5' }}>
-            {t('account.signOutConfirmDesc') || 'Are you sure you want to sign out?'}
+          <h3 className="text-base font-bold text-foreground m-0 mb-1.5">
+            {t('sidebar.confirmSignOut') || 'Sign Out'}
+          </h3>
+          <p className="text-xs text-muted m-0 leading-relaxed">
+            {t('sidebar.confirmSignOutDesc') || 'Are you sure you want to sign out from MikMan?'}
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '8px' }}>
+        <div className="flex gap-2.5 w-full mt-2">
           <button
             onClick={onClose}
             disabled={isLoading}
-            style={{
-              flex: 1,
-              padding: '10px 14px',
-              borderRadius: '10px',
-              backgroundColor: 'transparent',
-              border: '1px solid var(--glass-border)',
-              color: 'var(--foreground)',
-              fontWeight: '600',
-              cursor: 'pointer',
-              fontSize: '14px',
-              transition: 'all 0.2s ease',
-              opacity: isLoading ? 0.5 : 1,
-            }}
+            className="btn-solid-slate flex-1 py-2.5 rounded-xl text-xs"
           >
-            {t('common.cancel')}
+            {t('common.cancel') || 'Cancel'}
           </button>
           <button
             onClick={handleSignOut}
             disabled={isLoading}
-            style={{
-              flex: 1,
-              padding: '10px 14px',
-              borderRadius: '10px',
-              backgroundColor: '#ef4444',
-              border: 'none',
-              color: '#ffffff',
-              fontWeight: '700',
-              cursor: 'pointer',
-              fontSize: '14px',
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-              transition: 'all 0.2s ease',
-              opacity: isLoading ? 0.5 : 1,
-            }}
+            className="btn-solid-red flex-1 py-2.5 rounded-xl text-xs"
           >
-            {isLoading ? t('common.signingOut') : (t('account.signOutBtn') || t('sidebar.signOutShort'))}
+            {isLoading ? (t('common.processing') || 'Signing out...') : (t('sidebar.signOut') || 'Sign Out')}
           </button>
         </div>
       </div>

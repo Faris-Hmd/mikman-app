@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchSingleRouterStatusAPI, fetchRouterProfilesWithUserAPI, fetchAllRoutersStatusAPI, formatUptimeAPI } from '../api';
-import { useLanguage } from '../context/LanguageContext';
-import { cleanDisplayName, getRouterImage } from '../lib/helpers';
-import { Router, Cpu, Clock, Users, Thermometer, ChevronDown, Check, LayoutGrid, Activity } from 'lucide-react';
+import { fetchSingleRouterStatusAPI, fetchRouterProfilesWithUserAPI, fetchAllRoutersStatusAPI, formatUptimeAPI } from '../../api';
+import { useLanguage } from '../../context/LanguageContext';
+import { cleanDisplayName, getRouterImage } from '../../lib/helpers';
+import './shell.css';
+import { Cpu, Clock, Users, Thermometer, ChevronDown, Check, LayoutGrid, Activity } from 'lucide-react';
 
 export default function RouterStatusHeader() {
   const navigate = useNavigate();
@@ -15,27 +16,23 @@ export default function RouterStatusHeader() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Extract routerId from route params or pathname
   const match = location.pathname.match(/^\/([^\/]+)/);
   const pathRouterId = match ? match[1] : null;
   const isExcluded = !pathRouterId || ['account', 'register-router', 'auth', ''].includes(pathRouterId);
   const routerId = !isExcluded ? (params.routerId || pathRouterId) : null;
 
-  // Status for active router
   const { data: status, isLoading: isStatusLoading } = useSWR(
     routerId ? `router-status-${routerId}` : null,
     () => fetchSingleRouterStatusAPI(routerId!),
     { refreshInterval: 15000, dedupingInterval: 5000 }
   );
 
-  // Router profiles list
   const { data: profilesResponse } = useSWR(
     'all-router-profiles',
     fetchRouterProfilesWithUserAPI,
     { dedupingInterval: 10000 }
   );
 
-  // All routers status map when dropdown is open
   const { data: allStatuses } = useSWR(
     isOpen ? 'all-routers-status' : null,
     fetchAllRoutersStatusAPI,
@@ -61,7 +58,6 @@ export default function RouterStatusHeader() {
 
   const currentProfile = profiles.find((p: any) => p.id === routerId);
 
-  // Close dropdown on outside click or Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -88,129 +84,52 @@ export default function RouterStatusHeader() {
   const routerDisplayName = cleanDisplayName(rawDisplayName, routerId && !routerId.startsWith('cloud_') ? routerId : 'MikroTik');
   const currentRouterImg = getRouterImage(currentProfile);
 
-  // Handle switching to target router while preserving current sub-route
   const handleSwitchRouter = (targetRouterId: string) => {
     setIsOpen(false);
     if (targetRouterId === routerId) return;
 
-    // Extract subpath after /:routerId (e.g. /revenue, /vouchers, etc.)
     const currentSubPath = location.pathname.replace(`/${routerId}`, '');
     navigate(`/${targetRouterId}${currentSubPath}`);
   };
 
   return (
-    <div
-      style={{
-        width: '100%',
-        background: 'var(--card-bg)',
-        borderBottom: '1px solid var(--glass-border)',
-        padding: '4px 10px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'nowrap',
-        overflowX: 'visible',
-        gap: '8px',
-        fontSize: '11px',
-        fontWeight: 600,
-        boxSizing: 'border-box',
-        direction: isRtl ? 'rtl' : 'ltr',
-        position: 'relative',
-        zIndex: 50,
-      }}
-    >
-      {/* Left: Router Switcher Dropdown & Status Indicator */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-        <div style={{ position: 'relative' }} ref={dropdownRef}>
+    <div className={`shell-status-header ${isRtl ? 'rtl' : 'ltr'}`}>
+      {/* Left: Router Switcher Dropdown & Status Dot */}
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsOpen(!isOpen)}
             type="button"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: isOpen ? 'rgba(var(--primary-rgb), 0.16)' : 'rgba(var(--primary-rgb), 0.08)',
-              border: isOpen ? '1px solid rgba(var(--primary-rgb), 0.35)' : '1px solid transparent',
-              padding: '4px 10px',
-              borderRadius: '8px',
-              color: 'var(--foreground)',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              outline: 'none',
-              fontSize: '11px',
-              userSelect: 'none',
-            }}
+            className={`shell-status-switcher-btn ${isOpen ? 'open' : ''}`}
             title={t('sidebar.switchRouter') || 'Switch Router'}
           >
-            <img src={currentRouterImg} alt="" style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
+            <img src={currentRouterImg} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
+            <span className="truncate max-w-[140px]">
               {routerDisplayName}
             </span>
             <span
-              style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: isStatusLoading ? '#9ca3af' : isOnline ? '#22c55e' : '#ef4444',
-                boxShadow: isOnline ? '0 0 6px #22c55e' : 'none',
-                flexShrink: 0,
-              }}
+              className={`shell-status-dot ${isStatusLoading ? 'connecting' : isOnline ? 'online' : 'offline'}`}
               title={isStatusLoading ? 'Connecting...' : isOnline ? 'Online' : 'Offline'}
             />
             <ChevronDown
               size={12}
-              style={{
-                color: 'var(--text-muted)',
-                transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s ease',
-                flexShrink: 0,
-                marginLeft: isRtl ? 0 : '2px',
-                marginRight: isRtl ? '2px' : 0,
-              }}
+              className={`text-muted transition-transform duration-200 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
             />
           </button>
 
           {/* Dropdown Menu Overlay */}
           {isOpen && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 'calc(100% + 6px)',
-                [isRtl ? 'right' : 'left']: 0,
-                minWidth: '230px',
-                maxWidth: '290px',
-                background: 'var(--card-bg)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: '12px',
-                boxShadow: '0 12px 32px rgba(0, 0, 0, 0.4)',
-                padding: '6px',
-                zIndex: 1000,
-                backdropFilter: 'blur(16px)',
-              }}
-            >
-              <div
-                style={{
-                  padding: '6px 8px 4px 8px',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
+            <div className={`shell-status-dropdown ${isRtl ? 'rtl' : 'ltr'}`}>
+              <div className="px-2 py-1 text-[10px] font-bold text-muted uppercase flex justify-between items-center">
                 <span>{t('sidebar.switchRouter') || 'Switch Router'}</span>
                 {profiles.length > 0 && (
-                  <span style={{ fontSize: '9px', opacity: 0.8 }}>
+                  <span className="text-[9px] opacity-80">
                     {profiles.length} {profiles.length === 1 ? 'router' : 'routers'}
                   </span>
                 )}
               </div>
 
-              <div style={{ maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <div className="max-h-[220px] overflow-y-auto flex flex-col gap-0.5">
                 {profiles.length > 0 ? (
                   profiles.map((p: any) => {
                     const isActive = p.id === routerId;
@@ -224,89 +143,37 @@ export default function RouterStatusHeader() {
                         key={p.id}
                         onClick={() => handleSwitchRouter(p.id)}
                         type="button"
-                        style={{
-                          width: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '8px 10px',
-                          borderRadius: '8px',
-                          background: isActive ? 'rgba(var(--primary-rgb), 0.15)' : 'transparent',
-                          border: isActive ? '1px solid rgba(var(--primary-rgb), 0.3)' : '1px solid transparent',
-                          color: isActive ? 'var(--primary)' : 'var(--foreground)',
-                          fontSize: '11px',
-                          fontWeight: isActive ? 700 : 600,
-                          cursor: 'pointer',
-                          textAlign: isRtl ? 'right' : 'left',
-                          transition: 'all 0.15s ease',
-                          boxSizing: 'border-box',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isActive) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isActive) e.currentTarget.style.background = 'transparent';
-                        }}
+                        className={`shell-status-dropdown-item ${isActive ? 'active' : ''}`}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                          <img src={pImg} alt="" style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0 }} />
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <img src={pImg} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
                           <span
-                            style={{
-                              width: '6px',
-                              height: '6px',
-                              borderRadius: '50%',
-                              backgroundColor: pOnline ? '#22c55e' : '#ef4444',
-                              boxShadow: pOnline ? '0 0 6px #22c55e' : 'none',
-                              flexShrink: 0,
-                            }}
+                            className={`shell-status-dot ${pOnline ? 'online' : 'offline'}`}
                           />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span className="truncate">
                             {displayName}
                           </span>
                         </div>
 
-                        {isActive && <Check size={13} style={{ color: 'var(--primary)', flexShrink: 0 }} />}
+                        {isActive && <Check size={13} className="text-primary flex-shrink-0" />}
                       </button>
                     );
                   })
                 ) : (
-                  <div style={{ padding: '8px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                  <div className="p-2 text-xs text-muted text-center">
                     {t('common.loading') || 'Loading...'}
                   </div>
                 )}
               </div>
 
-              <div style={{ borderTop: '1px solid var(--glass-border)', marginTop: '4px', paddingTop: '4px' }}>
+              <div className="border-t border-glass mt-1 pt-1">
                 <button
                   onClick={() => {
                     setIsOpen(false);
                     navigate('/');
                   }}
                   type="button"
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 10px',
-                    borderRadius: '8px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    boxSizing: 'border-box',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                    e.currentTarget.style.color = 'var(--foreground)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = 'var(--text-muted)';
-                  }}
+                  className="shell-status-dropdown-item text-muted"
                 >
                   <LayoutGrid size={12} />
                   <span>{t('header.routerSelection') || 'All Routers'}</span>
@@ -315,87 +182,47 @@ export default function RouterStatusHeader() {
             </div>
           )}
         </div>
-
-        {/* Status Pill (Hidden on mobile) */}
-        <div
-          className="hide-sm"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '5px',
-            padding: '2px 8px',
-            borderRadius: '12px',
-            fontSize: '10px',
-            fontWeight: 700,
-            background: isStatusLoading
-              ? 'rgba(255, 255, 255, 0.05)'
-              : isOnline
-              ? 'rgba(34, 197, 94, 0.12)'
-              : 'rgba(239, 68, 68, 0.12)',
-            color: isStatusLoading
-              ? 'var(--text-muted)'
-              : isOnline
-              ? '#22c55e'
-              : '#ef4444',
-            border: `1px solid ${
-              isStatusLoading
-                ? 'var(--glass-border)'
-                : isOnline
-                ? 'rgba(34, 197, 94, 0.25)'
-                : 'rgba(239, 68, 68, 0.25)'
-            }`,
-          }}
-        >
-          <span>
-            {isStatusLoading
-              ? t('header.connecting')
-              : isOnline
-              ? t('header.connected')
-              : t('header.disconnected')}
-          </span>
-        </div>
       </div>
 
-      {/* Right: Quick Telemetry (colored icons, clean inline text without badges or padding) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+      {/* Right: Quick Telemetry */}
+      <div className="shell-telemetry-strip">
         {status?.activeUsers != null && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('dashboard.activeSessions')}>
-            <Users size={13} style={{ color: '#60a5fa' }} />
-            <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{status.activeUsers}</span>
+          <div className="shell-telemetry-badge" title={t('dashboard.activeSessions')}>
+            <Users size={13} className="text-blue-400" />
+            <strong>{status.activeUsers}</strong>
           </div>
         )}
 
         {status?.cpuLoad != null && (
-          <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('header.cpuLoad')}>
-            <Cpu size={13} style={{ color: '#fb923c' }} />
-            <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{status.cpuLoad}%</span>
+          <div className="shell-telemetry-badge hide-on-mobile" title={t('header.cpuLoad')}>
+            <Cpu size={13} className="text-orange-400" />
+            <strong>{status.cpuLoad}%</strong>
           </div>
         )}
 
         {status?.totalMemory != null && status?.freeMemory != null && (
-          <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('header.ram') || 'RAM'}>
-            <Activity size={13} style={{ color: '#a78bfa' }} />
-            <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>
+          <div className="shell-telemetry-badge hide-on-mobile" title={t('header.ram') || 'RAM'}>
+            <Activity size={13} className="text-purple-400" />
+            <strong>
               {Math.round((Number(status.totalMemory) - Number(status.freeMemory)) / (1024 * 1024))}MB
-            </span>
+            </strong>
           </div>
         )}
 
         {status?.uptime && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('header.uptime')}>
-            <Clock size={13} style={{ color: '#34d399' }} />
-            <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{formatUptimeAPI(status.uptime)}</span>
+          <div className="shell-telemetry-badge" title={t('header.uptime')}>
+            <Clock size={13} className="text-emerald-400" />
+            <strong>{formatUptimeAPI(status.uptime)}</strong>
           </div>
         )}
 
         {status?.temperature != null && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('header.temp')}>
-            <Thermometer size={13} style={{ color: '#f87171' }} />
-            <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{status.temperature}°C</span>
+          <div className="shell-telemetry-badge" title={t('header.temp')}>
+            <Thermometer size={13} className="text-red-400" />
+            <strong>{status.temperature}°C</strong>
           </div>
         )}
       </div>
     </div>
   );
 }
-

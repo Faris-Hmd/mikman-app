@@ -197,6 +197,8 @@ export interface UserData {
   email: string;
   approved: boolean;
   expiresAt: string | null;
+  remainingDays?: number | null;
+  isExpired?: boolean;
   maxRouters: number;
   quota: string;
   hasPassword: boolean;
@@ -942,7 +944,6 @@ export const updateRouterProfileAPI = async (
     useCustomHotspotName?: boolean;
     cardPrintLabel?: string;
     useCustomPrintLabel?: boolean;
-    portApMap?: Record<string, string>;
   }
 ): Promise<{ success: boolean; message: string; updates?: string[]; errors?: string[] }> => {
   return apiCall(`/routers/${id}`, {
@@ -959,14 +960,11 @@ export interface RouterInterfaceItem {
   running: boolean;
   disabled: boolean;
   comment?: string;
-  apName?: string;
-  clientCount?: number;
   macAddress?: string;
 }
 
 export interface RouterInterfacesResponse {
   interfaces: RouterInterfaceItem[];
-  portApMap: Record<string, string>;
 }
 
 export const fetchRouterInterfacesAPI = async (routerId: string): Promise<RouterInterfacesResponse> => {

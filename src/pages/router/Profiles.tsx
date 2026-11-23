@@ -1,221 +1,45 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
-import { fetchProfilesAPI, createProfileAPI, renameProfileAPI, deleteProfileAPI, syncAllProfilesAPI, fetchVoucherBatchesAPI, revalidateRouterCache } from '../../api';
-import { useLanguage } from '../../context/LanguageContext';
-import { useModal } from '../../context/ModalContext';
 import {
   Layers,
   Clock,
   HardDrive,
   Plus,
-  Loader2,
-  Tag,
   Shield,
-  Trash2,
   Pencil,
-  X,
-  ChevronDown,
   DollarSign,
   CheckCircle2,
-  AlertCircle,
   Zap,
-  RefreshCw,
+  Tag,
 } from 'lucide-react';
-
-interface Profile {
-  '.id': string;
-  id?: string;
-  name: string;
-  validity?: string;
-  limitMB?: number;
-  isUnlimited?: boolean;
-  printLabel?: string;
-  revenue?: number | string;
-  price?: number | string;
-}
-
-const parseValidity = (str?: string) => {
-  if (!str) {
-    return { num: 0, unit: '', isUnl: true };
-  }
-  const s = str.trim().toLowerCase();
-  if (s === '0d' || s === '0h' || s === '0m' || s === '0' || s === 'unlimited' || s === 'none' || s === 'infinity' || s === '∞') {
-    return { num: 0, unit: '', isUnl: true };
-  }
-  const match = s.match(/^(\d+)\s*([a-zA-Z]+)?$/);
-  if (match) {
-    const num = parseInt(match[1], 10) || 1;
-    if (num === 0) {
-      return { num: 0, unit: '', isUnl: true };
-    }
-    const u = (match[2] || 'd').toLowerCase();
-    const unit = ['m', 'h', 'd', 'w'].includes(u) ? u : 'd';
-    return { num, unit, isUnl: false };
-  }
-  return { num: 0, unit: '', isUnl: true };
-};
-
-const formatPriceBadge = (val: number): string => {
-  if (val >= 1000) {
-    const kVal = val / 1000;
-    const formatted = kVal % 1 === 0 ? String(kVal) : kVal.toFixed(1).replace(/\.0$/, '');
-    return `${formatted}k`;
-  }
-  if (val % 1 === 0) {
-    return String(val);
-  }
-  return String(Number(val.toFixed(2)));
-};
-
-const toArabicDigits = (val: number | string): string => {
-  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-  return String(val).replace(/[0-9]/g, (d) => arabicDigits[Number(d)]);
-};
-
-const generateDefaultProfileName = (
-  isUnlimitedTime: boolean,
-  validityNum: number | string,
-  validityUnit: string,
-  isUnlimitedData: boolean,
-  limitMB: number | undefined,
-  customVal: number | string,
-  customUnit: 'MB' | 'GB',
-  isArabic: boolean
-): string => {
-  let timeStr = '';
-  if (isUnlimitedTime) {
-    timeStr = isArabic ? 'بدون حد' : 'Unlimited';
-  } else {
-    const rawNum = validityNum !== '' && !isNaN(Number(validityNum)) ? Number(validityNum) : '';
-    const unit = (validityUnit || 'd').toLowerCase();
-    if (isArabic) {
-      if (rawNum === '') {
-        timeStr = '';
-      } else {
-        const n = Number(rawNum);
-        let unitLabel = 'يوم';
-        if (unit === 'm') unitLabel = n >= 3 && n <= 10 ? 'دقائق' : 'دقيقة';
-        if (unit === 'h') unitLabel = n >= 3 && n <= 10 ? 'ساعات' : 'ساعة';
-        if (unit === 'd') unitLabel = n >= 3 && n <= 10 ? 'أيام' : 'يوم';
-        if (unit === 'w') unitLabel = n >= 3 && n <= 10 ? 'أسابيع' : 'أسبوع';
-        timeStr = `${toArabicDigits(rawNum)} ${unitLabel}`;
-      }
-    } else {
-      if (rawNum === '') {
-        timeStr = '';
-      } else {
-        let unitLabel = 'D';
-        if (unit === 'm') unitLabel = 'M';
-        if (unit === 'h') unitLabel = 'H';
-        if (unit === 'd') unitLabel = 'D';
-        if (unit === 'w') unitLabel = 'W';
-        timeStr = `${rawNum}${unitLabel}`;
-      }
-    }
-  }
-
-  let dataStr = '';
-  if (!isUnlimitedData) {
-    if (customVal !== '' && !isNaN(Number(customVal)) && Number(customVal) > 0) {
-      if (isArabic) {
-        const unitLabel = customUnit === 'GB' ? 'جيجا' : 'ميجا';
-        dataStr = `${toArabicDigits(customVal)} ${unitLabel}`;
-      } else {
-        dataStr = `${customVal}${customUnit}`;
-      }
-    } else if (limitMB && limitMB > 0) {
-      if (limitMB >= 1024 && limitMB % 1024 === 0) {
-        const gb = limitMB / 1024;
-        dataStr = isArabic ? `${toArabicDigits(gb)} جيجا` : `${gb}GB`;
-      } else {
-        dataStr = isArabic ? `${toArabicDigits(limitMB)} ميجا` : `${limitMB}MB`;
-      }
-    }
-  }
-
-  if (timeStr && dataStr) {
-    if (isUnlimitedTime && dataStr) {
-      return dataStr;
-    }
-    return `${timeStr} ${dataStr}`;
-  }
-  if (timeStr) {
-    return timeStr;
-  }
-  if (dataStr) {
-    return dataStr;
-  }
-  return isArabic ? 'بروفايل جديد' : 'New Profile';
-};
+import {
+  fetchProfilesAPI,
+  deleteProfileAPI,
+  createProfileAPI,
+  renameProfileAPI,
+  revalidateRouterCache,
+} from '../../api';
+import { useLanguage } from '../../context/LanguageContext';
+import { useModal } from '../../context/ModalContext';
+import { Profile, ProfileWarningData } from '../../components/profiles/types';
+import { ProfileDrawer, ProfileSavePayload } from '../../components/profiles/ProfileDrawer';
+import { ProfileWarningModal } from '../../components/profiles/ProfileWarningModal';
+import './Profiles.css';
 
 export default function ProfilesPage() {
   const { routerId } = useParams<{ routerId: string }>();
   const { t, isRtl } = useLanguage();
   const { showConfirm, showAlert } = useModal();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
-
-  // Form State
-  const [name, setName] = useState('');
-  const [isNameAutoGenerated, setIsNameAutoGenerated] = useState(true);
-  const [validityNum, setValidityNum] = useState<number | string>(1);
-  const [validityUnit, setValidityUnit] = useState<string>('d');
-  const [isUnlimitedTime, setIsUnlimitedTime] = useState(false);
-
-  const [limitMB, setLimitMB] = useState<number | undefined>(undefined);
-  const [isUnlimited, setIsUnlimited] = useState(true);
-  const [customVal, setCustomVal] = useState<number | string>('');
-  const [customUnit, setCustomUnit] = useState<'MB' | 'GB'>('GB');
-  const [revenue, setRevenue] = useState<string | number>('');
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSyncingAll, setIsSyncingAll] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [warningModalData, setWarningModalData] = useState<{ profileName: string; userCount: number; message?: string; profileObj?: Profile } | null>(null);
+  const [warningModalData, setWarningModalData] = useState<ProfileWarningData | null>(null);
 
-  const { data: voucherBatches } = useSWR(
-    routerId ? `router-voucher-batches-${routerId}` : null,
-    () => fetchVoucherBatchesAPI(routerId!),
-    { revalidateOnFocus: true }
-  );
-
-  const attachedVouchersMap = useMemo(() => {
-    const map = new Map<string, number>();
-    if (Array.isArray(voucherBatches)) {
-      voucherBatches.forEach((b: any) => {
-        if (b.profile) {
-          const count = Number(b.total ?? b.count ?? b.unusedCount ?? 0);
-          map.set(b.profile, (map.get(b.profile) || 0) + count);
-        }
-      });
-    }
-    return map;
-  }, [voucherBatches]);
-
-  const handleSyncAllProfiles = async () => {
-    if (!routerId || isSyncingAll) return;
-    try {
-      setIsSyncingAll(true);
-      const res = await syncAllProfilesAPI(routerId);
-      revalidateRouterCache(routerId);
-      await mutate();
-      setSuccessMsg(isRtl ? `تم تحديث وقفل الماك لجميع البروفايلات (${res.count}) بنجاح` : `Successfully updated & locked MAC on all ${res.count} profiles!`);
-      setTimeout(() => setSuccessMsg(''), 4000);
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to sync profiles');
-      setTimeout(() => setErrorMsg(''), 4000);
-    } finally {
-      setIsSyncingAll(false);
-    }
-  };
-
-  const { data: profiles, isLoading, mutate } = useSWR(
+  const { data: profiles, isLoading, mutate } = useSWR<Profile[]>(
     routerId ? `router-profiles-${routerId}` : null,
-    () => fetchProfilesAPI(routerId!),
+    () => fetchProfilesAPI(routerId!) as Promise<Profile[]>,
     { revalidateOnFocus: true, keepPreviousData: true }
   );
 
@@ -224,177 +48,71 @@ export default function ProfilesPage() {
     return profiles.filter((p) => p.name && p.name.toLowerCase() !== 'default');
   }, [profiles]);
 
-  // Data Limit Presets
-  const dataPresets = useMemo(() => [
-    { label: isRtl ? 'غير محدود' : 'Unlimited', mb: 0, val: '', unit: 'GB' as const, isUnl: true },
-    { label: '500 MB', mb: 500, val: 500, unit: 'MB' as const, isUnl: false },
-    { label: '1 GB', mb: 1024, val: 1, unit: 'GB' as const, isUnl: false },
-    { label: '2 GB', mb: 2048, val: 2, unit: 'GB' as const, isUnl: false },
-    { label: '5 GB', mb: 5120, val: 5, unit: 'GB' as const, isUnl: false },
-  ], [isRtl]);
-
   // Telemetry counts
   const totalProfiles = profileList.length;
   const unlimitedCount = profileList.filter((p) => p.isUnlimited || !p.limitMB).length;
   const limitedCount = totalProfiles - unlimitedCount;
 
-  // Helper to update auto-generated profile name if auto-generation is active
-  const updateAutoNameIfNeeded = (
-    unlTime = isUnlimitedTime,
-    vNum: number | string = validityNum,
-    vUnit = validityUnit,
-    unlData = isUnlimited,
-    lMB = limitMB,
-    cVal = customVal,
-    cUnit = customUnit
-  ) => {
-    if (!editingProfile && isNameAutoGenerated) {
-      const newAutoName = generateDefaultProfileName(
-        unlTime,
-        vNum,
-        vUnit,
-        unlData,
-        lMB,
-        cVal,
-        cUnit,
-        isRtl
-      );
-      setName(newAutoName);
-    }
-  };
-
-  // Open modal for Create
-  const handleOpenCreateModal = () => {
+  // Drawer handlers
+  const handleOpenCreateDrawer = () => {
     setEditingProfile(null);
-    setIsNameAutoGenerated(true);
-    const initialName = generateDefaultProfileName(false, 1, 'd', true, undefined, '', 'GB', isRtl);
-    setName(initialName);
-    setValidityNum(1);
-    setValidityUnit('d');
-    setIsUnlimitedTime(false);
-    setLimitMB(undefined);
-    setIsUnlimited(true);
-    setCustomVal('');
-    setCustomUnit('GB');
-    setRevenue('');
-    setErrorMsg('');
-    setIsModalOpen(true);
+    setIsDrawerOpen(true);
   };
 
-  // Open modal for Edit
-  const handleOpenEditModal = (p: Profile) => {
+  const handleOpenEditDrawer = (p: Profile) => {
     setEditingProfile(p);
-    setIsNameAutoGenerated(false);
-    setName(p.name || '');
-    const { num, unit, isUnl } = parseValidity(p.validity);
-    setIsUnlimitedTime(isUnl);
-    setValidityNum(isUnl ? 1 : num);
-    setValidityUnit(isUnl ? 'd' : unit);
-    
-    const profileIsUnl = p.isUnlimited ?? !p.limitMB;
-    setIsUnlimited(profileIsUnl);
-    setLimitMB(p.limitMB);
+    setIsDrawerOpen(true);
+  };
 
-    if (!profileIsUnl && p.limitMB) {
-      if (p.limitMB % 1024 === 0) {
-        setCustomUnit('GB');
-        setCustomVal(p.limitMB / 1024);
-      } else {
-        setCustomUnit('MB');
-        setCustomVal(p.limitMB);
-      }
+  const handleSaveProfile = async (payload: ProfileSavePayload) => {
+    if (!routerId) return;
+    if (payload.isEdit && payload.profileId) {
+      await renameProfileAPI(
+        routerId,
+        payload.profileId,
+        payload.name,
+        undefined,
+        payload.price,
+        payload.validity,
+        payload.limitMB,
+        payload.isUnlimited
+      );
+      setSuccessMsg(t('profiles.profileUpdated'));
     } else {
-      setCustomVal('');
-      setCustomUnit('GB');
+      await createProfileAPI(
+        routerId,
+        payload.name,
+        payload.validity,
+        payload.limitMB,
+        payload.isUnlimited,
+        undefined,
+        payload.price
+      );
+      setSuccessMsg(t('profiles.profileCreated'));
     }
-
-    const initialRev = p.revenue != null ? p.revenue : p.price != null ? p.price : '';
-    setRevenue(initialRev !== '' ? String(initialRev) : '');
-    setErrorMsg('');
-    setIsModalOpen(true);
+    revalidateRouterCache(routerId);
+    await mutate();
+    setTimeout(() => setSuccessMsg(''), 4000);
   };
 
-  // Handle Form Submit (Create or Edit)
-  const handleSubmitForm = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-
-    setIsSubmitting(true);
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    const effectiveValidityNum = Number(validityNum) >= 1 ? Number(validityNum) : 1;
-    const formattedValidity = isUnlimitedTime ? '0d' : `${effectiveValidityNum}${validityUnit || 'd'}`;
-    const apiIsUnlimited = isUnlimitedTime && isUnlimited;
-
-    const effectiveLimitMB = isUnlimited
-      ? undefined
-      : customVal !== '' && !isNaN(Number(customVal)) && Number(customVal) > 0
-      ? customUnit === 'GB'
-        ? Math.round(Number(customVal) * 1024)
-        : Math.round(Number(customVal))
-      : limitMB
-      ? Number(limitMB)
-      : undefined;
-
-    try {
-      if (editingProfile) {
-        // Edit Mode
-        await renameProfileAPI(
-          routerId!,
-          editingProfile['.id'],
-          name.trim(),
-          undefined,
-          revenue ? Number(revenue) : undefined,
-          formattedValidity,
-          effectiveLimitMB,
-          apiIsUnlimited
-        );
-        setSuccessMsg(t('profiles.profileUpdated'));
-      } else {
-        // Create Mode
-        await createProfileAPI(
-          routerId!,
-          name.trim(),
-          formattedValidity,
-          effectiveLimitMB,
-          apiIsUnlimited,
-          undefined,
-          revenue ? Number(revenue) : undefined
-        );
-        setSuccessMsg(t('profiles.profileCreated'));
-      }
-
-      setIsModalOpen(false);
-      mutate();
-      if (routerId) revalidateRouterCache(routerId);
-    } catch (err: any) {
-      setErrorMsg(err?.message || (editingProfile ? t('profiles.couldNotUpdate') : t('profiles.couldNotCreate')));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle Delete Profile
+  // Delete handler
   const handleDeleteProfile = (p: Profile) => {
-    const attachedCount = attachedVouchersMap.get(p.name) || 0;
-    if (attachedCount > 0) {
+    if (p.vouchersCount && p.vouchersCount > 0) {
       setWarningModalData({
         profileName: p.name,
-        userCount: attachedCount,
+        userCount: p.vouchersCount,
         profileObj: p,
       });
       return;
     }
 
-    const title = t('profiles.deleteConfirmTitle') || t('common.delete') || 'Delete Profile?';
-    const message = (t('profiles.deleteConfirm') || 'Are you sure you want to delete profile "{name}"?').replace('{name}', p.name);
+    const title = t('profiles.deleteConfirmTitle');
+    const message = t('profiles.deleteConfirm').replace('{name}', p.name);
 
     showConfirm(title, message, async () => {
-      setDeletingId(p['.id']);
       try {
         await deleteProfileAPI(routerId!, p['.id']);
-        showAlert(t('common.success'), t('profiles.profileDeleted') || 'Profile deleted successfully', 'success');
+        showAlert(t('common.success'), t('profiles.profileDeleted'), 'success');
         mutate();
         if (routerId) revalidateRouterCache(routerId);
       } catch (err: any) {
@@ -408,1057 +126,185 @@ export default function ProfilesPage() {
         } else {
           showAlert(t('common.error'), err?.message || 'Error deleting profile', 'error');
         }
-      } finally {
-        setDeletingId(null);
       }
     });
   };
 
-  // Theme compatible styles
-  const cardGlassStyle: React.CSSProperties = {
-    background: 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-    border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-    borderRadius: '10px',
-    padding: '10px 12px',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
-    color: 'var(--foreground)',
-  };
-
-  const modalOverlayStyle: React.CSSProperties = {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 999,
-    background: 'rgba(0, 0, 0, 0.65)',
-    backdropFilter: 'blur(6px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '14px',
-  };
-
-  const modalContainerStyle: React.CSSProperties = {
-    background: 'var(--card-bg, #1a1a1a)',
-    color: 'var(--foreground)',
-    border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.15))',
-    borderRadius: '12px',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-    maxWidth: '420px',
-    width: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-    padding: '16px',
-    boxSizing: 'border-box',
-    direction: isRtl ? 'rtl' : 'ltr',
-  };
-
-  const inputContainerStyle: React.CSSProperties = {
-    position: 'relative',
-    width: '100%',
-  };
-
-  const inputStyle: React.CSSProperties = {
-    background: 'var(--input-bg, rgba(0, 0, 0, 0.2))',
-    border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.12))',
-    borderRadius: '8px',
-    height: '36px',
-    padding: isRtl ? '0 32px 0 10px' : '0 10px 0 32px',
-    color: 'var(--foreground)',
-    fontSize: '13px',
-    outline: 'none',
-    width: '100%',
-    boxSizing: 'border-box',
-  };
-
-  const selectStyle: React.CSSProperties = {
-    background: 'var(--input-bg, rgba(0, 0, 0, 0.2))',
-    border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.12))',
-    borderRadius: '8px',
-    height: '36px',
-    padding: isRtl ? '0 10px 0 28px' : '0 28px 0 10px',
-    color: 'var(--foreground)',
-    fontSize: '13px',
-    outline: 'none',
-    cursor: 'pointer',
-    boxSizing: 'border-box',
-    appearance: 'none',
-    WebkitAppearance: 'none',
-    width: '100%',
-  };
-
-  const embeddedIconStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    [isRtl ? 'right' : 'left']: '10px',
-    color: 'var(--text-muted)',
-    pointerEvents: 'none',
-  };
-
-  const validityPresets = [
-    { label: t('profiles.unlimitedTime') || 'Unlimited Time', num: 0, unit: '', isUnl: true },
-    { label: `${isRtl ? toArabicDigits(1) : 1} ${t('profiles.unitHours') || 'Hour'}`, num: 1, unit: 'h', isUnl: false },
-    { label: `${isRtl ? toArabicDigits(12) : 12} ${t('profiles.unitHours') || 'Hours'}`, num: 12, unit: 'h', isUnl: false },
-    { label: `${isRtl ? toArabicDigits(1) : 1} ${t('profiles.unitDays') || 'Day'}`, num: 1, unit: 'd', isUnl: false },
-    { label: `${isRtl ? toArabicDigits(7) : 7} ${t('profiles.unitDays') || 'Days'}`, num: 7, unit: 'd', isUnl: false },
-    { label: `${isRtl ? toArabicDigits(30) : 30} ${t('profiles.unitDays') || 'Days'}`, num: 30, unit: 'd', isUnl: false },
-  ];
-
   return (
-    <div
-      className="responsive-container"
-      style={{
-        direction: isRtl ? 'rtl' : 'ltr',
-      }}
-    >
+    <div className="responsive-container" dir={isRtl ? 'rtl' : 'ltr'}>
       {/* ─── Page Header ─── */}
       <div className="page-header-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        <div className="page-header-left-group">
           <div className="page-header-icon">
             <Layers />
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 className="page-header-title">
-              {t('profiles.title')}
-            </h2>
-            <p className="page-header-subtitle">
-              {t('profiles.subtitle') || 'إدارة وتخصيص الباقات والسرعات'}
-            </p>
+          <div className="page-header-titles">
+            <h2 className="page-header-title">{t('profiles.title')}</h2>
+            <p className="page-header-subtitle">{t('profiles.subtitle')}</p>
           </div>
         </div>
 
         <button
-          onClick={handleOpenCreateModal}
+          onClick={handleOpenCreateDrawer}
           className="page-header-btn page-header-btn-primary"
         >
           <Plus size={14} />
-          <span style={{ whiteSpace: 'nowrap' }}>{t('common.add') || 'إضافة'}</span>
+          <span>{t('common.add')}</span>
         </button>
       </div>
 
       {/* Success Notification */}
       {successMsg && (
-        <div
-          style={{
-            background: 'rgba(34, 197, 94, 0.12)',
-            border: '1px solid rgba(34, 197, 94, 0.3)',
-            borderRadius: '8px',
-            padding: '8px 12px',
-            color: '#4ade80',
-            fontSize: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-          }}
-        >
-          <CheckCircle2 size={14} style={{ flexShrink: 0 }} />
+        <div className="profile-success-banner">
+          <CheckCircle2 size={14} className="flex-shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
-      {/* Telemetry Strip (2 cols on mobile) */}
-      <div className="stat-summary-grid">
-        <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '7px',
-              background: 'var(--secondary)',
-              color: 'var(--foreground)',
-              border: '1px solid var(--glass-border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
+      {/* Telemetry Summary Cards */}
+      <div className="profiles-stats-grid">
+        <div className="profile-stat-card">
+          <div className="profile-stat-icon">
             <Layers size={14} />
           </div>
-          <div>
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
-              {t('profiles.totalProfiles')}
-            </span>
-            <strong style={{ fontSize: '14px', color: 'var(--foreground)', fontWeight: 700 }}>
-              {totalProfiles}
-            </strong>
+          <div className="profile-stat-info">
+            <span className="profile-stat-label">{t('profiles.totalProfiles')}</span>
+            <strong className="profile-stat-value">{totalProfiles}</strong>
           </div>
         </div>
 
-        <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '7px',
-              background: 'var(--secondary)',
-              color: 'var(--foreground)',
-              border: '1px solid var(--glass-border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
+        <div className="profile-stat-card">
+          <div className="profile-stat-icon">
             <Zap size={14} />
           </div>
-          <div>
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
-              {t('profiles.unlimited')}
-            </span>
-            <strong style={{ fontSize: '14px', color: '#22c55e', fontWeight: 700 }}>
-              {unlimitedCount}
-            </strong>
+          <div className="profile-stat-info">
+            <span className="profile-stat-label">{t('profiles.unlimited')}</span>
+            <strong className="profile-stat-value unlimited">{unlimitedCount}</strong>
           </div>
         </div>
 
-        <div className="responsive-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '7px',
-              background: 'var(--secondary)',
-              color: 'var(--foreground)',
-              border: '1px solid var(--glass-border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
+        <div className="profile-stat-card">
+          <div className="profile-stat-icon">
             <HardDrive size={14} />
           </div>
-          <div>
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', lineHeight: 1 }}>
-              {t('profiles.trafficLimit')}
-            </span>
-            <strong style={{ fontSize: '14px', color: '#a855f7', fontWeight: 700 }}>
-              {limitedCount}
-            </strong>
+          <div className="profile-stat-info">
+            <span className="profile-stat-label">{t('profiles.trafficLimit')}</span>
+            <strong className="profile-stat-value limited">{limitedCount}</strong>
           </div>
         </div>
       </div>
 
       {/* Profiles List */}
       {isLoading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="profiles-list-stack">
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="skeleton"
-              style={{ height: '48px', borderRadius: '10px', width: '100%' }}
+              className="skeleton profile-skeleton-item"
             />
           ))}
         </div>
       ) : profileList.length === 0 ? (
-        <div style={{ ...cardGlassStyle, padding: '24px', textAlign: 'center' }}>
-          <Shield size={24} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '6px' }} />
-          <h4 style={{ margin: '0 0 2px', color: 'var(--foreground)', fontSize: '14px' }}>{t('profiles.noProfilesFound')}</h4>
-          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '11px' }}>{t('profiles.noProfilesDesc')}</p>
+        <div className="profiles-empty-state">
+          <Shield size={24} className="profiles-empty-icon" />
+          <h4 className="profiles-empty-title">{t('profiles.noProfilesFound')}</h4>
+          <p className="profiles-empty-desc">{t('profiles.noProfilesDesc')}</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="profiles-list-stack">
           {profileList.map((profile) => {
-            const rawVal = profile.validity;
-            let displayValidity = '...';
-            if (rawVal !== undefined && rawVal !== null) {
-              const s = String(rawVal).trim().toLowerCase();
-              const isUnlVal = s === '' || s === 'unlimited' || s === '0d' || s === '0h' || s === '0m' || s === '0s' || s === '0' || s === 'none';
-              displayValidity = isUnlVal ? '∞' : String(rawVal).toUpperCase();
-            }
-
-            const revVal = profile.revenue ?? profile.price;
-            const numRev = revVal != null && revVal !== '' ? Number(revVal) : NaN;
-            const hasPrice = !isNaN(numRev) && numRev >= 0;
+            const hasPrice = profile.formattedPrice || (profile.price != null && profile.price !== '');
+            const displayValidity = profile.validityBadge || (profile.validity ? profile.validity.toUpperCase() : '∞');
+            const displayData = profile.dataBadge || (profile.isUnlimited || !profile.limitMB ? '∞' : `${profile.limitMB} MB`);
 
             return (
               <div
                 key={profile['.id'] || profile.name}
-                className="list-item-card hover-card"
-                onClick={() => handleOpenEditModal(profile)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '6px',
-                  padding: '6px 10px',
-                  cursor: 'pointer',
-                }}
+                className="profile-card-item"
+                onClick={() => handleOpenEditDrawer(profile)}
               >
-                {/* Left: Icon, Profile Name & Vertically Aligned Badges Row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
-                  <div
-                    className="item-icon"
-                    style={{
-                      background: 'var(--secondary)',
-                      color: 'var(--foreground)',
-                      border: '1px solid var(--glass-border)',
-                      width: '26px',
-                      height: '26px',
-                      borderRadius: '6px',
-                      flexShrink: 0
-                    }}
-                  >
+                {/* Left: Icon, Name & Single-row Badges */}
+                <div className="profile-card-left">
+                  <div className="profile-card-icon">
                     <Layers size={13} />
                   </div>
 
-                  {/* Compact Name width to avoid pushing badges */}
-                  <strong
-                    className="item-title"
-                    style={{
-                      fontSize: '12.5px',
-                      fontWeight: 700,
-                      color: 'var(--foreground)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      width: '82px',
-                      flexShrink: 0,
-                    }}
-                    title={profile.name}
-                  >
+                  <strong className="profile-card-name" title={profile.name}>
                     {profile.name}
                   </strong>
 
-                  {/* Single-row Vertically Aligned Badge Slots */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, flex: 1 }}>
-                    {/* Price / Revenue Badge Slot */}
-                    <div style={{ width: '46px', flexShrink: 0, display: 'flex' }}>
+                  <div className="profile-badge-row">
+                    {/* Price Badge */}
+                    <div className="profile-badge-slot-price">
                       {hasPrice && (
-                        <span
-                          className="item-badge"
-                          style={{
-                            width: '100%',
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            color: '#22c55e',
-                            border: '1px solid var(--glass-border)',
-                            fontSize: '9.5px',
-                            fontWeight: 700,
-                            padding: '0 2px',
-                            borderRadius: '5px',
-                            height: '19px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '2px',
-                            whiteSpace: 'nowrap',
-                            boxSizing: 'border-box',
-                          }}
-                        >
-                          <DollarSign size={9.5} style={{ flexShrink: 0 }} />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatPriceBadge(numRev)}</span>
+                        <span className="profile-meta-badge price">
+                          <DollarSign size={9.5} className="flex-shrink-0" />
+                          <span>{profile.formattedPrice || profile.price}</span>
                         </span>
                       )}
                     </div>
 
-                    {/* Time / Validity Badge Slot */}
-                    <div style={{ width: '54px', flexShrink: 0, display: 'flex' }}>
-                      <span
-                        className="item-badge"
-                        style={{
-                          width: '100%',
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          color: '#38bdf8',
-                          border: '1px solid var(--glass-border)',
-                          fontSize: '9.5px',
-                          fontWeight: 700,
-                          padding: '0 2px',
-                          borderRadius: '5px',
-                          height: '19px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '2px',
-                          whiteSpace: 'nowrap',
-                          boxSizing: 'border-box',
-                        }}
-                      >
-                        <Clock size={9.5} style={{ flexShrink: 0 }} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayValidity}</span>
+                    {/* Validity Badge */}
+                    <div className="profile-badge-slot-time">
+                      <span className="profile-meta-badge time">
+                        <Clock size={9.5} className="flex-shrink-0" />
+                        <span>{displayValidity}</span>
                       </span>
                     </div>
 
-                    {/* Data Limit Badge Slot */}
-                    <div style={{ width: '54px', flexShrink: 0, display: 'flex' }}>
-                      <span
-                        className="item-badge"
-                        style={{
-                          width: '100%',
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          color: '#c084fc',
-                          border: '1px solid var(--glass-border)',
-                          fontSize: '9.5px',
-                          fontWeight: 700,
-                          padding: '0 2px',
-                          borderRadius: '5px',
-                          height: '19px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '2px',
-                          whiteSpace: 'nowrap',
-                          boxSizing: 'border-box',
-                        }}
-                      >
-                        <HardDrive size={9.5} style={{ flexShrink: 0 }} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {profile.isUnlimited || !profile.limitMB || profile.limitMB === 0
-                            ? '∞'
-                            : profile.limitMB >= 500
-                            ? `${(profile.limitMB % 1024 === 0 || profile.limitMB === 512 ? profile.limitMB / 1024 : profile.limitMB / 1000).toFixed(1).replace(/\.0$/, '')} GB`
-                            : `${profile.limitMB} MB`}
-                        </span>
+                    {/* Data Limit Badge */}
+                    <div className="profile-badge-slot-data">
+                      <span className="profile-meta-badge data">
+                        <HardDrive size={9.5} className="flex-shrink-0" />
+                        <span>{displayData}</span>
                       </span>
                     </div>
+
+                    {/* Optional Vouchers Count Badge */}
+                    {profile.vouchersCount !== undefined && profile.vouchersCount > 0 && (
+                      <span className="profile-meta-badge vouchers">
+                        <Tag size={9.5} className="flex-shrink-0" />
+                        <span>{profile.vouchersCount}</span>
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Right: Actions (Edit) */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenEditModal(profile);
-                    }}
-                    title="Edit Profile"
-                    style={{
-                      background: 'var(--secondary)',
-                      border: '1px solid var(--glass-border)',
-                      borderRadius: '6px',
-                      width: '26px',
-                      height: '26px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--foreground)',
-                      cursor: 'pointer',
-                      transition: 'background 0.15s ease',
-                    }}
-                  >
-                    <Pencil size={12} />
-                  </button>
-                </div>
+                {/* Right: Edit Action */}
+                <button
+                  type="button"
+                  className="profile-action-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenEditDrawer(profile);
+                  }}
+                  title={t('profiles.editProfileTitle')}
+                >
+                  <Pencil size={12} />
+                </button>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* ─── Create / Edit Profile Drawer (Full-Height Side Drawer on Desktop, Native Bottom-Sheet on Mobile) ─── */}
-      {isModalOpen && (
-        <div
-          className="create-batch-drawer-overlay"
-          style={{
-            justifyContent: isRtl ? 'flex-start' : 'flex-end',
-          }}
-          onClick={() => {
-            if (!isSubmitting) setIsModalOpen(false);
-          }}
-        >
-          <div
-            className="create-batch-drawer-content"
-            style={{
-              direction: isRtl ? 'rtl' : 'ltr',
-              borderLeft: isRtl ? 'none' : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-              borderRight: isRtl ? '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))' : 'none',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Sheet Drag Handle for Mobile */}
-            <div className="sheet-drag-handle" style={{ margin: '8px auto 2px auto' }} />
-
-            {/* Drawer Header */}
-            <div
-              style={{
-                padding: '12px 16px',
-                borderBottom: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexShrink: 0,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 6px rgba(37, 99, 235, 0.35)',
-                  }}
-                >
-                  <Layers size={16} />
-                </div>
-                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
-                  {editingProfile ? (t('profiles.editProfileTitle') || 'تعديل البروفايل') : (t('profiles.createProfileTitle') || 'إنشاء بروفايل جديد')}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                disabled={isSubmitting}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: 'none',
-                  color: 'var(--foreground)',
-                  cursor: 'pointer',
-                  padding: '6px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Drawer Form with Scrollable Body & Sticky Footer */}
-            <form
-              onSubmit={handleSubmitForm}
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                minHeight: 0,
-              }}
-            >
-              <div
-                style={{
-                  flex: 1,
-                  overflowY: 'auto',
-                  padding: '14px 16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                }}
-              >
-                {errorMsg && (
-                  <div
-                    style={{
-                      background: '#ef4444',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      color: '#ffffff',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <AlertCircle size={15} style={{ flexShrink: 0 }} />
-                    <span>{errorMsg}</span>
-                  </div>
-                )}
-
-                {/* Profile Name */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
-                    {t('profiles.nameLabel') || 'اسم البروفايل'} *
-                  </label>
-                  <div style={inputContainerStyle}>
-                    <Layers size={14} style={embeddedIconStyle} />
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => {
-                        setIsNameAutoGenerated(false);
-                        setName(e.target.value);
-                      }}
-                      placeholder={t('profiles.namePlaceholder') || 'مثال: 1Day-1GB'}
-                      style={inputStyle}
-                    />
-                  </div>
-                </div>
-
-                {/* Validity Picker */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
-                      {t('profiles.validityLabel') || 'مدة الصلاحية'} *
-                    </label>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#3b82f6' }}>
-                      {isUnlimitedTime
-                        ? (t('profiles.unlimitedTime') || 'غير محدود')
-                        : `${validityNum} ${validityUnit === 'm' ? (t('profiles.unitMinutes') || 'دقيقة') : validityUnit === 'h' ? (t('profiles.unitHours') || 'ساعة') : validityUnit === 'd' ? (t('profiles.unitDays') || 'يوم') : (t('profiles.unitWeeks') || 'أسبوع')}`}
-                    </span>
-                  </div>
-
-                  {/* Presets Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '5px' }}>
-                    {validityPresets.map((vp) => {
-                      const isSelected = vp.isUnl ? isUnlimitedTime : !isUnlimitedTime && Number(validityNum) === vp.num && validityUnit === vp.unit;
-                      return (
-                        <button
-                          key={vp.label}
-                          type="button"
-                          onClick={() => {
-                            if (vp.isUnl) {
-                              setIsUnlimitedTime(true);
-                              updateAutoNameIfNeeded(true, validityNum, validityUnit, isUnlimited, limitMB, customVal, customUnit);
-                            } else {
-                              setIsUnlimitedTime(false);
-                              setValidityNum(vp.num);
-                              setValidityUnit(vp.unit);
-                              updateAutoNameIfNeeded(false, vp.num, vp.unit, isUnlimited, limitMB, customVal, customUnit);
-                            }
-                          }}
-                          style={{
-                            height: '32px',
-                            borderRadius: '7px',
-                            fontSize: '11px',
-                            fontWeight: isSelected ? 800 : 700,
-                            cursor: 'pointer',
-                            background: isSelected ? '#2563eb' : '#1e293b',
-                            color: isSelected ? '#ffffff' : '#cbd5e1',
-                            border: isSelected ? '1px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          {vp.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Direct Numeric Input + Unit Select Dropdown */}
-                  {!isUnlimitedTime && (
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
-                      <div style={{ ...inputContainerStyle, flex: 1 }}>
-                        <Clock size={14} style={embeddedIconStyle} />
-                        <input
-                          type="number"
-                          min="1"
-                          required={!isUnlimitedTime}
-                          value={validityNum}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const normalized = val.replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
-                            setValidityNum(normalized);
-                            const parsed = normalized !== '' && !isNaN(Number(normalized)) ? Number(normalized) : '';
-                            updateAutoNameIfNeeded(isUnlimitedTime, parsed, validityUnit, isUnlimited, limitMB, customVal, customUnit);
-                          }}
-                          onBlur={() => {
-                            if (validityNum === '' || Number(validityNum) < 1) {
-                              setValidityNum(1);
-                              updateAutoNameIfNeeded(isUnlimitedTime, 1, validityUnit, isUnlimited, limitMB, customVal, customUnit);
-                            }
-                          }}
-                          placeholder="المدة"
-                          style={inputStyle}
-                        />
-                      </div>
-                      <div style={{ position: 'relative', width: '110px', flexShrink: 0 }}>
-                        <select
-                          value={validityUnit}
-                          onChange={(e) => {
-                            const u = e.target.value;
-                            setValidityUnit(u);
-                            updateAutoNameIfNeeded(isUnlimitedTime, validityNum, u, isUnlimited, limitMB, customVal, customUnit);
-                          }}
-                          style={selectStyle}
-                        >
-                          <option value="m" style={{ background: '#1e293b', color: '#ffffff' }}>{t('profiles.unitMinutes') || 'دقيقة'}</option>
-                          <option value="h" style={{ background: '#1e293b', color: '#ffffff' }}>{t('profiles.unitHours') || 'ساعة'}</option>
-                          <option value="d" style={{ background: '#1e293b', color: '#ffffff' }}>{t('profiles.unitDays') || 'يوم'}</option>
-                          <option value="w" style={{ background: '#1e293b', color: '#ffffff' }}>{t('profiles.unitWeeks') || 'أسبوع'}</option>
-                        </select>
-                        <ChevronDown
-                          size={14}
-                          style={{
-                            position: 'absolute',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            [isRtl ? 'left' : 'right']: '8px',
-                            color: 'var(--text-muted)',
-                            pointerEvents: 'none',
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Data Limit Control */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <HardDrive size={14} style={{ color: !isUnlimited ? '#3b82f6' : 'var(--text-muted)' }} />
-                      <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
-                        {t('profiles.limitDataTraffic') || 'سعة البيانات'}
-                      </label>
-                    </div>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#3b82f6' }}>
-                      {isUnlimited
-                        ? (isRtl ? 'غير محدود' : 'Unlimited')
-                        : `${customVal || (limitMB ? (limitMB >= 1024 ? limitMB / 1024 : limitMB) : '')} ${customUnit}`}
-                    </span>
-                  </div>
-
-                  {/* Preset Buttons Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
-                    {dataPresets.map((dp) => {
-                      const isSelected = dp.isUnl ? isUnlimited : !isUnlimited && limitMB === dp.mb;
-                      return (
-                        <button
-                          key={dp.label}
-                          type="button"
-                          onClick={() => {
-                            if (dp.isUnl) {
-                              setIsUnlimited(true);
-                              setLimitMB(undefined);
-                              setCustomVal('');
-                              updateAutoNameIfNeeded(isUnlimitedTime, validityNum, validityUnit, true, undefined, '', customUnit);
-                            } else {
-                              setIsUnlimited(false);
-                              setLimitMB(dp.mb);
-                              setCustomVal(dp.val);
-                              setCustomUnit(dp.unit);
-                              updateAutoNameIfNeeded(isUnlimitedTime, validityNum, validityUnit, false, dp.mb, dp.val, dp.unit);
-                            }
-                          }}
-                          style={{
-                            height: '32px',
-                            borderRadius: '7px',
-                            fontSize: '11px',
-                            fontWeight: isSelected ? 800 : 700,
-                            cursor: 'pointer',
-                            background: isSelected ? '#2563eb' : '#1e293b',
-                            color: isSelected ? '#ffffff' : '#cbd5e1',
-                            border: isSelected ? '1px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '0 2px',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          {dp.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Direct Numeric Input + Unit Select Dropdown */}
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
-                    <div style={{ ...inputContainerStyle, flex: 1 }}>
-                      <HardDrive size={14} style={embeddedIconStyle} />
-                      <input
-                        type="number"
-                        step="any"
-                        min="0.1"
-                        value={customVal}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const normalized = val.replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
-                          if (normalized === '') {
-                            setCustomVal('');
-                            setLimitMB(undefined);
-                            setIsUnlimited(true);
-                            updateAutoNameIfNeeded(isUnlimitedTime, validityNum, validityUnit, true, undefined, '', customUnit);
-                          } else {
-                            const num = parseFloat(normalized);
-                            setCustomVal(normalized);
-                            if (!isNaN(num) && num > 0) {
-                              const calculatedMB = customUnit === 'GB' ? Math.round(num * 1024) : Math.round(num);
-                              setIsUnlimited(false);
-                              setLimitMB(calculatedMB);
-                              updateAutoNameIfNeeded(isUnlimitedTime, validityNum, validityUnit, false, calculatedMB, normalized, customUnit);
-                            } else {
-                              setLimitMB(undefined);
-                            }
-                          }
-                        }}
-                        placeholder={isUnlimited ? (isRtl ? 'غير محدود (أدخل سعة مخصصة)' : 'Unlimited (enter custom limit)') : (isRtl ? 'السعة المخصصة' : 'Custom limit')}
-                        style={inputStyle}
-                      />
-                    </div>
-                    <div style={{ position: 'relative', width: '90px', flexShrink: 0 }}>
-                      <select
-                        value={customUnit}
-                        onChange={(e) => {
-                          const u = e.target.value as 'MB' | 'GB';
-                          setCustomUnit(u);
-                          if (customVal !== '' && !isNaN(Number(customVal)) && Number(customVal) > 0) {
-                            const calculatedMB = u === 'GB' ? Math.round(Number(customVal) * 1024) : Math.round(Number(customVal));
-                            setIsUnlimited(false);
-                            setLimitMB(calculatedMB);
-                            updateAutoNameIfNeeded(isUnlimitedTime, validityNum, validityUnit, false, calculatedMB, customVal, u);
-                          }
-                        }}
-                        style={selectStyle}
-                      >
-                        <option value="GB" style={{ background: '#1e293b', color: '#ffffff' }}>GB</option>
-                        <option value="MB" style={{ background: '#1e293b', color: '#ffffff' }}>MB</option>
-                      </select>
-                      <ChevronDown
-                        size={14}
-                        style={{
-                          position: 'absolute',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          [isRtl ? 'left' : 'right']: '8px',
-                          color: 'var(--text-muted)',
-                          pointerEvents: 'none',
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Price Field */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
-                    {t('profiles.priceLabel') || 'السعر'}
-                  </label>
-                  <div style={inputContainerStyle}>
-                    <DollarSign size={14} style={embeddedIconStyle} />
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={revenue}
-                      onChange={(e) => setRevenue(e.target.value)}
-                      placeholder="0.00"
-                      style={inputStyle}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Sticky Action Footer */}
-              <div
-                className="create-batch-drawer-footer"
-                style={{
-                  flexShrink: 0,
-                  padding: '12px 16px',
-                  background: 'var(--card-bg, #1a1a1a)',
-                  borderTop: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px',
-                }}
-              >
-                {editingProfile ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsModalOpen(false);
-                      handleDeleteProfile(editingProfile);
-                    }}
-                    disabled={deletingId === editingProfile['.id'] || isSubmitting}
-                    style={{
-                      background: '#dc2626',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '9px 14px',
-                      color: '#ffffff',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                      cursor: deletingId === editingProfile['.id'] || isSubmitting ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      boxShadow: '0 2px 6px rgba(220, 38, 38, 0.35)',
-                    }}
-                  >
-                    {deletingId === editingProfile['.id'] ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <Trash2 size={14} />
-                    )}
-                    <span>{t('profiles.deleteBtn') || 'حذف'}</span>
-                  </button>
-                ) : <div />}
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    disabled={isSubmitting}
-                    style={{
-                      background: '#334155',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '9px 16px',
-                      color: '#ffffff',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {t('profiles.cancelBtn') || 'إلغاء'}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    style={{
-                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '9px 20px',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
-                      opacity: isSubmitting ? 0.7 : 1,
-                    }}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        <span>{t('profiles.saving')}</span>
-                      </>
-                    ) : (
-                      <span>{editingProfile ? (t('profiles.updateBtn') || 'تحديث') : (t('profiles.saveBtn') || 'حفظ')}</span>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Create / Edit Drawer */}
+      {routerId && (
+        <ProfileDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          editingProfile={editingProfile}
+          onSaveProfile={handleSaveProfile}
+          onDeleteRequest={handleDeleteProfile}
+        />
       )}
 
-      {/* Profile In Use Warning Modal */}
-      {warningModalData && (
-        <div
-          className="modal-overlay"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            background: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-            boxSizing: 'border-box',
-          }}
-          onClick={() => setWarningModalData(null)}
-        >
-          <div
-            className="modal-sheet-content"
-            style={{
-              background: 'var(--card-bg, #1a1a1a)',
-              color: 'var(--foreground)',
-              border: '1px solid rgba(245, 158, 11, 0.4)',
-              borderRadius: '16px',
-              boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6)',
-              maxWidth: '420px',
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px',
-              padding: '18px',
-              boxSizing: 'border-box',
-              direction: isRtl ? 'rtl' : 'ltr',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sheet-drag-handle" style={{ margin: '4px auto 2px auto' }} />
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f59e0b' }}>
-                <AlertCircle size={20} />
-                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#f59e0b' }}>
-                  {t('profiles.profileInUseTitle')}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setWarningModalData(null)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: 'none',
-                  color: 'var(--foreground)',
-                  cursor: 'pointer',
-                  padding: '6px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '10px', padding: '12px 14px', color: 'var(--foreground)', fontSize: '13px', lineHeight: 1.5 }}>
-              {t('profiles.profileInUseDesc')
-                .replace('{name}', warningModalData.profileName)
-                .replace('{count}', String(warningModalData.userCount))}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setWarningModalData(null)}
-                style={{
-                  background: '#334155',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px 16px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {t('common.cancel')}
-              </button>
-              {warningModalData.profileObj && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const pObj = warningModalData.profileObj!;
-                    setWarningModalData(null);
-                    handleOpenEditModal(pObj);
-                  }}
-                  style={{
-                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '8px 16px',
-                    fontSize: '12px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
-                  }}
-                >
-                  <Pencil size={14} />
-                  <span>{t('profiles.editProfileTitle')}</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Warning Modal when profile has attached users */}
+      <ProfileWarningModal
+        data={warningModalData}
+        onClose={() => setWarningModalData(null)}
+        onEditProfile={(p) => handleOpenEditDrawer(p)}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 # MikMan Project Rules & Architecture Guidelines
 
 ## 1. UI, Badges & Content Rules
+- **No Inline Styles (`style={{ ... }}`)**: NEVER use inline styles in React components. All styling must reside in dedicated modular stylesheets under `src/styles/` or standard utility classes. Dynamic styles should be achieved using CSS classes, CSS variables, or class toggles.
 - **No Unsolicited Badges, Tags, or Pills**: NEVER add badges, pill labels, status tags, or chip indicators unless the user explicitly asks for them.
 - **No Filler Text or Space Fillers**: Do NOT insert random subtitle blurbs, placeholder text, or decorative chips just to fill up empty screen space. Layouts must remain clean, direct, high-density, and purposeful.
 - **No Outline/Ghost Buttons**: NEVER use thin, hollow, or faded outline button styles (`border: 1px solid ...; background: transparent`).
@@ -13,8 +14,7 @@
   - `/ip/hotspot/host` (physical layer host table)
   - `/ip/hotspot/user` (voucher details and quota limits)
   - `/ip/dhcp-server/lease` (DHCP lease table, hostnames, and Option 82 metadata)
-  - `/interface/bridge/host` (bridge ingress port mapping)
-- **Normalized Client Response**: The server returns clean, normalized client payloads (`id`, `user`, `mac`, `ip`, `port`, `apName`, `isOnline`, `uptime`, `remainingTime`, `remainingBytes`, `dhcpHostName`, `dhcpServer`).
+- **Normalized Client Response**: The server returns clean, normalized client payloads (`id`, `user`, `mac`, `ip`, `isOnline`, `uptime`, `remainingTime`, `remainingBytes`, `dhcpHostName`, `dhcpServer`).
 - **Client App Role**: The client application consumes pre-normalized server data directly, maintaining minimal local state only for user overrides.
 
 ## 3. WireGuard VPN & Peer Telemetry

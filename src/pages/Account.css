@@ -1,0 +1,431 @@
+/* ==========================================================================
+   MikMan - Account Page Styles
+   ========================================================================== */
+
+.account-container {
+  padding: 16px 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.account-header-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(8px);
+}
+
+.account-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.account-user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background-color: rgba(var(--primary-rgb, 99, 102, 241), 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.account-user-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.account-user-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.account-user-email {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-family-mono, monospace);
+}
+
+.account-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.account-status-tag {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.account-status-tag.banned {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.account-status-tag.expired {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.account-status-tag.active {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.account-signout-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.account-signout-btn:hover {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+/* Grid of 2 Cards: Plan and Remaining Time */
+.account-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.account-card-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.account-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.account-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.account-quota-tag {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  background-color: rgba(99, 102, 241, 0.15);
+  color: var(--primary);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  text-transform: uppercase;
+}
+
+.account-plan-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.account-plan-subtitle {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin: 3px 0 0 0;
+}
+
+/* Rule 1: Solid buttons */
+.account-btn-blue {
+  width: 100%;
+  padding: 9px 14px;
+  border-radius: 8px;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: opacity 0.15s ease;
+}
+
+.account-btn-blue:hover {
+  opacity: 0.9;
+}
+
+.account-days-display {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--foreground);
+}
+
+.account-days-display.expired {
+  color: #ef4444;
+}
+
+.account-expires-date {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin: 3px 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.account-progress-track {
+  width: 100%;
+  height: 6px;
+  background-color: var(--input-bg, rgba(255,255,255,0.08));
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.account-progress-fill {
+  height: 100%;
+  width: var(--progress, 0%);
+  background-color: var(--primary);
+  transition: width 0.4s ease;
+}
+
+.account-progress-fill.expired {
+  background-color: #ef4444;
+}
+
+/* WireGuard VPN Card */
+.account-vpn-card {
+  margin-bottom: 16px;
+  background: var(--card-bg);
+  border: 1.5px solid rgba(var(--primary-rgb), 0.25);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.account-vpn-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.account-vpn-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.account-vpn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Password Form */
+.account-password-card {
+  margin-bottom: 16px;
+}
+
+.account-password-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.account-password-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.account-password-icon.is-set {
+  background-color: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.account-password-icon.is-unset {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+.account-password-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.account-password-badge.is-set {
+  background-color: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.account-password-badge.is-unset {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.account-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.account-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.account-input {
+  width: 100%;
+  padding: 9px 36px 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background-color: var(--input-bg, rgba(255,255,255,0.04));
+  color: var(--foreground);
+  font-size: 13px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.account-input:focus {
+  border-color: var(--primary);
+}
+
+.account-input-eye {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.account-input-eye.ltr {
+  right: 10px;
+}
+
+.account-input-eye.rtl {
+  left: 10px;
+}
+
+.account-save-pwd-btn {
+  padding: 9px 18px;
+  border-radius: 8px;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  transition: all 0.2s ease;
+}
+
+.account-save-pwd-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.account-save-pwd-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Subscription History */
+.account-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+.account-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.account-history-item {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background-color: var(--input-bg, rgba(255,255,255,0.03));
+  border: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.account-history-time {
+  font-size: 10.5px;
+  font-family: var(--font-family-mono, monospace);
+  color: var(--text-muted);
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+}

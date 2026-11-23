@@ -1,0 +1,473 @@
+/* ==========================================================================
+   MikMan - Revenue Analytics Page Styles
+   ========================================================================== */
+
+.revenue-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.revenue-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.revenue-month-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--secondary);
+  border: 1px solid var(--glass-border);
+  padding: 4px 8px;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+
+.revenue-month-select {
+  background: transparent;
+  border: none;
+  color: var(--foreground);
+  font-weight: 700;
+  font-size: 10.5px;
+  outline: none;
+  cursor: pointer;
+}
+
+.revenue-quick-filters {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Rule 1: Solid buttons */
+.revenue-filter-btn {
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: none;
+  background: var(--secondary);
+  color: var(--foreground);
+  font-weight: 600;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.revenue-filter-btn:hover {
+  background: #334155;
+  color: #ffffff;
+}
+
+.revenue-filter-btn.active {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+.revenue-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .revenue-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+}
+
+.revenue-kpi-card {
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.revenue-kpi-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.revenue-kpi-icon.blue {
+  background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.3) 100%);
+  color: #3b82f6;
+  border: 1px solid rgba(59,130,246,0.25);
+}
+
+.revenue-kpi-icon.green {
+  background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.3) 100%);
+  color: #10b981;
+  border: 1px solid rgba(16,185,129,0.25);
+}
+
+.revenue-kpi-icon.purple {
+  background: linear-gradient(135deg, rgba(168,85,247,0.15) 0%, rgba(147,51,234,0.3) 100%);
+  color: #a855f7;
+  border: 1px solid rgba(168,85,247,0.25);
+}
+
+.revenue-kpi-icon.amber {
+  background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(217,119,6,0.3) 100%);
+  color: #f59e0b;
+  border: 1px solid rgba(245,158,11,0.25);
+}
+
+.revenue-kpi-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.revenue-kpi-label {
+  font-size: 9.5px;
+  color: var(--text-muted);
+  font-weight: 500;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.revenue-kpi-val {
+  font-size: 13.5px;
+  font-weight: 800;
+  margin-top: 2px;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chart Styles */
+.revenue-chart-card {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.revenue-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.revenue-chart-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.revenue-chart-title h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.revenue-chart-badge {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--secondary);
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  font-weight: 600;
+}
+
+.revenue-chart-layout {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.revenue-chart-yaxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 140px;
+  padding-top: 12px;
+  font-size: 8.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 24px;
+  min-width: 24px;
+  flex-shrink: 0;
+  overflow: hidden;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.revenue-chart-yaxis.ltr {
+  text-align: right;
+}
+
+.revenue-chart-yaxis.rtl {
+  text-align: left;
+}
+
+.revenue-chart-area {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.revenue-chart-tooltip {
+  position: absolute;
+  top: -8px;
+  transform: translateX(-50%);
+  background: rgba(24, 24, 27, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  text-align: center;
+}
+
+.revenue-chart-gridlines {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.revenue-chart-gridline {
+  width: 100%;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.revenue-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  height: 140px;
+  width: 100%;
+  padding-top: 12px;
+  border-bottom: 1px solid var(--glass-border);
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.revenue-chart-bar-col {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.revenue-chart-bar-fill {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  transition: all 0.15s ease;
+}
+
+.revenue-chart-bar-fill.active {
+  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.7);
+}
+
+.revenue-chart-bar-fill.positive {
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.revenue-chart-bar-fill.zero {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.revenue-chart-xaxis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 9.5px;
+  color: var(--text-muted);
+  width: 100%;
+  min-width: 0;
+}
+
+.revenue-chart-xlabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Donut & Profile Card */
+.revenue-donut-card {
+  padding: 10px 12px;
+}
+
+.revenue-donut-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: var(--secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  position: relative;
+}
+
+.revenue-donut-box {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.revenue-donut-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.revenue-donut-center {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  text-align: center;
+  padding: 4px;
+}
+
+.revenue-profile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.revenue-profile-row {
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  background: var(--secondary);
+  border: 1px solid var(--glass-border);
+}
+
+.revenue-profile-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.revenue-profile-bar-bg {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.revenue-profile-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease-out;
+}
+
+/* Segmented mode selector - Solid style buttons */
+.revenue-mode-selector {
+  display: flex;
+  background: var(--secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 7px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.revenue-mode-btn {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.revenue-mode-btn.active {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+.revenue-records-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.revenue-record-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.revenue-record-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--primary);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}

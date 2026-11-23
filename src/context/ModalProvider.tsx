@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ShieldCheck, AlertTriangle, HelpCircle, X, RefreshCw } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 import { ModalContext } from './ModalContext';
+import '../components/layout/shell.css';
 
 export function ModalProvider({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage();
@@ -55,73 +56,44 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
     <ModalContext.Provider value={{ showAlert, showConfirm }}>
       {children}
       {modal.isOpen && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.65)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999, padding: '20px',
-        }}>
-          <div className="glass-card" style={{
-            maxWidth: '400px', width: '100%', padding: '20px',
-            display: 'flex', flexDirection: 'column', gap: '16px',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="modal-overlay z-[9999] flex items-center justify-center p-5">
+          <div className="shell-modal-content max-w-[400px] w-full text-left">
+            <div className="flex justify-between items-center w-full">
+              <div className="flex items-center gap-2">
                 {modal.type === 'success' && <ShieldCheck size={20} color="#22c55e" />}
                 {modal.type === 'error' && <AlertTriangle size={20} color="#ef4444" />}
                 {modal.type === 'warning' && <AlertTriangle size={20} color="#f59e0b" />}
                 {modal.type === 'confirm' && <HelpCircle size={20} color="var(--primary)" />}
-                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: 'var(--foreground)' }}>{modal.title}</h4>
+                <h4 className="m-0 text-sm font-bold text-foreground">{modal.title}</h4>
               </div>
               <button
                 onClick={handleClose}
                 disabled={isSubmitting}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: isSubmitting ? 'var(--text-muted)' : 'var(--foreground)',
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  padding: '4px',
-                  opacity: isSubmitting ? 0.5 : 1
-                }}
+                className="bg-transparent border-none text-muted cursor-pointer p-1"
+                aria-label="Close dialog"
               >
                 <X size={18} />
               </button>
             </div>
-            <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>{modal.message}</p>
-            <div style={{ display: 'flex', gap: '8px', width: '100%', marginTop: '4px' }}>
+            <p className="m-0 text-xs text-muted leading-relaxed w-full">{modal.message}</p>
+            <div className="flex gap-2 w-full mt-1">
               {modal.type === 'confirm' ? (
                 <>
                   <button
-                    className="btn-secondary"
+                    className="btn-solid-slate flex-1 py-2.5 rounded-lg text-xs"
                     disabled={isSubmitting}
-                    style={{ flex: 1, padding: '10px', fontSize: '13px', borderRadius: '10px', minHeight: '40px', opacity: isSubmitting ? 0.5 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
                     onClick={handleClose}
                   >
                     {t('common.cancel')}
                   </button>
                   <button
-                    className="btn-primary"
+                    className="btn-solid-blue flex-1 py-2.5 rounded-lg text-xs"
                     disabled={isSubmitting}
-                    style={{
-                      flex: 1,
-                      padding: '10px',
-                      fontSize: '13px',
-                      borderRadius: '10px',
-                      minHeight: '40px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      opacity: isSubmitting ? 0.7 : 1,
-                      cursor: isSubmitting ? 'not-allowed' : 'pointer'
-                    }}
                     onClick={handleProceed}
                   >
                     {isSubmitting ? (
                       <>
-                        <RefreshCw size={14} className="spin" />
+                        <RefreshCw size={14} className="animate-spin" />
                         <span>{t('common.loading') || 'Processing...'}</span>
                       </>
                     ) : (
@@ -131,8 +103,7 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
                 </>
               ) : (
                 <button
-                  className="btn-primary"
-                  style={{ flex: 1, padding: '10px', fontSize: '13px', borderRadius: '10px', minHeight: '40px' }}
+                  className="btn-solid-blue flex-1 py-2.5 rounded-lg text-xs"
                   onClick={handleClose}
                 >
                   {t('common.ok')}

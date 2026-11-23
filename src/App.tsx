@@ -4,10 +4,10 @@ import { ModalProvider } from './context/ModalContext';
 import { VpnModalProvider } from './context/VpnModalContext';
 import { useLanguage } from './context/LanguageContext';
 
-import LoadingScreen from './components/LoadingScreen';
-import SignIn from './components/SignIn';
+import LoadingScreen from './components/ui/LoadingScreen';
+import SignIn from './components/auth/SignIn';
 import PlansPage from './pages/Plans';
-import AppShell from './components/AppShell';
+import AppShell from './components/layout/AppShell';
 import AuthCallback from './pages/AuthCallback';
 import LandingPage from './pages/Landing';
 import AccountPage from './pages/Account';
@@ -15,15 +15,13 @@ import RegisterRouterPage from './pages/RegisterRouter';
 import RouterDashboardPage from './pages/router/Dashboard';
 import VouchersPage from './pages/router/Vouchers';
 import ProfilesPage from './pages/router/Profiles';
-import BatchPage from './pages/router/Batch';
-import BatchDetailPage from './pages/router/BatchDetail';
 import UsersPage from './pages/router/Users';
 import ApsPage from './pages/router/Aps';
 import RecordsPage from './pages/router/Records';
 import RevenuePage from './pages/router/Revenue';
 import SettingsPage from './pages/router/Settings';
 
-import BannedScreen from './components/BannedScreen';
+import BannedScreen from './components/auth/BannedScreen';
 
 function AppRoutes() {
   return (
@@ -38,7 +36,7 @@ function AppRoutes() {
         <Route path="/:routerId/vouchers" element={<VouchersPage />} />
         <Route path="/:routerId/profiles" element={<ProfilesPage />} />
         <Route path="/:routerId/batch" element={<Navigate to="../vouchers" replace />} />
-        <Route path="/:routerId/batch/detail" element={<BatchDetailPage />} />
+        <Route path="/:routerId/batch/detail" element={<Navigate to="../vouchers" replace />} />
         <Route path="/:routerId/users" element={<UsersPage />} />
         <Route path="/:routerId/aps" element={<ApsPage />} />
         <Route path="/:routerId/records" element={<RecordsPage />} />

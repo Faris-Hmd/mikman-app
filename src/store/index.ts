@@ -25,7 +25,6 @@ export interface RouterConfig {
   cardPrintLabel?: string;
   useCustomHotspotName?: boolean;
   useCustomPrintLabel?: boolean;
-  portApMap?: Record<string, string>;
 }
 
 const CONFIG_KEY = '@router_config';

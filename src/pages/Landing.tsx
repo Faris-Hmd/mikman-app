@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -13,8 +13,10 @@ import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useVpnModal } from '../context/VpnModalContext';
-import { getRemainingDays, getTemperature, getRouterImage, skeletonStyle, getQuotaName, getRouterVpnIp } from '../lib/helpers';
-import { getPublicKeyFromPrivateKey, getOrCreateUserPrivateKey } from '../lib/wireguardVpn';
+import { getRouterImage, getQuotaName, getRouterVpnIp } from '../lib/helpers';
+import { getPublicKeyFromPrivateKey } from '../lib/wireguardVpn';
+import './Landing.css';
+
 import {
   Server,
   Plus,
@@ -79,7 +81,7 @@ export default function LandingPage() {
   // Close router action dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (openMenuRouterId && !(e.target as HTMLElement).closest('.router-dropdown-menu-container')) {
+      if (openMenuRouterId && !(e.target as HTMLElement).closest('.landing-router-menu-container')) {
         setOpenMenuRouterId(null);
       }
     };
@@ -102,7 +104,7 @@ export default function LandingPage() {
           _parsedTime: Number.isNaN(parsedTime) ? index : parsedTime,
         };
       })
-      .sort((a, b) => a._parsedTime - b._parsedTime); // Oldest / First added router on top
+      .sort((a, b) => a._parsedTime - b._parsedTime);
   }, [savedRouters, statusMap]);
 
   const handleRefresh = async () => {
@@ -160,20 +162,16 @@ export default function LandingPage() {
 
   const totalRouters = savedRouters.length;
   const maxRouters = (userData?.maxRouters as number) || (userData?.quota === 'quota1' ? 10 : userData?.quota === 'quota2' ? 20 : 1);
-  const usagePercent = userData ? Math.min(100, Math.round((totalRouters / maxRouters) * 100)) : 0;
-  const days = userData ? getRemainingDays(userData.expiresAt, nowTime) : null;
+  const days = userData?.remainingDays ?? null;
   const planName = userData ? getQuotaName(t, userData.quota as string, userData.maxRouters as number) : null;
 
   const userName = userData?.name || currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0] : '');
-
 
   const normalizedUserEmail = currentUser?.email?.toLowerCase().trim() || '';
   const { data: peerTelemetryList, mutate: mutatePeers } = useSWR(
     normalizedUserEmail ? ['user-vpn-peers-telemetry', normalizedUserEmail] : null,
     async () => {
       try {
-        // Query live peer statuses for this authenticated user.
-        // Peer creation is managed strictly inside VpnAccessModal.
         return await fetchUserVpnPeersStatusAPI();
       } catch {
         return [];
@@ -189,7 +187,6 @@ export default function LandingPage() {
       const targetKey = peerToDelete.publicKey || peerToDelete.clientIp;
       const success = await deleteUserVpnPeerAPI(targetKey, peerToDelete.clientIp);
       if (success) {
-        // Clean up local storage key if it corresponds to this peer slot
         const email = currentUser?.email?.toLowerCase().trim() || '';
         if (email) {
           ['pc', 'phone', 'device', 'client', 'default'].forEach((slot) => {
@@ -204,7 +201,6 @@ export default function LandingPage() {
             localStorage.removeItem(`@wg_user_privkey_${email}`);
           }
         }
-        // Optimistically remove the deleted peer from the local list
         const deletedPubKey = peerToDelete.publicKey;
         const deletedIp = peerToDelete.clientIp;
         await mutatePeers(
@@ -214,7 +210,7 @@ export default function LandingPage() {
               if (deletedIp && p.clientIp === deletedIp) return false;
               return p !== peerToDelete;
             }),
-          false // Don't revalidate immediately — let the next 10s poll pick it up
+          false
         );
         setPeerToDelete(null);
       } else {
@@ -227,36 +223,30 @@ export default function LandingPage() {
     }
   };
 
-  // peerTelemetryList states:
-  //  undefined = SWR still loading (show skeleton)
-  //  []        = server confirmed zero peers (show empty state)
-  //  [...]     = real peers to render
   const isPeersLoading = peerTelemetryList === undefined;
   const livePeers = (peerTelemetryList || []).filter(
     (p) => Boolean(p.publicKey && p.publicKey.trim().length > 20)
   );
 
   return (
-    <div className="app-container" style={{ padding: '16px 20px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
+    <div className={`landing-container ${isRtl ? 'rtl' : 'ltr'}`}>
       {/* Header Section */}
-      <div className="gateway-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+      <div className="landing-header">
         <div>
-          <h2 className="page-title" style={{ margin: 0 }}>{t('dashboard.dashboardTitle')}</h2>
+          <h2 className="page-title m-0">{t('dashboard.dashboardTitle')}</h2>
         </div>
-        <div className="gateway-actions-container" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="landing-header-actions">
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="gateway-refresh-btn"
+            className="landing-refresh-btn"
             title={t('dashboard.refreshGateways')}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px', borderRadius: '8px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--glass-border)', cursor: 'pointer', transition: 'all 0.2s' }}
           >
-            <RefreshCw size={15} color="var(--primary)" className={isRefreshing ? "spinner" : ""} />
+            <RefreshCw size={15} color="var(--primary)" className={isRefreshing ? 'spinner' : ''} />
           </button>
           <Link
             to="/register-router"
-            className="gateway-add-btn"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', fontWeight: '700', fontSize: '12px', cursor: 'pointer', textDecoration: 'none', transition: 'all 0.2s' }}
+            className="landing-add-btn"
           >
             <Plus size={15} /> <span>{t('dashboard.addRouterLong')}</span>
           </Link>
@@ -267,47 +257,23 @@ export default function LandingPage() {
       <div className="account-status-bar responsive-card">
         {/* Row 1 / Left Group: User Identity & Mobile Settings Link */}
         <div className="account-status-group">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-            <div style={{
-              width: '26px',
-              height: '26px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(var(--primary-rgb), 0.12)',
-              border: '1px solid rgba(var(--primary-rgb), 0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--primary)',
-              overflow: 'hidden',
-              flexShrink: 0
-            }}>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="account-status-avatar">
               {currentUser?.user_metadata?.avatar_url ? (
-                <img src={currentUser.user_metadata.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+                <img src={currentUser.user_metadata.avatar_url} alt="Profile" referrerPolicy="no-referrer" />
               ) : (
                 <UserIcon size={13} />
               )}
             </div>
 
-            <span style={{ fontSize: '13px', fontWeight: '750', color: 'var(--foreground)', whiteSpace: 'nowrap' }}>
-              {userName || <span style={skeletonStyle('80px')} />}
+            <span className="account-status-name">
+              {userName || <span className="skeleton-box skeleton-name" />}
             </span>
           </div>
 
           <Link
             to="/account"
-            className="show-sm-only"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '26px',
-              height: '26px',
-              borderRadius: '6px',
-              backgroundColor: 'rgba(255, 255, 255, 0.04)',
-              color: 'var(--text-muted)',
-              transition: 'all 0.2s ease',
-              flexShrink: 0
-            }}
+            className="account-status-settings-btn show-sm-only"
             title={t('sidebar.accountDetails') || 'Account Settings'}
           >
             <Settings size={13} />
@@ -315,104 +281,50 @@ export default function LandingPage() {
         </div>
 
         {/* Row 2 / Right Group: Plan Info & Router Capacity */}
-        <div className="account-status-group account-status-group-bottom" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="account-status-group flex items-center gap-3">
           {userData && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', color: 'var(--text-muted)' }}>
-              <span style={{ fontWeight: '700', color: 'var(--foreground)' }}>{planName}</span>
+            <div className="account-status-plan-info">
+              <span className="font-bold text-foreground">{planName}</span>
               {userData?.expiresAt && days !== null && (
                 <span>• {days > 0 ? `${days} ${language === 'ar' ? 'يوم' : 'd'}` : (t('dashboard.expired') || 'Expired')}</span>
               )}
             </div>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--foreground)', fontWeight: '700', fontSize: '11.5px', whiteSpace: 'nowrap' }} title="Registered Routers Quota">
-              <Server size={13} color="var(--primary)" />
-              <span>{totalRouters}/{maxRouters}</span>
-            </div>
-
-            <Link
-              to="/account"
-              className="hide-sm-only"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '26px',
-                height: '26px',
-                borderRadius: '6px',
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                color: 'var(--text-muted)',
-                transition: 'all 0.2s ease',
-                flexShrink: 0
-              }}
-              title={t('sidebar.accountDetails') || 'Account Settings'}
-            >
-              <Settings size={13} />
-            </Link>
+          <div className="account-status-quota" title="Registered Routers Quota">
+            <Server size={13} color="var(--primary)" />
+            <span>{totalRouters}/{maxRouters}</span>
           </div>
+
+          <Link
+            to="/account"
+            className="account-status-settings-btn hide-sm-only"
+            title={t('sidebar.accountDetails') || 'Account Settings'}
+          >
+            <Settings size={13} />
+          </Link>
         </div>
       </div>
 
       {/* Password Prompt Banner if user doesn't have a password set */}
       {userData && userData.hasPassword === false && (
-        <div
-          style={{
-            background: 'rgba(245, 158, 11, 0.08)',
-            border: '1px solid rgba(245, 158, 11, 0.25)',
-            borderRadius: '12px',
-            padding: '12px 16px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 280px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(245, 158, 11, 0.18)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#f59e0b',
-                flexShrink: 0,
-              }}
-            >
+        <div className="landing-prompt-banner">
+          <div className="landing-prompt-left">
+            <div className="landing-prompt-icon">
               <KeyRound size={18} />
             </div>
             <div>
-              <h4 style={{ margin: 0, fontSize: '13px', fontWeight: '800', color: 'var(--foreground)' }}>
+              <h4 className="landing-prompt-title">
                 {t('accountPage.noPasswordPromptTitle') || 'Add Password for Email Login'}
               </h4>
-              <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                {t('accountPage.noPasswordPromptDesc') || 'You haven\'t set a password for email login yet. Set a password to log in directly using your email and password.'}
+              <p className="landing-prompt-desc">
+                {t('accountPage.noPasswordPromptDesc') || "You haven't set a password for email login yet. Set a password to log in directly using your email and password."}
               </p>
             </div>
           </div>
           <Link
             to="/account"
-            style={{
-              padding: '7px 14px',
-              borderRadius: '8px',
-              backgroundColor: '#f59e0b',
-              color: '#000',
-              fontWeight: '800',
-              fontSize: '12px',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap',
-              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
-              transition: 'all 0.2s ease',
-            }}
+            className="landing-prompt-btn"
           >
             <KeyRound size={14} />
             <span>{t('accountPage.setPasswordBtn') || 'Set Password'}</span>
@@ -420,199 +332,126 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* Small WireGuard Peers List (PC & Phone) */}
-      <div style={{ marginBottom: '16px' }}>
-        <h3 style={{ fontSize: '12.5px', fontWeight: '800', margin: '0 0 8px 0', color: 'var(--foreground)' }}>
+      {/* WireGuard Peers List (PC & Phone) */}
+      <div className="landing-peers-section">
+        <h3 className="landing-section-title">
           {t('dashboard.vpnPeersTitle') || 'WireGuard Peers'}
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px' }}>
+        <div className="landing-peers-grid">
           {isPeersLoading ? (
-            /* Loading skeleton */
             [1, 2].map(n => (
-              <div
-                key={n}
-                style={{
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '10px',
-                  padding: '8px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                }}
-              >
-                <div style={{ width: '15px', height: '15px', borderRadius: '4px', ...skeletonStyle('15px') }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ height: '12px', width: '60%', borderRadius: '3px', ...skeletonStyle('100%') }} />
+              <div key={n} className="landing-peer-card">
+                <div className="skeleton-box skeleton-icon-sm" />
+                <div className="flex-1">
+                  <div className="skeleton-box skeleton-text-60" />
                 </div>
-                <div style={{ height: '12px', width: '40px', borderRadius: '3px', ...skeletonStyle('40px') }} />
+                <div className="skeleton-box skeleton-text-40" />
               </div>
             ))
           ) : livePeers.length === 0 ? (
-            /* Empty state — no peers configured */
-            <div
-              style={{
-                gridColumn: '1 / -1',
-                background: 'var(--card-bg)',
-                border: '1px dashed var(--glass-border)',
-                borderRadius: '10px',
-                padding: '12px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '10px',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Laptop size={15} style={{ opacity: 0.6, flexShrink: 0 }} />
-                <span style={{ fontSize: '11.5px' }}>
+            <div className="landing-peer-empty">
+              <div className="flex items-center gap-2">
+                <Laptop size={15} className="opacity-60 flex-shrink-0" />
+                <span className="text-xs">
                   {t('dashboard.noPeersDesc') || 'No WireGuard peers connected. View your pre-configured tunnels to connect.'}
                 </span>
               </div>
               <button
                 onClick={() => openVpnModal()}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '7px',
-                  backgroundColor: 'var(--primary)',
-                  color: '#ffffff',
-                  fontWeight: '700',
-                  fontSize: '11px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
+                className="btn-solid-blue px-3 py-1.5 text-xs rounded-md"
               >
                 {t('dashboard.openVpnAccess') || 'Open VPN Access'}
               </button>
             </div>
           ) : (
-          livePeers.map((peer, idx) => {
-            const isPhone = peer.deviceType === 'phone' || peer.name.toLowerCase().includes('phone');
-            const Icon = isPhone ? Smartphone : Laptop;
-            const iconColor = isPhone ? '#10b981' : 'var(--primary)';
+            livePeers.map((peer, idx) => {
+              const isPhone = peer.deviceType === 'phone' || peer.name.toLowerCase().includes('phone');
+              const Icon = isPhone ? Smartphone : Laptop;
+              const iconColor = isPhone ? '#10b981' : 'var(--primary)';
 
-            return (
-              <div
-                key={peer.publicKey || peer.clientIp || idx}
-                onClick={() => openVpnModal(undefined, isPhone ? 'phone' : 'pc')}
-                style={{
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '10px',
-                  padding: '8px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '10px',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.15s ease',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                  <Icon size={15} color={iconColor} style={{ flexShrink: 0 }} />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {peer.name || (isPhone ? 'Admin Phone' : 'Admin PC')}
-                    </div>
-                    <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                      {isPhone ? 'Phone' : 'PC'}
+              return (
+                <div
+                  key={peer.publicKey || peer.clientIp || idx}
+                  onClick={() => openVpnModal(undefined, isPhone ? 'phone' : 'pc')}
+                  className="landing-peer-card"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Icon size={15} color={iconColor} className="flex-shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-foreground truncate">
+                        {peer.name || (isPhone ? 'Admin Phone' : 'Admin PC')}
+                      </div>
+                      <div className="text-[10.5px] text-muted">
+                        {isPhone ? 'Phone' : 'PC'}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                  <div style={{ textAlign: isRtl ? 'left' : 'right' }}>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: peer.isOnline ? '#10b981' : 'var(--text-muted)' }}>
-                      {peer.isOnline ? (isRtl ? 'متصل' : 'Online') : (isRtl ? 'غير متصل' : 'Offline')}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className={isRtl ? 'text-left' : 'text-right'}>
+                      <div className={`text-[11px] font-bold ${peer.isOnline ? 'text-emerald-500' : 'text-muted'}`}>
+                        {peer.isOnline ? (isRtl ? 'متصل' : 'Online') : (isRtl ? 'غير متصل' : 'Offline')}
+                      </div>
+                      <div className="text-[10px] text-muted">
+                        {peer.lastHandshakeHuman !== 'Never' ? `${peer.lastHandshakeHuman}` : (isRtl ? 'لم يتصل' : 'Never')}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                      {peer.lastHandshakeHuman !== 'Never' ? `${peer.lastHandshakeHuman}` : (isRtl ? 'لم يتصل' : 'Never')}
-                    </div>
+                    {(peer.publicKey || peer.clientIp) && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setPeerToDelete(peer);
+                        }}
+                        title={t('common.delete') || 'Delete Peer'}
+                        className="landing-peer-del-btn"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
-                  {(peer.publicKey || peer.clientIp) && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setPeerToDelete(peer);
-                      }}
-                      title={t('common.delete') || 'Delete Peer'}
-                      style={{
-                        background: 'rgba(239, 68, 68, 0.12)',
-                        border: '1px solid rgba(239, 68, 68, 0.25)',
-                        color: '#ef4444',
-                        borderRadius: '6px',
-                        width: '26px',
-                        height: '26px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        padding: 0,
-                        transition: 'all 0.15s ease',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
                 </div>
-              </div>
-            );
-          }))
-          }
+              );
+            })
+          )}
         </div>
       </div>
 
       {/* Routers Grid Header */}
       {(savedRouters.length > 0 || isInitialLoading) && (
-        <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 style={{ fontSize: '13.5px', fontWeight: '800', margin: 0, color: 'var(--foreground)' }}>
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-sm font-bold m-0 text-foreground">
             {t('dashboard.registeredRouters')}
           </h3>
         </div>
       )}
 
       {/* Router Cards Grid */}
-      <div className="router-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+      <div className="landing-router-grid">
         {isInitialLoading ? (
           [1, 2].map(n => (
-            <div
-              key={n}
-              style={{
-                background: 'var(--card-bg)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: '12px',
-                padding: '12px 14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', ...skeletonStyle('32px') }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ height: '14px', width: '55%', borderRadius: '4px', ...skeletonStyle('100%') }} />
+            <div key={n} className="responsive-card flex flex-col gap-2 p-3">
+              <div className="flex items-center gap-2.5">
+                <div className="skeleton-box skeleton-avatar" />
+                <div className="flex-1">
+                  <div className="skeleton-box skeleton-text-55" />
                 </div>
               </div>
-              <div style={{ paddingTop: '8px', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ height: '12px', width: '18%', borderRadius: '3px', ...skeletonStyle('100%') }} />
-                <div style={{ height: '12px', width: '18%', borderRadius: '3px', ...skeletonStyle('100%') }} />
-                <div style={{ height: '12px', width: '18%', borderRadius: '3px', ...skeletonStyle('100%') }} />
-                <div style={{ height: '12px', width: '18%', borderRadius: '3px', ...skeletonStyle('100%') }} />
+              <div className="pt-2 border-t border-glass flex justify-between items-center">
+                <div className="skeleton-box skeleton-pill" />
+                <div className="skeleton-box skeleton-pill" />
+                <div className="skeleton-box skeleton-pill" />
+                <div className="skeleton-box skeleton-pill" />
               </div>
             </div>
           ))
         ) : savedRouters.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', background: 'var(--card-bg)', border: '1px dashed var(--glass-border)', borderRadius: '12px', gridColumn: '1 / -1' }}>
-            <Server size={24} color="var(--primary)" style={{ marginBottom: '8px', opacity: 0.8 }} />
-            <p style={{ fontSize: '14px', fontWeight: '750', margin: '0 0 4px', color: 'var(--foreground)' }}>{t('dashboard.noRoutersTitle')}</p>
-            <p style={{ fontSize: '12px', margin: '0 0 12px', color: 'var(--text-muted)' }}>{t('dashboard.noRoutersDesc')}</p>
+          <div className="landing-empty-fleet">
+            <Server size={24} color="var(--primary)" className="mb-2 opacity-80" />
+            <p className="text-sm font-bold mb-1 text-foreground">{t('dashboard.noRoutersTitle')}</p>
+            <p className="text-xs mb-3 text-muted">{t('dashboard.noRoutersDesc')}</p>
             <Link
               to="/register-router"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textDecoration: 'none', fontWeight: '700', fontSize: '12px' }}
+              className="btn-solid-blue px-3 py-1.5 text-xs rounded-lg inline-flex items-center gap-1.5"
             >
               <Plus size={14} /> <span>{t('dashboard.addRouterLong')}</span>
             </Link>
@@ -632,88 +471,36 @@ export default function LandingPage() {
               <Link
                 key={router.id}
                 to={`/${router.id}`}
-                className="router-card"
-                style={{
-                  textDecoration: 'none',
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '14px',
-                  padding: '12px 14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '14px',
-                  opacity: isOnline ? 1 : 0.6,
-                  filter: isOnline ? 'none' : 'grayscale(0.2)',
-                  position: 'relative',
-                }}
+                className={`landing-router-card ${isOnline ? 'online' : 'offline'}`}
               >
                 {/* Column 1: Vertically Centered Router Image */}
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '48px', height: '48px' }}>
+                <div className="landing-router-img-wrapper">
                   {routerImg ? (
                     <img
                       src={routerImg}
-                      style={{
-                        width: '48px',
-                        height: '48px',
-                        objectFit: 'contain',
-                        filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.3))',
-                      }}
+                      className="landing-router-img"
                       alt="Router"
                     />
                   ) : (
-                    <div
-                      style={{
-                        width: '46px',
-                        height: '46px',
-                        borderRadius: '12px',
-                        backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        border: '1px solid var(--glass-border)',
-                      }}
-                    >
+                    <div className="landing-router-fallback-icon">
                       <Cpu size={22} color="var(--primary)" />
                     </div>
                   )}
                   <div
-                    style={{
-                      position: 'absolute',
-                      top: '-1px',
-                      right: isRtl ? undefined : '-1px',
-                      left: isRtl ? '-1px' : undefined,
-                      width: '9px',
-                      height: '9px',
-                      borderRadius: '50%',
-                      backgroundColor: isOnline ? '#22c55e' : '#94a3b8',
-                      border: '2px solid var(--card-bg)',
-                      boxShadow: isOnline ? '0 0 6px rgba(34, 197, 94, 0.6)' : 'none',
-                    }}
+                    className={`landing-router-status-dot ${isOnline ? 'online' : 'offline'}`}
                   />
                 </div>
 
-                {/* Column 2: Router Content Div (Name + Dropdown top, Telemetry stats bottom) */}
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
-                  {/* Top Row: Name & Dropdown Menu + Navigation Chevron */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <h3
-                      style={{
-                        fontSize: '14px',
-                        fontWeight: '800',
-                        color: 'var(--foreground)',
-                        margin: 0,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
+                {/* Column 2: Router Content Div */}
+                <div className="landing-router-content">
+                  {/* Top Row: Name & Dropdown Menu */}
+                  <div className="landing-router-top">
+                    <h3 className="landing-router-name">
                       {router.name || 'MikroTik Router'}
                     </h3>
 
                     {/* 3-dots Dropdown Menu Container */}
-                    <div className="router-dropdown-menu-container" style={{ position: 'relative', flexShrink: 0 }}>
+                    <div className="landing-router-menu-container">
                       <button
                         onClick={(e) => {
                           e.preventDefault();
@@ -721,17 +508,7 @@ export default function LandingPage() {
                           setOpenMenuRouterId(openMenuRouterId === router.id ? null : (router.id || null));
                         }}
                         title="Quick Actions"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: 'transparent',
-                          border: 'none',
-                          padding: '2px',
-                          color: openMenuRouterId === router.id ? 'var(--primary)' : 'var(--text-muted)',
-                          cursor: 'pointer',
-                          transition: 'color 0.15s ease',
-                        }}
+                        className={`landing-router-menu-btn ${openMenuRouterId === router.id ? 'active' : ''}`}
                       >
                         <MoreVertical size={16} />
                       </button>
@@ -739,21 +516,7 @@ export default function LandingPage() {
                       {/* Dropdown Menu Popup */}
                       {openMenuRouterId === router.id && (
                         <div
-                          style={{
-                            position: 'absolute',
-                            top: 'calc(100% + 4px)',
-                            [isRtl ? 'left' : 'right']: 0,
-                            zIndex: 100,
-                            minWidth: '190px',
-                            background: 'var(--card-bg)',
-                            border: '1px solid var(--glass-border)',
-                            borderRadius: '10px',
-                            padding: '6px',
-                            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '4px',
-                          }}
+                          className={`landing-router-dropdown ${isRtl ? 'rtl' : 'ltr'}`}
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -770,69 +533,25 @@ export default function LandingPage() {
                               setOpenMenuRouterId(null);
                             }}
                             disabled={!routerIp}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              padding: '7px 10px',
-                              borderRadius: '6px',
-                              border: 'none',
-                              background: 'transparent',
-                              color: 'var(--foreground)',
-                              fontSize: '12px',
-                              fontWeight: '700',
-                              cursor: routerIp ? 'pointer' : 'not-allowed',
-                              textAlign: isRtl ? 'right' : 'left',
-                              width: '100%',
-                              transition: 'background 0.15s ease',
-                              opacity: routerIp ? 1 : 0.5,
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.15)')}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                            className="landing-dropdown-item"
                           >
-                            <Globe size={14} color="var(--primary)" style={{ flexShrink: 0 }} />
-                            <span style={{ flex: 1 }}>WebFig</span>
-                            <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />
+                            <Globe size={14} color="var(--primary)" className="flex-shrink-0" />
+                            <span className="flex-1">WebFig</span>
+                            <ExternalLink size={12} className="opacity-50 flex-shrink-0" />
                           </button>
 
                           {/* SSH */}
                           <button
                             onClick={(e) => handleCopySsh(e, sshCmd, router.id || routerIp)}
                             disabled={!routerIp}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              padding: '7px 10px',
-                              borderRadius: '6px',
-                              border: 'none',
-                              background: isSshCopied ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                              color: isSshCopied ? '#10b981' : 'var(--foreground)',
-                              fontSize: '12px',
-                              fontWeight: '700',
-                              cursor: routerIp ? 'pointer' : 'not-allowed',
-                              textAlign: isRtl ? 'right' : 'left',
-                              width: '100%',
-                              transition: 'background 0.15s ease',
-                              opacity: routerIp ? 1 : 0.5,
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!isSshCopied) {
-                                e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.15)';
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!isSshCopied) {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                              }
-                            }}
+                            className={`landing-dropdown-item ${isSshCopied ? 'text-emerald-500' : ''}`}
                           >
                             {isSshCopied ? (
-                              <Check size={14} color="#10b981" style={{ flexShrink: 0 }} />
+                              <Check size={14} color="#10b981" className="flex-shrink-0" />
                             ) : (
-                              <Terminal size={14} color="var(--primary)" style={{ flexShrink: 0 }} />
+                              <Terminal size={14} color="var(--primary)" className="flex-shrink-0" />
                             )}
-                            <span style={{ flex: 1 }}>
+                            <span className="flex-1">
                               {isSshCopied ? (t('common.copied') || 'Copied SSH!') : 'SSH Command'}
                             </span>
                           </button>
@@ -841,40 +560,14 @@ export default function LandingPage() {
                           <button
                             onClick={(e) => handleCopyIp(e, routerIp, router.id || routerIp)}
                             disabled={!routerIp}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              padding: '7px 10px',
-                              borderRadius: '6px',
-                              border: 'none',
-                              background: isIpCopied ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                              color: isIpCopied ? '#10b981' : 'var(--foreground)',
-                              fontSize: '12px',
-                              fontWeight: '700',
-                              cursor: routerIp ? 'pointer' : 'not-allowed',
-                              textAlign: isRtl ? 'right' : 'left',
-                              width: '100%',
-                              transition: 'background 0.15s ease',
-                              opacity: routerIp ? 1 : 0.5,
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!isIpCopied) {
-                                e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.15)';
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!isIpCopied) {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                              }
-                            }}
+                            className={`landing-dropdown-item ${isIpCopied ? 'text-emerald-500' : ''}`}
                           >
                             {isIpCopied ? (
-                              <Check size={14} color="#10b981" style={{ flexShrink: 0 }} />
+                              <Check size={14} color="#10b981" className="flex-shrink-0" />
                             ) : (
-                              <Copy size={14} color="var(--primary)" style={{ flexShrink: 0 }} />
+                              <Copy size={14} color="var(--primary)" className="flex-shrink-0" />
                             )}
-                            <span style={{ flex: 1 }}>
+                            <span className="flex-1">
                               {isIpCopied ? (t('common.copied') || 'Copied IP!') : (routerIp ? `Copy IP (${routerIp})` : 'Copy IP')}
                             </span>
                           </button>
@@ -884,51 +577,38 @@ export default function LandingPage() {
                   </div>
 
                   {/* Bottom Row: Telemetry Stats Strip */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      width: '100%',
-                      gap: '4px',
-                      flexWrap: 'wrap',
-                      marginTop: '3px',
-                      fontSize: '11.5px',
-                      color: 'var(--foreground)',
-                      opacity: isOnline ? 1 : 0.6,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Active Hotspot Users">
+                  <div className="landing-router-telemetry">
+                    <div className="landing-telemetry-item" title="Active Hotspot Users">
                       <Users size={13} color="var(--primary)" />
-                      <span style={{ fontWeight: '700' }}>{isOnline && status ? (status.activeUsers || 0) : '0'}</span>
+                      <span className="font-bold">{isOnline && status ? (status.activeUsers || 0) : '0'}</span>
                     </div>
 
-                    <span style={{ opacity: 0.3, color: 'var(--text-muted)', fontSize: '10px' }}>|</span>
+                    <span className="landing-telemetry-sep">|</span>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="CPU Usage">
+                    <div className="landing-telemetry-item" title="CPU Usage">
                       <Activity size={13} color="var(--primary)" />
-                      <span style={{ fontWeight: '700' }}>{isOnline && status ? (status.cpuLoad_display || (status.cpuLoad !== undefined ? `${status.cpuLoad}%` : '—')) : '—'}</span>
+                      <span className="font-bold">{isOnline && status ? (status.cpuLoad_display || (status.cpuLoad !== undefined ? `${status.cpuLoad}%` : '—')) : '—'}</span>
                     </div>
 
-                    <span style={{ opacity: 0.3, color: 'var(--text-muted)', fontSize: '10px' }}>|</span>
+                    <span className="landing-telemetry-sep">|</span>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="RAM Usage">
+                    <div className="landing-telemetry-item" title="RAM Usage">
                       <Cpu size={13} color="var(--primary)" />
-                      <span style={{ fontWeight: '700' }}>{isOnline && status && typeof status.totalMemory === 'number' ? `${Math.round((status.totalMemory - status.freeMemory) / (1024 * 1024))}M` : '—'}</span>
+                      <span className="font-bold">{isOnline && status && typeof status.totalMemory === 'number' ? `${Math.round((status.totalMemory - status.freeMemory) / (1024 * 1024))}M` : '—'}</span>
                     </div>
 
-                    <span style={{ opacity: 0.3, color: 'var(--text-muted)', fontSize: '10px' }}>|</span>
+                    <span className="landing-telemetry-sep">|</span>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Router Temperature">
+                    <div className="landing-telemetry-item" title="Router Temperature">
                       <Thermometer size={13} color="var(--primary)" />
-                      <span style={{ fontWeight: '700' }}>{isOnline && status ? (status.temperature_display || `${getTemperature(status) ?? '—'}°C`) : '—'}</span>
+                      <span className="font-bold">{isOnline && status ? (status.temperature_display || (status.temperature != null ? `${status.temperature}°C` : '—')) : '—'}</span>
                     </div>
 
-                    <span style={{ opacity: 0.3, color: 'var(--text-muted)', fontSize: '10px' }}>|</span>
+                    <span className="landing-telemetry-sep">|</span>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="System Uptime">
+                    <div className="landing-telemetry-item" title="System Uptime">
                       <Clock size={13} color="var(--primary)" />
-                      <span style={{ fontWeight: '700', fontSize: '11px' }}>{isOnline && status ? formatUptimeAPI(status.uptime || status.uptime_display) : '—'}</span>
+                      <span className="font-bold text-[11px]">{isOnline && status ? formatUptimeAPI(status.uptime || status.uptime_display) : '—'}</span>
                     </div>
                   </div>
                 </div>
@@ -941,64 +621,22 @@ export default function LandingPage() {
       {/* Dedicated Delete WireGuard Peer Modal */}
       {peerToDelete && (
         <div
-          className="modal-overlay"
+          className="landing-modal-overlay"
           dir={isRtl ? 'rtl' : 'ltr'}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            zIndex: 1200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-          }}
           onClick={() => !isDeletingPeer && setPeerToDelete(null)}
         >
           <div
-            className="responsive-card"
-            style={{
-              width: '100%',
-              maxWidth: '420px',
-              backgroundColor: 'var(--card-bg)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: '16px',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6)',
-              overflow: 'hidden',
-              animation: 'fadeIn 0.2s ease-out',
-            }}
+            className="landing-modal-card"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div
-              style={{
-                padding: '14px 18px',
-                borderBottom: '1px solid var(--glass-border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#ef4444',
-                    flexShrink: 0,
-                  }}
-                >
+            <div className="landing-modal-header">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-red-500/15 text-red-500 flex items-center justify-center flex-shrink-0">
                   <Trash2 size={16} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: 'var(--foreground)' }}>
+                  <h3 className="m-0 text-sm font-bold text-foreground">
                     {t('dashboard.deletePeerModalTitle') || 'Delete WireGuard Peer'}
                   </h3>
                 </div>
@@ -1007,109 +645,57 @@ export default function LandingPage() {
               <button
                 onClick={() => !isDeletingPeer && setPeerToDelete(null)}
                 disabled={isDeletingPeer}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '6px',
-                  backgroundColor: 'var(--input-bg)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-muted)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: isDeletingPeer ? 'not-allowed' : 'pointer',
-                  padding: 0,
-                }}
+                className="w-7 h-7 rounded-md bg-input border border-glass text-muted flex items-center justify-center cursor-pointer p-0"
+                aria-label="Close modal"
               >
                 <X size={15} />
               </button>
             </div>
 
             {/* Body */}
-            <div style={{ padding: '16px 18px' }}>
-              <p style={{ margin: '0 0 14px 0', fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+            <div className="landing-modal-body">
+              <p className="m-0 mb-3.5 text-xs text-muted leading-relaxed">
                 {t('dashboard.deletePeerModalDesc') || 'Are you sure you want to delete this WireGuard peer? The device will immediately lose VPN access to your connected routers.'}
               </p>
 
               {/* Peer Info Box */}
-              <div
-                style={{
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '10px',
-                  padding: '12px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  marginBottom: '16px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+              <div className="landing-modal-info-box">
+                <div className="flex items-center gap-2.5 min-w-0">
                   {peerToDelete.deviceType === 'phone' || peerToDelete.name?.toLowerCase().includes('phone') ? (
-                    <Smartphone size={18} color="#10b981" style={{ flexShrink: 0 }} />
+                    <Smartphone size={18} color="#10b981" className="flex-shrink-0" />
                   ) : (
-                    <Laptop size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
+                    <Laptop size={18} color="var(--primary)" className="flex-shrink-0" />
                   )}
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-foreground truncate">
                       {peerToDelete.name || 'WireGuard Device'}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                    <div className="text-[11px] text-muted font-mono">
                       {peerToDelete.clientIp || '10.8.x.x'}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ textAlign: isRtl ? 'left' : 'right', flexShrink: 0 }}>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: '700',
-                      color: peerToDelete.isOnline ? '#10b981' : 'var(--text-muted)',
-                    }}
-                  >
+                <div className={isRtl ? 'text-left flex-shrink-0' : 'text-right flex-shrink-0'}>
+                  <span className={`text-[11px] font-bold ${peerToDelete.isOnline ? 'text-emerald-500' : 'text-muted'}`}>
                     {peerToDelete.isOnline ? (isRtl ? 'متصل' : 'Online') : (isRtl ? 'غير متصل' : 'Offline')}
                   </span>
                 </div>
               </div>
 
               {/* Buttons (Solid High Contrast buttons per AGENTS.md) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+              <div className="flex items-center gap-2 justify-end">
                 <button
                   onClick={() => setPeerToDelete(null)}
                   disabled={isDeletingPeer}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    backgroundColor: 'var(--input-bg)',
-                    border: '1px solid var(--glass-border)',
-                    color: 'var(--foreground)',
-                    fontWeight: '700',
-                    fontSize: '12px',
-                    cursor: isDeletingPeer ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
+                  className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs cursor-pointer border-none transition-all"
                 >
                   {t('common.cancel') || 'Cancel'}
                 </button>
                 <button
                   onClick={confirmDeletePeer}
                   disabled={isDeletingPeer}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    backgroundColor: '#ef4444',
-                    border: 'none',
-                    color: '#ffffff',
-                    fontWeight: '800',
-                    fontSize: '12px',
-                    cursor: isDeletingPeer ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease',
-                  }}
+                  className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs cursor-pointer border-none flex items-center gap-1.5 transition-all"
                 >
                   {isDeletingPeer && <RefreshCw size={13} className="spinner" />}
                   <span>{isDeletingPeer ? (t('common.deleting') || 'Deleting...') : (t('common.delete') || 'Delete Peer')}</span>

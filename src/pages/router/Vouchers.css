@@ -826,6 +826,7 @@
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
+  margin-inline-start: auto;
 }
 
 .voucher-badge-pill {
@@ -1029,4 +1030,173 @@
 
 .print-action-btn.share {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+/* ─── RTL/LTR Layout Helpers & Position Utilities ─── */
+[dir="rtl"] .voucher-toast-notification,
+[dir="rtl"] .modal-toast-pos {
+  left: 24px;
+  right: auto;
+}
+
+[dir="ltr"] .voucher-toast-notification,
+[dir="ltr"] .modal-toast-pos {
+  right: 24px;
+  left: auto;
+}
+
+[dir="rtl"] .voucher-search-icon {
+  right: 12px;
+  left: auto;
+}
+
+[dir="ltr"] .voucher-search-icon {
+  left: 12px;
+  right: auto;
+}
+
+[dir="rtl"] .voucher-search-input {
+  padding: 0 38px 0 12px;
+}
+
+[dir="ltr"] .voucher-search-input {
+  padding: 0 12px 0 38px;
+}
+
+[dir="rtl"] .batch-search-icon {
+  right: 10px;
+  left: auto;
+}
+
+[dir="ltr"] .batch-search-icon {
+  left: 10px;
+  right: auto;
+}
+
+[dir="rtl"] .batch-search-input {
+  padding: 0 32px 0 10px;
+}
+
+[dir="ltr"] .batch-search-input {
+  padding: 0 10px 0 32px;
+}
+
+[dir="rtl"] .drawer-overlay {
+  justify-content: flex-start;
+}
+
+[dir="ltr"] .drawer-overlay {
+  justify-content: flex-end;
+}
+
+[dir="rtl"] .drawer-chevron-pos {
+  left: 12px;
+  right: auto;
+}
+
+[dir="ltr"] .drawer-chevron-pos {
+  right: 12px;
+  left: auto;
+}
+
+[dir="rtl"] .drawer-unit-pos {
+  left: 10px;
+  right: auto;
+}
+
+[dir="ltr"] .drawer-unit-pos {
+  right: 10px;
+  left: auto;
+}
+
+[dir="rtl"] .drawer-custom-pos {
+  right: 10px;
+  left: auto;
+}
+
+[dir="ltr"] .drawer-custom-pos {
+  left: 10px;
+  right: auto;
+}
+
+[dir="rtl"] .drawer-input-with-chevron {
+  padding: 0 12px 0 34px;
+}
+
+[dir="ltr"] .drawer-input-with-chevron {
+  padding: 0 34px 0 12px;
+}
+
+[dir="rtl"] .drawer-input-with-unit {
+  padding: 0 12px 0 36px;
+}
+
+[dir="ltr"] .drawer-input-with-unit {
+  padding: 0 36px 0 12px;
+}
+
+[dir="rtl"] .drawer-input-with-custom {
+  padding: 0 36px 0 12px;
+}
+
+[dir="ltr"] .drawer-input-with-custom {
+  padding: 0 12px 0 36px;
+}
+
+[dir="rtl"] .modal-close-pos {
+  left: 16px;
+  right: auto;
+}
+
+[dir="ltr"] .modal-close-pos {
+  right: 16px;
+  left: auto;
+}
+
+.voucher-skeleton-card {
+  height: 72px;
+  opacity: 0.6;
+}
+
+.voucher-skeleton-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+}
+
+.voucher-empty-icon {
+  color: var(--text-muted);
+}
+
+.voucher-batches-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.voucher-loading-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-header-clean {
+  padding: 0 !important;
+  border: none !important;
+}
+
+.input-pad-horizontal {
+  padding: 0 12px;
+}
+
+.drawer-prefix-group {
+  width: 130px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #3b82f6;
+  transition: width 0.3s ease;
 }

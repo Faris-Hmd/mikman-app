@@ -6,12 +6,11 @@ import { useModal } from '../context/ModalContext';
 import { supabase } from '../lib/supabase';
 import useSWR from 'swr';
 import { fetchUserSubscriptionHistoryAPI, fetchPlansCatalogAPI, fetchRouterProfilesWithUserAPI, SubscriptionHistoryEntry, PlanCatalogItem } from '../api';
-import { User, ShieldCheck, Clock, CreditCard, History, MessageCircle, Calendar, AlertTriangle, KeyRound, Eye, EyeOff, Lock, CheckCircle2, LogOut, Shield, Smartphone, Laptop, Router, Download, Copy, Check, ExternalLink } from 'lucide-react';
+import { User, ShieldCheck, Clock, CreditCard, History, Calendar, AlertTriangle, KeyRound, Eye, EyeOff, Lock, CheckCircle2, LogOut, Smartphone } from 'lucide-react';
 import { useVpnModal } from '../context/VpnModalContext';
-import LogoutConfirmModal from '../components/LogoutConfirmModal';
-import WireguardIcon from '../components/WireguardIcon';
-
-const WHATSAPP_NUMBER = '249966626693';
+import LogoutConfirmModal from '../components/auth/LogoutConfirmModal';
+import WireguardIcon from '../components/ui/WireguardIcon';
+import './Account.css';
 
 function formatPlanName(quota?: string, isRtl = false, plansCatalog?: PlanCatalogItem[], maxRouters?: number): string {
   if (!quota) return isRtl ? 'تجريبي مجاني' : 'Free Trial';
@@ -48,7 +47,7 @@ export default function AccountPage() {
   const { showAlert } = useModal();
   const { openVpnModal } = useVpnModal();
   const { data: plansCatalog } = useSWR('plans-catalog', fetchPlansCatalogAPI);
-  const { data: profilesResponse } = useSWR('router-profiles-user', fetchRouterProfilesWithUserAPI);
+  useSWR('router-profiles-user', fetchRouterProfilesWithUserAPI);
   const [history, setHistory] = useState<SubscriptionHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -81,13 +80,6 @@ export default function AccountPage() {
   const isBanned = accountInfo?.subscriptionState === 'banned' || userData?.approved === false;
   const isExpired = accountInfo?.subscriptionState === 'expired';
   const isActive = accountInfo?.subscriptionState === 'active' && !isBanned;
-
-  const handleWhatsAppContact = () => {
-    const message = encodeURIComponent(
-      `Hello MikMan Support, I have an inquiry regarding my subscription.\nEmail: ${user?.email || ''}\nCurrent Plan: ${formatPlanName(userData?.quota, isRtl, plansCatalog, userData?.maxRouters)}`
-    );
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
-  };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,121 +131,45 @@ export default function AccountPage() {
   };
 
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ padding: '16px 20px', maxWidth: '1000px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-      
+    <div className={`account-container ${isRtl ? 'rtl' : 'ltr'}`}>
       {/* Compact Page Header */}
-      <div
-        className="responsive-card"
-        style={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-          marginBottom: '16px',
-          backdropFilter: 'blur(8px)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              backgroundColor: 'rgba(var(--primary-rgb, 99, 102, 241), 0.12)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--primary)',
-            }}
-          >
+      <div className="account-header-card responsive-card">
+        <div className="account-user-info">
+          <div className="account-user-avatar">
             <User size={20} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <h1 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--foreground)', margin: 0 }}>
+          <div className="account-user-text">
+            <h1 className="account-user-name">
               {userData?.name || user?.email?.split('@')[0] || t('accountPage.title')}
             </h1>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-family-mono, monospace)' }}>
+            <span className="account-user-email">
               {user?.email}
             </span>
           </div>
         </div>
 
         {/* Account Status Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="account-header-badges">
           {isBanned && (
-            <span
-              style={{
-                padding: '4px 10px',
-                borderRadius: '8px',
-                fontSize: '11px',
-                fontWeight: '700',
-                backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                color: '#ef4444',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-            >
+            <span className="account-status-tag banned">
               <AlertTriangle size={13} /> {t('accountPage.bannedAccount')}
             </span>
           )}
           {isExpired && !isBanned && (
-            <span
-              style={{
-                padding: '4px 10px',
-                borderRadius: '8px',
-                fontSize: '11px',
-                fontWeight: '700',
-                backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                color: '#f59e0b',
-                border: '1px solid rgba(245, 158, 11, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-            >
+            <span className="account-status-tag expired">
               <Clock size={13} /> {t('accountPage.subscriptionExpired')}
             </span>
           )}
           {isActive && (
-            <span
-              style={{
-                padding: '4px 10px',
-                borderRadius: '8px',
-                fontSize: '11px',
-                fontWeight: '700',
-                backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                color: '#10b981',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-            >
+            <span className="account-status-tag active">
               <ShieldCheck size={13} /> {t('accountPage.activeAccount')}
             </span>
           )}
 
-          {/* Sign Out Button */}
+          {/* Sign Out Button (Solid Red High Contrast) */}
           <button
             onClick={() => setShowLogoutModal(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              color: '#ef4444',
-              border: '1px solid rgba(239, 68, 68, 0.25)',
-              fontSize: '12px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
+            className="account-signout-btn"
             title={t('sidebar.signOut')}
           >
             <LogOut size={14} />
@@ -263,61 +179,30 @@ export default function AccountPage() {
       </div>
 
       {/* Grid: Plan & Remaining Time Overview */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: '12px',
-          marginBottom: '16px',
-        }}
-      >
+      <div className="account-overview-grid">
         {/* Card 1: Current Plan */}
-        <div
-          className="responsive-card"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <CreditCard size={14} style={{ color: 'var(--primary)' }} /> {t('accountPage.currentPlan')}
+        <div className="responsive-card account-card-content">
+          <div className="account-card-header">
+            <span className="account-card-title">
+              <CreditCard size={14} color="var(--primary)" /> {t('accountPage.currentPlan')}
             </span>
-            <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '800', backgroundColor: 'rgba(99, 102, 241, 0.15)', color: 'var(--primary)', border: '1px solid rgba(99, 102, 241, 0.25)', textTransform: 'uppercase' }}>
+            <span className="account-quota-tag">
               {userData?.quota || 'free'}
             </span>
           </div>
 
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--foreground)', margin: 0 }}>
+            <h3 className="account-plan-name">
               {formatPlanName(userData?.quota, isRtl, plansCatalog, userData?.maxRouters)}
             </h3>
-            <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
+            <p className="account-plan-subtitle">
               {t('accountPage.maxRouterLimit').replace('{count}', String(userData?.maxRouters ?? 1))}
             </p>
           </div>
 
           <button
             onClick={() => navigate('/plans')}
-            style={{
-              width: '100%',
-              padding: '9px 14px',
-              borderRadius: '8px',
-              backgroundColor: 'var(--primary)',
-              color: '#fff',
-              border: 'none',
-              fontSize: '12px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 8px rgba(var(--primary-rgb, 99, 102, 241), 0.25)',
-              transition: 'all 0.2s ease',
-            }}
+            className="account-btn-blue"
           >
             <CreditCard size={14} />
             <span>{t('accountPage.upgradeOrChangePlan')}</span>
@@ -325,37 +210,27 @@ export default function AccountPage() {
         </div>
 
         {/* Card 2: Remaining Time */}
-        <div
-          className="responsive-card"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <Clock size={14} style={{ color: '#f59e0b' }} /> {t('accountPage.remainingTime')}
+        <div className="responsive-card account-card-content">
+          <div className="account-card-header">
+            <span className="account-card-title">
+              <Clock size={14} color="#f59e0b" /> {t('accountPage.remainingTime')}
             </span>
           </div>
 
           <div>
-            <div style={{ fontSize: '20px', fontWeight: '800', color: isExpired ? '#ef4444' : 'var(--foreground)' }}>
+            <div className={`account-days-display ${isExpired ? 'expired' : ''}`}>
               {isExpired ? '0 Days' : `${remainingDays} ${isRtl ? 'أيام' : 'Days'}`}
             </div>
-            <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '3px 0 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <p className="account-expires-date">
               <Calendar size={12} /> {t('accountPage.expiresOn').replace('{date}', formatDate(userData?.expiresAt))}
             </p>
           </div>
 
-          <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--input-bg, rgba(255,255,255,0.08))', borderRadius: '3px', overflow: 'hidden' }}>
+          <div className="account-progress-track">
             <div
+              className={`account-progress-fill ${isExpired ? 'expired' : ''}`}
               style={{
-                height: '100%',
-                backgroundColor: isExpired ? '#ef4444' : 'var(--primary)',
-                width: isExpired ? '100%' : `${Math.min(100, (remainingDays / 30) * 100)}%`,
-                transition: 'width 0.4s ease',
+                ['--progress' as any]: isExpired ? '100%' : `${Math.min(100, (remainingDays / 30) * 100)}%`
               }}
             />
           </div>
@@ -363,98 +238,46 @@ export default function AccountPage() {
       </div>
 
       {/* WireGuard VPN Access Card */}
-      <div
-        className="responsive-card"
-        style={{
-          marginBottom: '16px',
-          background: 'var(--card-bg)',
-          border: '1.5px solid rgba(var(--primary-rgb), 0.25)',
-          borderRadius: '14px',
-          padding: '16px 18px',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+      <div className="responsive-card account-vpn-card">
+        <div className="account-vpn-inner">
+          <div className="account-vpn-left">
+            <div className="account-vpn-icon">
               <WireguardIcon size={20} color="#ef4444" />
             </div>
             <div>
-              <h2 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--foreground)', margin: 0 }}>
+              <h2 className="text-sm font-extrabold text-foreground m-0">
                 {t('vpnModal.title') || 'WireGuard Admin VPN Tunnel'}
               </h2>
-              <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+              <p className="text-[11.5px] text-muted m-0 mt-0.5">
                 {t('vpnModal.subtitle') || 'Direct WinBox & WebFig access to all your MikroTik routers'}
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => openVpnModal()}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--primary)',
-                color: '#fff',
-                border: 'none',
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(var(--primary-rgb), 0.25)',
-                transition: 'all 0.2s',
-              }}
-            >
-              <Smartphone size={14} />
-              <span>{t('vpnModal.tabMobile') || 'Scan QR / Config'}</span>
-            </button>
-          </div>
+          <button
+            onClick={() => openVpnModal()}
+            className="account-btn-blue w-auto px-4 py-2"
+          >
+            <Smartphone size={14} />
+            <span>{t('vpnModal.tabMobile') || 'Scan QR / Config'}</span>
+          </button>
         </div>
       </div>
 
       {/* Password Management Form Card */}
-      <div
-        className="responsive-card"
-        style={{
-          marginBottom: '16px',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                backgroundColor: hasPasswordState ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: hasPasswordState ? '#10b981' : '#f59e0b',
-              }}
-            >
+      <div className="responsive-card account-password-card">
+        <div className="account-password-header">
+          <div className="flex items-center gap-2">
+            <div className={`account-password-icon ${hasPasswordState ? 'is-set' : 'is-unset'}`}>
               <KeyRound size={16} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <h2 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--foreground)', margin: 0 }}>
+            <div className="flex flex-col gap-0.5">
+              <h2 className="text-sm font-bold text-foreground m-0">
                 {hasPasswordState
                   ? (t('accountPage.changePasswordTitle') || 'Change Password')
                   : (t('accountPage.setPasswordTitle') || 'Set Account Password')}
               </h2>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+              <p className="text-[11px] text-muted m-0">
                 {hasPasswordState
                   ? (t('accountPage.changePasswordDesc') || 'Update your account password to maintain security.')
                   : (t('accountPage.setPasswordDesc') || 'Set a password for your account to log in easily.')}
@@ -462,20 +285,7 @@ export default function AccountPage() {
             </div>
           </div>
 
-          <span
-            style={{
-              padding: '3px 8px',
-              borderRadius: '6px',
-              fontSize: '10.5px',
-              fontWeight: '700',
-              backgroundColor: hasPasswordState ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.15)',
-              color: hasPasswordState ? '#10b981' : '#f59e0b',
-              border: `1px solid ${hasPasswordState ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.3)'}`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
+          <span className={`account-password-badge ${hasPasswordState ? 'is-set' : 'is-unset'}`}>
             {hasPasswordState ? (
               <>
                 <CheckCircle2 size={12} />
@@ -491,21 +301,8 @@ export default function AccountPage() {
         </div>
 
         {!hasPasswordState && (
-          <div
-            style={{
-              backgroundColor: 'rgba(245, 158, 11, 0.08)',
-              border: '1px solid rgba(245, 158, 11, 0.25)',
-              borderRadius: '8px',
-              padding: '10px 12px',
-              fontSize: '12px',
-              color: 'var(--foreground)',
-              lineHeight: '1.45',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}
-          >
-            <AlertTriangle size={16} color="#f59e0b" style={{ flexShrink: 0 }} />
+          <div className="bg-amber-500/10 border border-amber-500/25 rounded-lg p-2.5 text-xs text-foreground flex items-center gap-2.5 mb-3">
+            <AlertTriangle size={16} color="#f59e0b" className="flex-shrink-0" />
             <span>
               {t('accountPage.noPasswordBanner') ||
                 (isRtl
@@ -515,14 +312,14 @@ export default function AccountPage() {
           </div>
         )}
 
-        <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+        <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-3">
+          <div className="account-form-grid">
             {/* New Password Input */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)' }}>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold text-muted">
                 {t('accountPage.newPasswordLabel') || 'New Password'}
               </label>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <div className="account-input-group">
                 <input
                   type={showNewPassword ? 'text' : 'password'}
                   required
@@ -530,33 +327,13 @@ export default function AccountPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••"
-                  style={{
-                    width: '100%',
-                    padding: '9px 36px 9px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--glass-border)',
-                    backgroundColor: 'var(--input-bg, rgba(255,255,255,0.04))',
-                    color: 'var(--foreground)',
-                    fontSize: '13px',
-                    boxSizing: 'border-box',
-                    outline: 'none',
-                  }}
+                  className="account-input"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: isRtl ? 'auto' : '10px',
-                    left: isRtl ? '10px' : 'auto',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: 0,
-                  }}
+                  className={`account-input-eye ${isRtl ? 'rtl' : 'ltr'}`}
+                  aria-label="Toggle password visibility"
                 >
                   {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -564,11 +341,11 @@ export default function AccountPage() {
             </div>
 
             {/* Confirm Password Input */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)' }}>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold text-muted">
                 {t('accountPage.confirmPasswordLabel') || 'Confirm New Password'}
               </label>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <div className="account-input-group">
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
                   required
@@ -576,33 +353,13 @@ export default function AccountPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
-                  style={{
-                    width: '100%',
-                    padding: '9px 36px 9px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--glass-border)',
-                    backgroundColor: 'var(--input-bg, rgba(255,255,255,0.04))',
-                    color: 'var(--foreground)',
-                    fontSize: '13px',
-                    boxSizing: 'border-box',
-                    outline: 'none',
-                  }}
+                  className="account-input"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: isRtl ? 'auto' : '10px',
-                    left: isRtl ? '10px' : 'auto',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: 0,
-                  }}
+                  className={`account-input-eye ${isRtl ? 'rtl' : 'ltr'}`}
+                  aria-label="Toggle password visibility"
                 >
                   {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -610,34 +367,19 @@ export default function AccountPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '4px' }}>
+          <div className="flex justify-end pt-1">
             <button
               type="submit"
               disabled={savingPassword}
-              style={{
-                padding: '9px 18px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--primary)',
-                color: '#fff',
-                border: 'none',
-                fontSize: '12px',
-                fontWeight: '750',
-                cursor: savingPassword ? 'not-allowed' : 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                opacity: savingPassword ? 0.7 : 1,
-                boxShadow: '0 2px 8px rgba(var(--primary-rgb, 99, 102, 241), 0.25)',
-                transition: 'all 0.2s ease',
-              }}
+              className="account-save-pwd-btn"
             >
               <Lock size={14} />
               <span>
                 {savingPassword
                   ? (t('accountPage.savingPassword') || 'Updating password...')
                   : hasPasswordState
-                  ? (t('accountPage.changePasswordBtn') || 'Update Password')
-                  : (t('accountPage.setPasswordBtn') || 'Set Password')}
+                    ? (t('accountPage.changePasswordBtn') || 'Update Password')
+                    : (t('accountPage.setPasswordBtn') || 'Set Password')}
               </span>
             </button>
           </div>
@@ -646,71 +388,47 @@ export default function AccountPage() {
 
       {/* Subscription History Logs Section */}
       <div className="responsive-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '12px', marginBottom: '12px' }}>
-          <h2 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--foreground)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <History size={16} style={{ color: 'var(--primary)' }} /> {t('accountPage.subscriptionHistory')}
+        <div className="account-history-header">
+          <h2 className="text-sm font-bold text-foreground m-0 flex items-center gap-1.5">
+            <History size={16} color="var(--primary)" /> {t('accountPage.subscriptionHistory')}
           </h2>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-family-mono, monospace)' }}>
+          <span className="text-[11px] text-muted font-mono">
             {t('accountPage.eventsCount').replace('{count}', String(history.length))}
           </span>
         </div>
 
         {loadingHistory ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
+          <div className="py-6 text-center text-xs text-muted">
             {t('accountPage.loadingHistory')}
           </div>
         ) : history.length === 0 ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+          <div className="py-6 text-center text-xs text-muted italic">
             {t('accountPage.noHistory')}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="account-history-list">
             {history.map((log, idx) => (
-              <div
-                key={log.id || idx}
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  backgroundColor: 'var(--input-bg, rgba(255,255,255,0.03))',
-                  border: '1px solid var(--glass-border)',
-                  display: 'flex',
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--foreground)' }}>
+              <div key={log.id || idx} className="account-history-item">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-bold text-foreground">
                     {log.action}
                   </span>
                   {log.details && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <div className="flex flex-wrap gap-2 text-[11px] text-muted">
                       {log.details.plan && (
-                        <span>{t('accountPage.plan')} <strong style={{ color: 'var(--primary)' }}>{formatPlanName(log.details.plan, isRtl, plansCatalog, log.details.max_routers)}</strong></span>
+                        <span>{t('accountPage.plan')} <strong className="text-primary">{formatPlanName(log.details.plan, isRtl, plansCatalog, log.details.max_routers)}</strong></span>
                       )}
                       {log.details.max_routers !== undefined && (
-                        <span>{t('accountPage.routers')} <strong style={{ color: 'var(--foreground)' }}>{log.details.max_routers}</strong></span>
+                        <span>{t('accountPage.routers')} <strong className="text-foreground">{log.details.max_routers}</strong></span>
                       )}
                       {log.details.days_added !== undefined && (
-                        <span>{t('accountPage.added')} <strong style={{ color: '#10b981' }}>+{log.details.days_added} {isRtl ? 'أيام' : 'Days'}</strong></span>
+                        <span>{t('accountPage.added')} <strong className="text-emerald-500">+{log.details.days_added} {isRtl ? 'أيام' : 'Days'}</strong></span>
                       )}
                     </div>
                   )}
                 </div>
 
-                <div
-                  style={{
-                    fontSize: '10.5px',
-                    fontFamily: 'var(--font-family-mono, monospace)',
-                    color: 'var(--text-muted)',
-                    backgroundColor: 'rgba(0,0,0,0.2)',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--glass-border)',
-                  }}
-                >
+                <div className="account-history-time">
                   {formatDate(log.created_at || log.timestamp)}
                 </div>
               </div>

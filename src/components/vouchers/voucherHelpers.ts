@@ -1,4 +1,7 @@
-export const formatRelativeAge = (createdAt?: string, isRtl = false): string => {
+export const formatRelativeAge = (
+  createdAt?: string,
+  t?: (key: string, params?: Record<string, string | number>) => string
+): string => {
   if (!createdAt) return '';
   const parsed = Date.parse(createdAt);
   if (isNaN(parsed)) return '';
@@ -7,18 +10,20 @@ export const formatRelativeAge = (createdAt?: string, isRtl = false): string => 
   if (diffMs < 0) return '';
 
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return isRtl ? 'الآن' : 'just now';
-  if (diffMin < 60) return isRtl ? `منذ ${diffMin} د` : `${diffMin}m ago`;
+  if (!t) return `${diffMin}m ago`;
+
+  if (diffMin < 1) return t('common.justNow');
+  if (diffMin < 60) return t('common.mAgo', { m: diffMin });
 
   const h = Math.floor(diffMin / 60);
-  if (h < 24) return isRtl ? `منذ ${h} س` : `${h}h ago`;
+  if (h < 24) return t('common.hAgo', { h });
 
   const d = Math.floor(h / 24);
-  if (d < 30) return isRtl ? `منذ ${d} يوم` : `${d}d ago`;
+  if (d < 30) return t('common.dAgo', { d });
 
   const mo = Math.floor(d / 30);
-  if (mo < 12) return isRtl ? `منذ ${mo} شهر` : `${mo}mo ago`;
+  if (mo < 12) return t('common.moAgo', { mo });
 
   const y = Math.floor(d / 365);
-  return isRtl ? `منذ ${y} سنة` : `${y}y ago`;
+  return t('common.yAgo', { y });
 };

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Lock, ShieldCheck, Sun, Moon, Languages } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import { useLanguage } from '../context/LanguageContext';
-import BrandLogo from './BrandLogo';
+import { supabase } from '../../lib/supabase';
+import { useLanguage } from '../../context/LanguageContext';
+import BrandLogo from '../ui/BrandLogo';
+import '../layout/shell.css';
 
 export default function SignIn() {
   const { language, setLanguage, t, isRtl } = useLanguage();
@@ -84,7 +85,6 @@ export default function SignIn() {
     >
       {/* Top Toggles Bar (Language & Theme) */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-2 z-20">
-        {/* Language Toggle */}
         <button
           type="button"
           onClick={toggleLanguage}
@@ -95,7 +95,6 @@ export default function SignIn() {
           <span>{language === 'ar' ? 'English' : 'العربية'}</span>
         </button>
 
-        {/* Theme Toggle */}
         <button
           type="button"
           onClick={toggleTheme}
@@ -106,15 +105,10 @@ export default function SignIn() {
         </button>
       </div>
 
-      {/* Background ambient glowing Orbs */}
-      <div className="absolute w-[350px] h-[350px] rounded-full bg-[radial-gradient(circle,rgba(var(--primary-rgb),0.18)_0%,transparent_70%)] -top-[12%] -right-[8%] z-0 pointer-events-none blur-xl animate-pulse" />
-      <div className="absolute w-[450px] h-[450px] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.12)_0%,transparent_70%)] -bottom-[12%] -left-[8%] z-0 pointer-events-none blur-2xl" />
-
       {/* Card Container */}
       <div
-        className="relative flex flex-col items-center p-7 sm:p-9 rounded-3xl border border-[var(--glass-border)] bg-[var(--card-bg)] backdrop-blur-2xl max-w-[420px] w-full text-center z-10 box-border shadow-[0_20px_50px_rgba(0,0,0,0.25)] before:absolute before:top-0 before:left-6 before:right-6 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-[var(--primary)]/40 before:to-transparent"
+        className="relative flex flex-col items-center p-7 sm:p-9 rounded-3xl border border-[var(--glass-border)] bg-[var(--card-bg)] backdrop-blur-2xl max-w-[420px] w-full text-center z-10 box-border shadow-[0_20px_50px_rgba(0,0,0,0.25)]"
       >
-        {/* Brand Logo Header */}
         <BrandLogo size={56} iconSize={28} className="mb-4" />
 
         <h1 className="text-2xl sm:text-[26px] font-[900] text-[var(--foreground)] m-0 mb-1.5 tracking-tight">
@@ -125,8 +119,8 @@ export default function SignIn() {
         </p>
 
         {error && (
-          <div className="w-full bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] rounded-xl p-3.5 mb-5 text-[12.5px] text-[#ef4444] text-start leading-relaxed box-border font-medium flex items-start gap-2.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#ef4444] mt-1.5 flex-shrink-0" />
+          <div className="w-full bg-red-500/10 border border-red-500/25 rounded-xl p-3.5 mb-5 text-[12.5px] text-red-500 text-start leading-relaxed box-border font-medium flex items-start gap-2.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
@@ -145,12 +139,7 @@ export default function SignIn() {
               onFocus={() => setFocusedField('email')}
               onBlur={() => setFocusedField(null)}
               disabled={authLoading || loading}
-              style={{
-                backgroundColor: 'var(--input-bg)',
-                color: 'var(--foreground)',
-                borderColor: focusedField === 'email' ? 'var(--primary)' : 'var(--glass-border)',
-              }}
-              className={`w-full h-12 ${isRtl ? 'pr-11 pl-4' : 'pl-11 pr-4'} rounded-xl border text-[14.5px] font-semibold outline-none transition-all duration-200 box-border disabled:opacity-50`}
+              className={`w-full h-12 ${isRtl ? 'pr-11 pl-4' : 'pl-11 pr-4'} rounded-xl border border-glass bg-[var(--input-bg)] text-[var(--foreground)] text-[14.5px] font-semibold outline-none transition-all duration-200 box-border disabled:opacity-50`}
             />
           </div>
 
@@ -167,28 +156,18 @@ export default function SignIn() {
               onFocus={() => setFocusedField('password')}
               onBlur={() => setFocusedField(null)}
               disabled={authLoading || loading}
-              style={{
-                backgroundColor: 'var(--input-bg)',
-                color: 'var(--foreground)',
-                borderColor: focusedField === 'password' ? 'var(--primary)' : 'var(--glass-border)',
-              }}
-              className={`w-full h-12 ${isRtl ? 'pr-11 pl-4' : 'pl-11 pr-4'} rounded-xl border text-[14.5px] font-semibold outline-none transition-all duration-200 box-border disabled:opacity-50`}
+              className={`w-full h-12 ${isRtl ? 'pr-11 pl-4' : 'pl-11 pr-4'} rounded-xl border border-glass bg-[var(--input-bg)] text-[var(--foreground)] text-[14.5px] font-semibold outline-none transition-all duration-200 box-border disabled:opacity-50`}
             />
           </div>
 
-          {/* Primary Submit Button */}
+          {/* Primary Submit Button (Rule 1: Solid high contrast) */}
           <button
             type="submit"
             disabled={authLoading || loading}
-            style={{
-              backgroundColor: 'var(--primary)',
-              color: '#ffffff',
-              boxShadow: '0 6px 20px -4px rgba(var(--primary-rgb), 0.45)',
-            }}
-            className="w-full h-12 border-none rounded-xl text-[14.5px] font-bold cursor-pointer flex items-center justify-center gap-2 transition-all duration-200 box-border mt-1 disabled:cursor-not-allowed disabled:opacity-60 hover:opacity-90 active:scale-[0.98]"
+            className="btn-solid-blue w-full h-12 rounded-xl text-[14.5px] font-bold cursor-pointer flex items-center justify-center gap-2 mt-1 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {authLoading ? (
-              <div className="w-4.5 h-4.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
             ) : (
               <span>{t('auth.signInBtn')}</span>
             )}
@@ -208,15 +187,10 @@ export default function SignIn() {
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          style={{
-            backgroundColor: 'var(--input-bg)',
-            color: 'var(--foreground)',
-            borderColor: 'var(--glass-border)',
-          }}
-          className="flex items-center justify-center gap-3 w-full h-12 font-bold text-[14px] rounded-xl border shadow-sm hover:border-[var(--primary)]/50 active:scale-[0.98] transition-all duration-200 box-border cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex items-center justify-center gap-3 w-full h-12 font-bold text-[14px] rounded-xl border border-glass bg-[var(--input-bg)] text-[var(--foreground)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 hover:border-primary/50 transition-all"
         >
           {loading ? (
-            <div className="w-4.5 h-4.5 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+            <div className="w-4 h-4 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
           ) : (
             <>
               <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">

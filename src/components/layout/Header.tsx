@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react';
-import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { Sun, Moon, Menu, Languages } from 'lucide-react';
-import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
-import { useVpnModal } from '../context/VpnModalContext';
-import BrandLogo from './BrandLogo';
-import WireguardIcon from './WireguardIcon';
+import { useLocation, Link } from 'react-router-dom';
+import { Sun, Moon, Menu } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
+import { useVpnModal } from '../../context/VpnModalContext';
+import BrandLogo from '../ui/BrandLogo';
+import WireguardIcon from '../ui/WireguardIcon';
+import './shell.css';
 
 interface HeaderProps {
   onMenuToggle: () => void;
   isMobileMenuOpen: boolean;
 }
 
-export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
+export default function Header({ onMenuToggle }: HeaderProps) {
   const location = useLocation();
   const pathname = location.pathname;
-  const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
   const { user } = useAuth();
   const { openVpnModal } = useVpnModal();
@@ -61,14 +61,13 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
           {user && (
             <button
               onClick={onMenuToggle}
-              className="mobile-nav header-action-btn z-10"
-              style={{ padding: '6px', border: 'none', outline: 'none' }}
+              className="mobile-nav header-action-btn z-10 p-1.5 border-none outline-none"
               title="Menu"
             >
               <Menu size={20} color="var(--foreground)" />
             </button>
           )}
-          <Link to="/" className="mobile-nav flex items-center gap-2 rounded-lg px-1 py-1 no-underline transition-colors border-none" title={t('header.routerSelection')}>
+          <Link to="/" className="mobile-nav flex items-center gap-2 rounded-lg px-1 py-1 no-underline border-none" title={t('header.routerSelection')}>
             <BrandLogo size={32} iconSize={18} showText textTitle="MIKMAN" subtitle={title} />
           </Link>
           <div className="desktop-nav">
@@ -79,8 +78,7 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
           {user && (
             <button
               onClick={() => openVpnModal()}
-              className="header-action-btn flex items-center justify-center"
-              style={{ padding: '6px', border: 'none', outline: 'none' }}
+              className="header-action-btn flex items-center justify-center p-1.5 border-none outline-none"
               title={t('vpnModal.title') || 'WireGuard VPN Access'}
             >
               <WireguardIcon size={20} color="#ef4444" />
@@ -88,18 +86,16 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
           )}
           <button
             onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
-            className="desktop-nav header-action-btn flex items-center justify-center"
-            style={{ padding: '6px', border: 'none', outline: 'none' }}
-            title={language === 'en' ? 'تغيير اللغة إلى العربية (Switch to Arabic)' : 'Switch Language to English'}
+            className="desktop-nav header-action-btn flex items-center justify-center p-1.5 border-none outline-none"
+            title={language === 'en' ? 'Switch to Arabic' : 'Switch to English'}
           >
-            <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.5px' }}>
+            <span className="text-xs font-black text-primary tracking-wide">
               {language === 'en' ? 'عربي' : 'EN'}
             </span>
           </button>
           <button
             onClick={toggleTheme}
-            className="header-action-btn"
-            style={{ padding: '6px', border: 'none', outline: 'none' }}
+            className="header-action-btn p-1.5 border-none outline-none"
             title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           >
             {theme === 'dark' ? <Sun size={19} color="var(--primary)" /> : <Moon size={19} color="var(--primary)" />}
@@ -107,14 +103,13 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
           {user && (
             <Link
               to="/account"
-              className="header-action-btn"
-              style={{ padding: '4px', border: 'none', outline: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              className="header-action-btn p-1 border-none outline-none flex items-center justify-center"
               title={user.email || 'Account'}
             >
               {user.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} alt="Profile" style={{ width: '26px', height: '26px', objectFit: 'cover', borderRadius: '50%' }} referrerPolicy="no-referrer" />
+                <img src={user.user_metadata.avatar_url} alt="Profile" className="w-[26px] h-[26px] object-cover rounded-full" referrerPolicy="no-referrer" />
               ) : (
-                <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: 'rgba(var(--primary-rgb), 0.15)', color: 'var(--primary)', fontSize: '11px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="w-[26px] h-[26px] rounded-full bg-primary/15 text-primary text-[11px] font-extrabold flex items-center justify-center">
                   {user.user_metadata?.full_name ? user.user_metadata.full_name.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
                 </div>
               )}

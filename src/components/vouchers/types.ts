@@ -1,13 +1,17 @@
 export interface Profile {
-  id: string;
-  name?: string;
+  '.id'?: string;
+  id?: string;
+  name: string;
   validity?: string;
+  validityBadge?: string;
   limitMB?: number;
+  dataBadge?: string;
   isUnlimited?: boolean;
-  price?: number | string;
+  printLabel?: string;
   revenue?: number | string;
-  'rate-limit'?: string;
-  'limit-bytes-total'?: string;
+  price?: number | string;
+  formattedPrice?: string;
+  rateLimit?: string;
+  vouchersCount?: number;
   comment?: string;
-  'on-login'?: string;
 }

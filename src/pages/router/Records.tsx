@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import { fetchRecordsAPI } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
+import RecordDetailModal, { AuditRecord, ParsedChip, ParsedLog } from '../../components/records/RecordDetailModal';
+import './Records.css';
 
 import {
   FileText,
@@ -14,40 +16,10 @@ import {
   Edit3,
   Clock,
   User,
-  Copy,
-  Check,
   Shield,
   Layers,
-  UserCheck,
-  Code,
-  List,
-  Info,
-  Tag
+  Info
 } from 'lucide-react';
-
-interface AuditRecord {
-  id: string;
-  routerId?: string;
-  action: string;
-  operator?: string;
-  details?: string | any;
-  timestamp?: string;
-}
-
-interface ParsedChip {
-  key: string;
-  label: string;
-  value: string;
-  color?: string;
-}
-
-interface ParsedLog {
-  rawJson: string;
-  summaryText: string;
-  chips: ParsedChip[];
-  parsedObject: Record<string, any> | null;
-  isParsed: boolean;
-}
 
 const formatDate = (isoString: string | undefined): string => {
   if (!isoString) return '—';
@@ -305,6 +277,7 @@ export default function RecordsPage() {
         color: '#ef4444',
         border: '1px solid rgba(239, 68, 68, 0.3)',
         icon: <Trash2 size={13} />,
+        type: 'delete',
       };
     }
     if (act.includes('CREATE') || act.includes('ADD') || act.includes('GENERATE')) {
@@ -313,6 +286,7 @@ export default function RecordsPage() {
         color: '#10b981',
         border: '1px solid rgba(16, 185, 129, 0.3)',
         icon: <PlusCircle size={13} />,
+        type: 'create',
       };
     }
     if (act.includes('BYPASS') || act.includes('BINDING')) {
@@ -321,6 +295,7 @@ export default function RecordsPage() {
         color: '#a855f7',
         border: '1px solid rgba(168, 85, 247, 0.3)',
         icon: <Shield size={13} />,
+        type: 'bypass',
       };
     }
     return {
@@ -328,6 +303,7 @@ export default function RecordsPage() {
       color: '#3b82f6',
       border: '1px solid rgba(59, 130, 246, 0.3)',
       icon: <Edit3 size={13} />,
+      type: 'other',
     };
   };
 
@@ -337,14 +313,14 @@ export default function RecordsPage() {
   }, [selectedRecord, t]);
 
   return (
-    <div className="responsive-container" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
+    <div className={`responsive-container ${isRtl ? 'rtl' : 'ltr'}`}>
       {/* ─── Page Header ─── */}
       <div className="page-header-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        <div className="flex-row-center gap-10 min-w-0">
           <div className="page-header-icon">
             <FileText />
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="min-w-0 flex-1">
             <h2 className="page-header-title">
               {t('records.title')}
             </h2>
@@ -356,55 +332,28 @@ export default function RecordsPage() {
 
         <button
           onClick={() => mutate()}
-          className="page-header-btn"
+          className="page-header-btn records-btn-solid records-btn-blue"
         >
           <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-          <span className="hide-sm-only" style={{ whiteSpace: 'nowrap' }}>{t('common.refresh') || 'تحديث'}</span>
+          <span className="hide-sm-only">{t('common.refresh') || 'Refresh'}</span>
         </button>
       </div>
 
       {/* ─── 2. Overview Stat Cards / Interactive Group Tabs ─── */}
-      <div className="stat-summary-grid">
+      <div className="records-stat-grid">
         {/* Total Operations */}
         <div
           onClick={() => setActiveTab('all')}
-          style={{
-            background: activeTab === 'all'
-              ? 'rgba(168, 85, 247, 0.12)'
-              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-            backdropFilter: 'blur(12px)',
-            border: activeTab === 'all'
-              ? '1px solid rgba(168, 85, 247, 0.4)'
-              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '10px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'all' ? '0 2px 8px rgba(168, 85, 247, 0.15)' : 'none'
-          }}
+          className={`records-stat-tab ${activeTab === 'all' ? 'active-all' : ''}`}
         >
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
-            background: 'var(--secondary)',
-            color: 'var(--foreground)',
-            border: '1px solid var(--glass-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
+          <div className="records-stat-icon">
             <Layers size={14} />
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+          <div className="records-stat-content">
+            <div className="records-stat-label">
               {t('records.totalRecords')}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--foreground)', marginTop: '2px' }}>
+            <div className="records-stat-val">
               {isLoading ? '—' : stats.totalRecords}
             </div>
           </div>
@@ -413,43 +362,16 @@ export default function RecordsPage() {
         {/* Creations */}
         <div
           onClick={() => setActiveTab('create')}
-          style={{
-            background: activeTab === 'create'
-              ? 'rgba(16, 185, 129, 0.12)'
-              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-            backdropFilter: 'blur(12px)',
-            border: activeTab === 'create'
-              ? '1px solid rgba(16, 185, 129, 0.4)'
-              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '10px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'create' ? '0 2px 8px rgba(16, 185, 129, 0.15)' : 'none'
-          }}
+          className={`records-stat-tab ${activeTab === 'create' ? 'active-create' : ''}`}
         >
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
-            background: 'var(--secondary)',
-            color: 'var(--foreground)',
-            border: '1px solid var(--glass-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
+          <div className="records-stat-icon">
             <PlusCircle size={14} />
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+          <div className="records-stat-content">
+            <div className="records-stat-label">
               {t('records.creations')}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>
+            <div className="records-stat-val text-emerald-500">
               {isLoading ? '—' : stats.creationsCount}
             </div>
           </div>
@@ -458,43 +380,16 @@ export default function RecordsPage() {
         {/* Deletions */}
         <div
           onClick={() => setActiveTab('delete')}
-          style={{
-            background: activeTab === 'delete'
-              ? 'rgba(239, 68, 68, 0.12)'
-              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-            backdropFilter: 'blur(12px)',
-            border: activeTab === 'delete'
-              ? '1px solid rgba(239, 68, 68, 0.4)'
-              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '10px',
-            padding: '10px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'delete' ? '0 2px 8px rgba(239, 68, 68, 0.15)' : 'none'
-          }}
+          className={`records-stat-tab ${activeTab === 'delete' ? 'active-delete' : ''}`}
         >
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
-            background: 'var(--secondary)',
-            color: 'var(--foreground)',
-            border: '1px solid var(--glass-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
+          <div className="records-stat-icon">
             <Trash2 size={14} />
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+          <div className="records-stat-content">
+            <div className="records-stat-label">
               {t('records.deletions')}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#ef4444', marginTop: '2px' }}>
+            <div className="records-stat-val text-red-500">
               {isLoading ? '—' : stats.deletionsCount}
             </div>
           </div>
@@ -503,43 +398,16 @@ export default function RecordsPage() {
         {/* Other Operations */}
         <div
           onClick={() => setActiveTab('other')}
-          style={{
-            background: activeTab === 'other'
-              ? 'rgba(59, 130, 246, 0.12)'
-              : 'var(--card-bg, rgba(255, 255, 255, 0.05))',
-            backdropFilter: 'blur(12px)',
-            border: activeTab === 'other'
-              ? '1px solid rgba(59, 130, 246, 0.4)'
-              : '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-            borderRadius: '12px',
-            padding: '14px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'other' ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none'
-          }}
+          className={`records-stat-tab ${activeTab === 'other' ? 'active-other' : ''}`}
         >
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: activeTab === 'other' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(59, 130, 246, 0.15)',
-            color: '#60a5fa',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid rgba(59, 130, 246, 0.25)',
-            flexShrink: 0
-          }}>
-            <Edit3 size={18} />
+          <div className="records-stat-icon">
+            <Edit3 size={14} />
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1 }}>
+          <div className="records-stat-content">
+            <div className="records-stat-label">
               {t('records.filterOther') || 'Other'}
             </div>
-            <div style={{ fontSize: 'var(--font-xl)', fontWeight: 800, color: '#60a5fa', marginTop: '4px' }}>
+            <div className="records-stat-val text-blue-500">
               {isLoading ? '—' : stats.otherCount}
             </div>
           </div>
@@ -547,53 +415,23 @@ export default function RecordsPage() {
       </div>
 
       {/* ─── Search Input Filter Bar ─── */}
-      <div style={{ position: 'relative', width: '100%' }}>
+      <div className="records-search-wrapper">
         <Search
           size={14}
-          style={{
-            position: 'absolute',
-            [isRtl ? 'right' : 'left']: '10px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: 'var(--text-muted)',
-            pointerEvents: 'none'
-          }}
+          className={`records-search-icon ${isRtl ? 'rtl' : 'ltr'}`}
         />
         <input
           type="text"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           placeholder={t('records.searchPlaceholder')}
-          style={{
-            width: '100%',
-            boxSizing: 'border-box',
-            paddingTop: '8px',
-            paddingBottom: '8px',
-            paddingLeft: isRtl ? '10px' : '32px',
-            paddingRight: isRtl ? '32px' : '10px',
-            fontSize: '12px',
-            borderRadius: '8px',
-            border: '1px solid var(--glass-border)',
-            background: 'var(--glass-bg)',
-            color: 'var(--foreground)',
-            outline: 'none'
-          }}
+          className={`records-search-input ${isRtl ? 'rtl' : 'ltr'}`}
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            style={{
-              position: 'absolute',
-              [isRtl ? 'left' : 'right']: '8px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center'
-            }}
+            className={`records-search-clear ${isRtl ? 'rtl' : 'ltr'}`}
+            aria-label="Clear search"
           >
             <X size={14} />
           </button>
@@ -602,26 +440,20 @@ export default function RecordsPage() {
 
       {/* ─── Record Items List ─── */}
       {isLoading ? (
-        <div
-          className="responsive-card"
-          style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}
-        >
-          <RefreshCw size={24} className="spin" style={{ margin: '0 auto 10px auto', display: 'block' }} />
-          <p style={{ margin: 0, fontSize: '13px' }}>{t('records.loadingRecords')}</p>
+        <div className="responsive-card records-empty-box">
+          <RefreshCw size={24} className="spin mx-auto mb-2 block" />
+          <p className="m-0 text-sm">{t('records.loadingRecords')}</p>
         </div>
       ) : filteredRecords.length === 0 ? (
-        <div
-          className="responsive-card"
-          style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}
-        >
-          <Shield size={32} style={{ margin: '0 auto 10px auto', display: 'block', opacity: 0.5 }} />
-          <h3 style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--foreground)' }}>
+        <div className="responsive-card records-empty-box">
+          <Shield size={32} className="mx-auto mb-2 block opacity-50" />
+          <h3 className="m-0 text-sm font-bold text-foreground">
             {t('records.noRecordsFound')}
           </h3>
-          <p style={{ margin: 0, fontSize: '12px' }}>{t('records.noRecordsDesc')}</p>
+          <p className="m-0 text-xs text-muted">{t('records.noRecordsDesc')}</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="records-list">
           {filteredRecords.map(record => {
             const badge = getActionBadgeStyle(record.action);
             const parsedLog = parseRecordDetails(record.details, record.action, t);
@@ -633,47 +465,23 @@ export default function RecordsPage() {
                   setSelectedRecord(record);
                   setShowRawJson(false);
                 }}
-                className="list-item-card"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--glass-border)',
-                  transition: 'all 0.2s ease'
-                }}
+                className="records-item-card"
               >
                 {/* Top row: Action Badge & Timestamp */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: badge.bg,
-                        color: badge.color,
-                        border: badge.border,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                      }}
-                    >
+                <div className="records-item-header">
+                  <div className="records-item-meta">
+                    <div className={`records-action-tag ${badge.type}`}>
                       {badge.icon}
                       <span>{record.action}</span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <div className="records-operator-info">
                       <User size={12} />
-                      <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{record.operator}</span>
+                      <span className="font-semibold text-foreground">{record.operator}</span>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <div className="records-timestamp-info">
                     <Clock size={11} />
                     <span>{formatDate(record.timestamp)}</span>
                   </div>
@@ -681,38 +489,21 @@ export default function RecordsPage() {
 
                 {/* Parsed Log Summary & Chips */}
                 {parsedLog.summaryText && parsedLog.summaryText !== '—' && (
-                  <div
-                    style={{
-                      background: 'rgba(0,0,0,0.15)',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--glass-border)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--foreground)' }}>
-                      <Info size={13} style={{ color: badge.color, flexShrink: 0 }} />
+                  <div className="records-summary-box">
+                    <div className="records-summary-title">
+                      <Info size={13} style={{ color: badge.color }} />
                       <span>{parsedLog.summaryText}</span>
                     </div>
 
                     {parsedLog.chips.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '2px' }}>
+                      <div className="records-chips-row">
                         {parsedLog.chips.map(chip => (
                           <span
                             key={chip.key}
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              background: chip.color ? `${chip.color}15` : 'var(--glass-bg)',
-                              color: chip.color || 'var(--foreground)',
-                              border: `1px solid ${chip.color ? `${chip.color}35` : 'var(--glass-border)'}`
-                            }}
+                            className="records-chip-item"
+                            style={{ color: chip.color }}
                           >
-                            {chip.label}: <strong style={{ fontWeight: 800 }}>{chip.value}</strong>
+                            {chip.label}: <strong>{chip.value}</strong>
                           </span>
                         ))}
                       </div>
@@ -727,317 +518,17 @@ export default function RecordsPage() {
 
       {/* ─── Detailed Record Glassmorphism Modal ─── */}
       {selectedRecord && selectedParsedLog && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1000,
-            background: 'rgba(0,0,0,0.65)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px'
-          }}
-          onClick={() => setSelectedRecord(null)}
-        >
-          <div
-            className="responsive-card"
-            style={{
-              width: '100%',
-              maxWidth: '480px',
-              background: 'var(--card-bg)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: '16px',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
-              maxHeight: '90vh',
-              overflowY: 'auto'
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: getActionBadgeStyle(selectedRecord.action).bg,
-                    color: getActionBadgeStyle(selectedRecord.action).color,
-                    border: getActionBadgeStyle(selectedRecord.action).border,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <FileText size={18} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--foreground)' }}>
-                    {t('records.recordDetails')}
-                  </h3>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    ID: {selectedRecord.id}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedRecord(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: '4px'
-                }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* View Mode Toggle: Structured vs Raw JSON */}
-            <div
-              style={{
-                display: 'flex',
-                background: 'var(--glass-bg)',
-                padding: '3px',
-                borderRadius: '8px',
-                border: '1px solid var(--glass-border)'
-              }}
-            >
-              <button
-                onClick={() => setShowRawJson(false)}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: !showRawJson ? 'rgba(168,85,247,0.2)' : 'transparent',
-                  color: !showRawJson ? '#a855f7' : 'var(--text-muted)',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                <List size={13} />
-                <span>{t('records.viewStructured') || 'Structured View'}</span>
-              </button>
-              <button
-                onClick={() => setShowRawJson(true)}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: showRawJson ? 'rgba(168,85,247,0.2)' : 'transparent',
-                  color: showRawJson ? '#a855f7' : 'var(--text-muted)',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                <Code size={13} />
-                <span>{t('records.viewRawJson') || 'Raw JSON'}</span>
-              </button>
-            </div>
-
-            {/* Metadata Rows */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--glass-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
-                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{t('records.action')}</span>
-                <span style={{ fontWeight: 800, color: getActionBadgeStyle(selectedRecord.action).color }}>
-                  {selectedRecord.action}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--glass-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
-                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{t('records.operator')}</span>
-                <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>
-                  {selectedRecord.operator || 'System'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--glass-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
-                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{t('records.timestamp')}</span>
-                <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>
-                  {formatDate(selectedRecord.timestamp)}
-                </span>
-              </div>
-            </div>
-
-            {/* Structured Parameters Panel */}
-            {!showRawJson ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {/* Summary Banner */}
-                <div
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    background: getActionBadgeStyle(selectedRecord.action).bg,
-                    border: getActionBadgeStyle(selectedRecord.action).border,
-                    color: 'var(--foreground)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700
-                  }}
-                >
-                  <Info size={15} style={{ color: getActionBadgeStyle(selectedRecord.action).color, flexShrink: 0 }} />
-                  <span>{selectedParsedLog.summaryText}</span>
-                </div>
-
-                {/* Parsed Chips / Parameters Grid */}
-                {selectedParsedLog.chips.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <span style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '11px' }}>
-                      {t('records.parsedKeys')}
-                    </span>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
-                      {selectedParsedLog.chips.map(chip => (
-                        <div
-                          key={chip.key}
-                          style={{
-                            padding: '8px 10px',
-                            borderRadius: '8px',
-                            background: 'var(--glass-bg)',
-                            border: '1px solid var(--glass-border)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '2px'
-                          }}
-                        >
-                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                            {chip.label}
-                          </span>
-                          <span style={{ fontSize: '12px', fontWeight: 800, color: chip.color || 'var(--foreground)', wordBreak: 'break-all' }}>
-                            {chip.value}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Array of Pins / Vouchers list preview if available */}
-                {selectedParsedLog.parsedObject?.pins && Array.isArray(selectedParsedLog.parsedObject.pins) && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                      <Tag size={12} />
-                      <span>{t('records.keyPins')} ({selectedParsedLog.parsedObject.pins.length})</span>
-                    </div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '4px',
-                        maxHeight: '100px',
-                        overflowY: 'auto',
-                        padding: '8px',
-                        background: 'rgba(0,0,0,0.2)',
-                        borderRadius: '8px',
-                        border: '1px solid var(--glass-border)'
-                      }}
-                    >
-                      {selectedParsedLog.parsedObject.pins.map((pin: string, idx: number) => (
-                        <span
-                          key={idx}
-                          style={{
-                            fontFamily: 'monospace',
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            background: 'rgba(239, 68, 68, 0.15)',
-                            color: '#ef4444',
-                            border: '1px solid rgba(239, 68, 68, 0.3)'
-                          }}
-                        >
-                          {pin}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Raw JSON Panel */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '11px' }}>
-                  {t('records.rawJson')}
-                </span>
-                <div
-                  style={{
-                    background: 'rgba(0,0,0,0.3)',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--glass-border)',
-                    fontFamily: 'monospace',
-                    fontSize: '11px',
-                    color: 'var(--foreground)',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-all',
-                    maxHeight: '180px',
-                    overflowY: 'auto'
-                  }}
-                >
-                  {selectedParsedLog.rawJson}
-                </div>
-              </div>
-            )}
-
-            {/* Modal Actions */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
-              <button
-                onClick={() => handleCopy(selectedRecord.id, 'id')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--glass-border)',
-                  background: 'var(--glass-bg)',
-                  color: 'var(--foreground)',
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                {copiedField === 'id' ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
-                <span>{copiedField === 'id' ? t('records.copied') : t('records.copyId')}</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedRecord(null)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: 'var(--accent-color, #a855f7)',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                {t('records.close')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <RecordDetailModal
+          record={selectedRecord}
+          parsedLog={selectedParsedLog}
+          onClose={() => setSelectedRecord(null)}
+          onCopy={handleCopy}
+          copiedField={copiedField}
+          showRawJson={showRawJson}
+          setShowRawJson={setShowRawJson}
+          formatDate={formatDate}
+          getActionBadgeStyle={getActionBadgeStyle}
+        />
       )}
     </div>
   );

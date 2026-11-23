@@ -40,11 +40,11 @@ export default function BrandLogo({
       </div>
       {showText && (
         <div className="flex flex-col text-start">
-          <h1 className="text-[15px] font-[900] m-0 tracking-tight leading-tight" style={{ color: 'var(--foreground)' }}>
+          <h1 className="text-[15px] font-[900] m-0 tracking-tight leading-tight text-foreground">
             {textTitle}
           </h1>
           {subtitle && (
-            <span className="text-[10px] font-semibold uppercase tracking-[0.5px]" style={{ color: 'var(--text-muted)' }}>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.5px] text-muted">
               {subtitle}
             </span>
           )}

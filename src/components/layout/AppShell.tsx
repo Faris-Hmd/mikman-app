@@ -4,25 +4,26 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import RouterStatusHeader from './RouterStatusHeader';
 import BottomNavBar from './BottomNavBar';
-import VpnAccessModal from './VpnAccessModal';
-import { useVpnModal } from '../context/VpnModalContext';
+import VpnAccessModal from '../ui/VpnAccessModal';
+import { useVpnModal } from '../../context/VpnModalContext';
+import './shell.css';
 
 export default function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isVpnModalOpen, selectedRouterVpnIp, initialTab, closeVpnModal } = useVpnModal();
 
   return (
-    <div className="layout-container" style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--background)', overflow: 'hidden' }}>
+    <div className="shell-layout-container">
       <Sidebar />
-      <div className="layout-content-wrapper" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', position: 'relative' }}>
+      <div className="shell-content-wrapper">
         <Header
           onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           isMobileMenuOpen={isMobileMenuOpen}
         />
         <RouterStatusHeader />
-        <main className="layout-main" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div className="layout-page-inner" style={{ width: '100%', maxWidth: '1200px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div className="layout-page-content" style={{ width: '100%', maxWidth: '1200px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <main className="shell-main">
+          <div className="shell-page-inner">
+            <div className="shell-page-content">
               <Outlet />
             </div>
           </div>
@@ -31,11 +32,14 @@ export default function AppShell() {
       </div>
 
       {isMobileMenuOpen && (
-        <div className="mobile-nav modal-overlay"
-          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', justifyContent: 'flex-start', alignItems: 'stretch' }}
-          onClick={() => setIsMobileMenuOpen(false)}>
-          <div style={{ width: '280px', height: '100%', backgroundColor: 'var(--card-bg)', borderRight: '1px solid var(--glass-border)', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', boxShadow: '0 0 20px rgba(0, 0, 0, 0.3)' }}
-            onClick={(e) => e.stopPropagation()}>
+        <div
+          className="shell-mobile-drawer"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <div
+            className="shell-mobile-drawer-content"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Sidebar onClose={() => setIsMobileMenuOpen(false)} />
           </div>
         </div>

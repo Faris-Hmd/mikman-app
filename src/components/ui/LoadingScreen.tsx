@@ -1,4 +1,5 @@
 import ZapIcon from './ZapIcon';
+import '../layout/shell.css';
 
 interface LoadingScreenProps {
   loadingTitle?: string;
@@ -8,30 +9,21 @@ interface LoadingScreenProps {
 
 export default function LoadingScreen({ loadingTitle, loadingSubtitle, compact }: LoadingScreenProps) {
   return (
-    <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      gap: 16, padding: '24px 20px',
-      minHeight: compact ? 200 : '100vh',
-      backgroundColor: compact ? 'transparent' : 'var(--background)',
-    }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: 12,
-        background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 4px 16px rgba(59, 130, 246, 0.45)',
-      }}>
+    <div className={`shell-loading-center ${compact ? 'compact' : ''}`}>
+      <div className="shell-loading-icon-box">
         <ZapIcon size={26} color="#ffffff" fill="#ffffff" strokeWidth="1.2" />
       </div>
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <div className="flex gap-1.5 items-center">
         {[0, 1, 2].map(i => (
-          <div key={i} style={{
-            width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)',
-            animation: `jumping-dot 1.2s ease-in-out ${i * 0.15}s infinite`,
-            opacity: 0.4,
-          }} />
+          <div
+            key={i}
+            className="w-2 h-2 rounded-full bg-primary opacity-40"
+            style={{ animation: `jumping-dot 1.2s ease-in-out ${i * 0.15}s infinite` }}
+          />
         ))}
       </div>
-      {loadingTitle && <p style={{ color: 'var(--foreground)', fontSize: 13, fontWeight: 700, margin: 0 }}>{loadingTitle}</p>}
-      {loadingSubtitle && <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 500, margin: 0 }}>{loadingSubtitle}</p>}
+      {loadingTitle && <p className="text-foreground text-xs font-bold m-0">{loadingTitle}</p>}
+      {loadingSubtitle && <p className="text-muted text-[11px] font-medium m-0">{loadingSubtitle}</p>}
     </div>
   );
 }

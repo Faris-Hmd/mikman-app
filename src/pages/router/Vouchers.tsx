@@ -5,9 +5,16 @@ import {
   fetchVoucherBatchesAPI,
   fetchProfilesAPI,
   fetchRouterProfilesWithUserAPI,
+  fetchVoucherBatchDetailAPI,
+  createVouchersAPI,
+  fetchVoucherJobStatusAPI,
+  getVoucherCodesAPI,
+  deleteVouchersAPI,
   revalidateRouterCache,
   type VoucherBatch,
+  type VoucherBatchDetail,
 } from '../../api';
+import { type Profile } from '../../components/profiles/types';
 import { useLanguage } from '../../context/LanguageContext';
 import {
   Plus,
@@ -15,22 +22,16 @@ import {
   Ticket,
   CheckCircle2,
   Clock,
-  HardDrive,
-  DollarSign,
   ChevronRight,
   ChevronLeft,
   RefreshCw,
   Search,
-  Check,
   FolderOpen,
-  AlertCircle,
 } from 'lucide-react';
-import '../../styles/vouchers.css';
-import type { Profile } from '../../components/vouchers/types';
+import './Vouchers.css';
 import { formatRelativeAge } from '../../components/vouchers/voucherHelpers';
-import { CreateBatchDrawer } from '../../components/vouchers/CreateBatchDrawer';
+import { CreateBatchDrawer, type CreateBatchPayload } from '../../components/vouchers/CreateBatchDrawer';
 import { BatchDetailModal } from '../../components/vouchers/BatchDetailModal';
-import { PrintConfigModal } from '../../components/vouchers/PrintConfigModal';
 
 export default function VouchersPage() {
   const { routerId } = useParams<{ routerId: string }>();
@@ -40,18 +41,10 @@ export default function VouchersPage() {
   // Local Controls State
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Modals & Drawer State
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState<boolean>(false);
   const [selectedBatchModal, setSelectedBatchModal] = useState<VoucherBatch | null>(null);
-  const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
-
-  // Toast helper
-  const showToast = (text: string, type: 'success' | 'error') => {
-    setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 3000);
-  };
 
   // Fetch Batches
   const {
@@ -65,35 +58,45 @@ export default function VouchersPage() {
   );
   const batchList: VoucherBatch[] = Array.isArray(batches) ? batches : [];
 
-  // Fetch Profiles
-  const { data: profilesData } = useSWR(
+  // Fetch Profiles for creating vouchers & filtering
+  const { data: profilesRaw } = useSWR<Profile[]>(
     routerId ? `voucher-profiles-${routerId}` : null,
-    () => fetchProfilesAPI(routerId!),
+    () => fetchProfilesAPI(routerId!) as Promise<Profile[]>,
     { revalidateOnFocus: true, keepPreviousData: true }
   );
 
   const profileList: Profile[] = useMemo(() => {
-    if (Array.isArray(profilesData)) return profilesData;
-    if (profilesData && typeof profilesData === 'object') {
-      if (Array.isArray((profilesData as any).profiles)) return (profilesData as any).profiles;
-      if (Array.isArray((profilesData as any).data)) return (profilesData as any).data;
+    if (Array.isArray(profilesRaw)) return profilesRaw;
+    if (profilesRaw && typeof profilesRaw === 'object') {
+      if (Array.isArray((profilesRaw as any).profiles)) return (profilesRaw as any).profiles;
+      if (Array.isArray((profilesRaw as any).data)) return (profilesRaw as any).data;
     }
     return [];
-  }, [profilesData]);
+  }, [profilesRaw]);
 
-  // Fetch Router Status / Wifi Name
-  const { data: routerProfilesData } = useSWR(
+  // Fetch Router Profiles for print branding / Wi-Fi name
+  const { data: routerProfilesResponse } = useSWR(
     'router-profiles-with-user',
     fetchRouterProfilesWithUserAPI,
-    { revalidateOnFocus: false }
+    { dedupingInterval: 10000, revalidateOnFocus: false }
   );
 
-  const activeRouter: any = useMemo(() => {
-    if (!routerProfilesData?.profiles || !routerId) return null;
-    return routerProfilesData.profiles.find(
+  const activeRouter = useMemo(() => {
+    if (!routerProfilesResponse?.profiles || !routerId) return null;
+    return routerProfilesResponse.profiles.find(
       (r: any) => String(r.id) === String(routerId) || r.name === routerId
     );
-  }, [routerProfilesData, routerId]);
+  }, [routerProfilesResponse, routerId]);
+
+  const defaultWifiName = useMemo(() => {
+    return (
+      activeRouter?.cardPrintLabel ||
+      activeRouter?.hotspotWifiName ||
+      activeRouter?.wifiName ||
+      (activeRouter as any)?.wifiSsid ||
+      ''
+    );
+  }, [activeRouter]);
 
   // Handle URL Param Deep-linking for Batch Detail
   const paramProfile = searchParams.get('profile');
@@ -125,6 +128,31 @@ export default function VouchersPage() {
     }
   }, [paramProfile, paramBatchId, paramComment, paramPrintLabel, batchList, selectedBatchModal]);
 
+  // Fetch Batch Detail at Page Level for the selected batch
+  const {
+    data: batchDetail,
+    isLoading: isBatchDetailLoading,
+    mutate: mutateBatchDetail,
+  } = useSWR<VoucherBatchDetail>(
+    routerId && selectedBatchModal?.profile
+      ? `batch-detail-${routerId}-${selectedBatchModal.profile}-${selectedBatchModal.batchId || ''}-${selectedBatchModal.comment || ''}`
+      : null,
+    () =>
+      fetchVoucherBatchDetailAPI(
+        routerId!,
+        selectedBatchModal!.profile,
+        selectedBatchModal!.comment,
+        selectedBatchModal!.printLabel,
+        selectedBatchModal!.batchId
+      ),
+    {
+      revalidateOnFocus: false,
+      revalidateIfStale: false,
+      keepPreviousData: true,
+      dedupingInterval: 60000,
+    }
+  );
+
   // Handle Manual Refresh
   const handleManualRefresh = async () => {
     if (!routerId || isRefreshing) return;
@@ -135,6 +163,97 @@ export default function VouchersPage() {
     } finally {
       setTimeout(() => setIsRefreshing(false), 500);
     }
+  };
+
+  const handleCreateBatch = async (
+    payload: CreateBatchPayload,
+    onProgress: (pct: number) => void
+  ) => {
+    if (!routerId) throw new Error('No router selected');
+    const res = await createVouchersAPI(
+      routerId,
+      payload.profile,
+      payload.count,
+      payload.userLength,
+      payload.comment
+    );
+
+    if (res?.jobId) {
+      onProgress(5);
+      let done = false;
+      let attempts = 0;
+      while (!done && attempts < 120) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        attempts++;
+        try {
+          const job = await fetchVoucherJobStatusAPI(routerId, res.jobId);
+          if (job.progress !== undefined) {
+            onProgress(job.progress);
+          }
+          if (job.status === 'completed') {
+            done = true;
+          } else if (job.status === 'failed') {
+            throw new Error(job.error || 'Voucher generation failed on router');
+          }
+        } catch {
+          if (attempts > 5) done = true;
+        }
+      }
+    }
+
+    const newBatch: VoucherBatch = {
+      profile: payload.profile,
+      printLabel: payload.comment || payload.profile,
+      originalCount: payload.count,
+      unusedCount: payload.count,
+      activeCount: 0,
+      expiredCount: 0,
+      comment: payload.comment || '',
+      cleanComment: payload.comment || '',
+      createdAt: new Date().toISOString(),
+      batchId: res?.batchId,
+    };
+
+    revalidateRouterCache(routerId);
+    await mutateBatches();
+    return { newBatch, pins: res?.pins };
+  };
+
+  const handleDeleteBatch = async (batch: VoucherBatch) => {
+    if (!routerId) return;
+    const res = await getVoucherCodesAPI(
+      routerId,
+      batch.profile,
+      batch.comment,
+      batch.printLabel,
+      'all',
+      batch.batchId
+    );
+    const codes = res?.codes || [];
+    if (codes.length > 0) {
+      await deleteVouchersAPI(routerId, codes);
+    }
+    revalidateRouterCache(routerId);
+    await mutateBatches();
+  };
+
+  const handleFetchCodes = async (
+    batch: VoucherBatch,
+    filter: string
+  ) => {
+    if (!routerId) return [];
+    const validFilter = ['unused', 'active', 'expired', 'all'].includes(filter)
+      ? (filter as 'unused' | 'active' | 'expired' | 'all')
+      : 'all';
+    const res = await getVoucherCodesAPI(
+      routerId,
+      batch.profile,
+      batch.comment,
+      batch.printLabel,
+      validFilter,
+      batch.batchId
+    );
+    return res?.codes || [];
   };
 
   // Statistics
@@ -195,26 +314,15 @@ export default function VouchersPage() {
   return (
     <div
       className="responsive-container vouchers-page-container"
-      style={{ direction: isRtl ? 'rtl' : 'ltr' }}
+      dir={isRtl ? 'rtl' : 'ltr'}
     >
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div
-          className={`voucher-toast-notification ${toastMessage.type}`}
-          style={{ [isRtl ? 'left' : 'right']: '24px' }}
-        >
-          {toastMessage.type === 'success' ? <Check size={16} /> : <AlertCircle size={16} />}
-          <span>{toastMessage.text}</span>
-        </div>
-      )}
-
       {/* ─── 1. Header Bar ─── */}
       <div className="page-header-card">
-        <div className="drawer-title-group">
+        <div className="page-header-left-group">
           <div className="page-header-icon">
             <Ticket />
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="page-header-titles">
             <h2 className="page-header-title">
               {t('vouchers.title')}
             </h2>
@@ -224,7 +332,7 @@ export default function VouchersPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        <div className="page-header-actions-group">
           <button
             onClick={handleManualRefresh}
             disabled={isRefreshing || batchesLoading}
@@ -249,7 +357,6 @@ export default function VouchersPage() {
 
       {/* ─── 2. Summary Statistics Cards ─── */}
       <div className="vouchers-stats-grid">
-        {/* Total Batches Card */}
         <div className="voucher-stat-card">
           <div className="voucher-stat-icon">
             <Layers size={14} />
@@ -264,7 +371,6 @@ export default function VouchersPage() {
           </div>
         </div>
 
-        {/* Total Vouchers Card */}
         <div className="voucher-stat-card">
           <div className="voucher-stat-icon">
             <Ticket size={14} />
@@ -279,7 +385,6 @@ export default function VouchersPage() {
           </div>
         </div>
 
-        {/* Unused Vouchers Card */}
         <div className="voucher-stat-card">
           <div className="voucher-stat-icon">
             <CheckCircle2 size={14} />
@@ -294,7 +399,6 @@ export default function VouchersPage() {
           </div>
         </div>
 
-        {/* Active Vouchers Card */}
         <div className="voucher-stat-card">
           <div className="voucher-stat-icon">
             <Clock size={14} />
@@ -316,7 +420,6 @@ export default function VouchersPage() {
           <Search
             size={15}
             className="vouchers-search-icon"
-            style={{ [isRtl ? 'right' : 'left']: '12px' }}
           />
           <input
             type="text"
@@ -324,25 +427,22 @@ export default function VouchersPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('batch.searchPlaceholder')}
             className="vouchers-search-input"
-            style={{
-              padding: `8px ${isRtl ? '34px' : '12px'} 8px ${isRtl ? '12px' : '34px'}`,
-            }}
           />
         </div>
       </div>
 
       {/* ─── 4. Main Batches List Grouped by Profile ─── */}
       {batchesLoading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="voucher-loading-stack">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="responsive-card" style={{ height: '72px', opacity: 0.6 }}>
-              <div className="skeleton" style={{ width: '100%', height: '100%', borderRadius: '12px' }} />
+            <div key={i} className="responsive-card voucher-skeleton-card">
+              <div className="skeleton voucher-skeleton-inner" />
             </div>
           ))}
         </div>
       ) : filteredBatches.length === 0 ? (
         <div className="responsive-card vouchers-empty-card">
-          <Ticket size={36} style={{ color: 'var(--text-muted)' }} />
+          <Ticket size={36} className="voucher-empty-icon" />
           <h4 className="vouchers-empty-title">
             {t('batch.noBatchesFound')}
           </h4>
@@ -357,7 +457,7 @@ export default function VouchersPage() {
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="voucher-batches-stack">
           {groupedProfileBatches.map((pGroup) => {
             const firstBatch = pGroup.batches[0];
             const validityBadge = firstBatch?.validityBadge || '∞';
@@ -370,7 +470,7 @@ export default function VouchersPage() {
                 {/* Profile Section Header */}
                 <div className="profile-group-header">
                   <div className="profile-group-title">
-                    <FolderOpen size={16} style={{ color: '#3b82f6' }} />
+                    <FolderOpen size={16} className="text-blue" />
                     <strong>{pGroup.profile}</strong>
                   </div>
 
@@ -384,13 +484,11 @@ export default function VouchersPage() {
                     )}
                     {dataBadge && dataBadge !== '∞' && (
                       <span className="profile-meta-pill data">
-                        <HardDrive size={10} />
                         {dataBadge}
                       </span>
                     )}
                     {formattedPrice && (
                       <span className="profile-meta-pill price">
-                        <DollarSign size={10} />
                         {formattedPrice}
                       </span>
                     )}
@@ -411,7 +509,7 @@ export default function VouchersPage() {
                 {/* Batch Cards Grid */}
                 <div className="batch-cards-grid">
                   {pGroup.batches.map((batch, bIdx) => {
-                    const ageStr = formatRelativeAge(batch.createdAt, isRtl);
+                    const ageStr = formatRelativeAge(batch.createdAt, t);
                     const cleanComm = batch.cleanComment ?? batch.comment;
 
                     return (
@@ -438,7 +536,7 @@ export default function VouchersPage() {
                               </span>
                             )}
                           </div>
-                          <ChevronIcon size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                          <ChevronIcon size={14} className="flex-shrink-0" />
                         </div>
 
                         {/* Bottom Metadata (Age + Clean Comment) */}
@@ -465,13 +563,10 @@ export default function VouchersPage() {
       <CreateBatchDrawer
         isOpen={isCreateDrawerOpen}
         onClose={() => setIsCreateDrawerOpen(false)}
-        routerId={routerId || ''}
-        profileList={profileList}
-        isRtl={isRtl}
+        profiles={profileList}
+        onCreateBatch={handleCreateBatch}
         onSuccess={(newBatch) => {
           setIsCreateDrawerOpen(false);
-          if (routerId) revalidateRouterCache(routerId);
-          mutateBatches();
           setSelectedBatchModal(newBatch);
         }}
       />
@@ -479,31 +574,16 @@ export default function VouchersPage() {
       {/* ─── 6. Batch Detail Modal ─── */}
       <BatchDetailModal
         selectedBatch={selectedBatchModal}
-        routerId={routerId || ''}
-        profileList={profileList}
-        isRtl={isRtl}
+        batchDetail={batchDetail}
+        isLoading={isBatchDetailLoading}
+        mutateDetail={mutateBatchDetail}
+        defaultWifiName={defaultWifiName}
         onClose={() => {
           setSelectedBatchModal(null);
           setSearchParams({});
         }}
-        onOpenPrint={() => setIsPrintModalOpen(true)}
-        onBatchDeleted={() => {
-          setSelectedBatchModal(null);
-          setSearchParams({});
-          mutateBatches();
-        }}
-        showToast={showToast}
-      />
-
-      {/* ─── 7. Print Config Modal ─── */}
-      <PrintConfigModal
-        isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
-        selectedBatch={selectedBatchModal}
-        routerId={routerId || ''}
-        activeRouter={activeRouter}
-        isRtl={isRtl}
-        showToast={showToast}
+        onDeleteBatch={handleDeleteBatch}
+        onFetchCodes={handleFetchCodes}
       />
     </div>
   );

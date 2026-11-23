@@ -1,0 +1,551 @@
+/* ─── APs & Bypassed Devices Stylesheet ─── */
+
+.aps-page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* ─── Statistics Summary Grid ─── */
+.aps-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 640px) {
+  .aps-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.aps-stat-card {
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 12px;
+  background: var(--card-bg, #1a1a1a);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+}
+
+.aps-stat-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--secondary, rgba(255, 255, 255, 0.06));
+  color: var(--foreground);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.aps-stat-icon.total {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.aps-stat-icon.bypassed {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.aps-stat-icon.online {
+  color: #a855f7;
+  background: rgba(168, 85, 247, 0.12);
+}
+
+.aps-stat-info {
+  min-width: 0;
+}
+
+.aps-stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aps-stat-value {
+  font-size: 14px;
+  color: var(--foreground);
+  font-weight: 800;
+}
+
+/* ─── Controls & Search Bar ─── */
+.aps-controls-card {
+  background: var(--card-bg, #1a1a1a);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aps-search-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.aps-search-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+[dir="rtl"] .aps-search-icon {
+  right: 10px;
+}
+
+[dir="ltr"] .aps-search-icon {
+  left: 10px;
+}
+
+.aps-search-input {
+  background: var(--input-bg, rgba(0, 0, 0, 0.2));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  height: 36px;
+  color: var(--foreground);
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+[dir="rtl"] .aps-search-input {
+  padding: 0 32px 0 10px;
+}
+
+[dir="ltr"] .aps-search-input {
+  padding: 0 10px 0 32px;
+}
+
+.aps-search-input:focus {
+  border-color: #3b82f6;
+}
+
+.aps-filter-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.aps-filter-btn {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.aps-filter-btn:hover {
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+.aps-filter-btn.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  font-weight: 800;
+}
+
+/* ─── Devices Grid ─── */
+.aps-devices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .aps-devices-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.aps-device-card {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--card-bg, #1a1a1a);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.aps-device-card:hover {
+  border-color: #3b82f6;
+  transform: translateY(-1px);
+}
+
+.aps-device-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.aps-device-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.aps-device-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.aps-device-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aps-device-ip {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-muted);
+}
+
+.aps-device-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.aps-status-pill {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.aps-status-pill.bypassed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.aps-status-pill.online {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* ─── Device Detail Modal ─── */
+.aps-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.aps-modal-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--card-bg, #1a1a1a);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.15));
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.aps-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.aps-modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.aps-modal-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+  flex-shrink: 0;
+}
+
+.aps-modal-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aps-modal-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.aps-modal-close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: var(--foreground);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.aps-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aps-detail-row {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.aps-detail-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.aps-detail-value {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aps-copy-btn {
+  background: #334155;
+  border: none;
+  border-radius: 5px;
+  padding: 3px 6px;
+  color: #ffffff;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.aps-copy-btn.copied {
+  background: #10b981;
+}
+
+.aps-pf-section {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aps-pf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.aps-pf-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aps-btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+}
+
+.aps-btn-danger {
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
+}
+
+.aps-btn-secondary {
+  background: #334155;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.aps-btn-secondary:hover {
+  background: #475569;
+}
+
+/* ─── Detail Modal Helpers & Layouts ─── */
+.aps-modal-header-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.aps-detail-value-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aps-btn-compact {
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
+.aps-btn-icon-pad {
+  padding: 6px 10px;
+}
+
+.aps-btn-vpn-pad {
+  padding: 8px 10px;
+}
+
+.aps-error-msg {
+  color: #ef4444;
+  font-size: 11px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.aps-pf-port-badge {
+  font-size: 11px;
+  font-weight: 800;
+  color: #3b82f6;
+}
+
+.aps-pf-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.aps-skeleton-item {
+  height: 56px;
+  border-radius: 10px;
+  width: 100%;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.text-capitalize {
+  text-transform: capitalize;
+}
+
+/* Category icon styles */
+.aps-cat-mobile { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+.aps-cat-laptop { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+.aps-cat-ap { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.aps-cat-printer { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.aps-cat-tv { background: rgba(236, 72, 153, 0.12); color: #ec4899; }
+.aps-cat-other { background: rgba(107, 114, 128, 0.12); color: #6b7280; }
