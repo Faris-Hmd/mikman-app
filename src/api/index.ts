@@ -263,19 +263,38 @@ export interface VoucherBatch {
   profile: string;
   printLabel: string;
   comment: string;
+  cleanComment?: string;
   createdAt?: string;
   originalCount: number;
   unusedCount: number;
   activeCount: number;
   expiredCount: number;
+  price?: number;
+  revenue?: number;
+  validity?: string;
+  dataLimitMB?: number;
+  limitMB?: number;
+  limitBytesTotal?: number;
+  rateLimit?: string;
+  isUnlimited?: boolean;
 }
 
 export interface VoucherSummary {
   '.id': string;
+  id?: string;
   name: string;
   comment: string;
+  cleanComment?: string;
   profile: string;
   'limit-bytes-total': string;
+  limitBytesTotal?: number;
+  remainingBytes?: number | null;
+  remainingSeconds?: number | null;
+  timeLeftText?: string;
+  status?: string;
+  inUse?: boolean;
+  isExpired?: boolean;
+  disabled?: boolean;
 }
 
 export interface ActiveVoucher extends VoucherSummary {
@@ -309,11 +328,22 @@ export interface VoucherBatchDetail {
   profile: string;
   printLabel: string;
   comment: string;
+  cleanComment?: string;
   createdAt?: string;
+  price?: number;
+  revenue?: number;
+  validity?: string;
   originalCount: number;
+  totalCount?: number;
+  total?: number;
   unusedCount: number;
   activeCount: number;
   expiredCount: number;
+  limitMB?: number;
+  dataLimitMB?: number;
+  limitBytesTotal?: number;
+  rateLimit?: string;
+  isUnlimited?: boolean;
   isProfileGroup: boolean;
   unusedVouchers: VoucherSummary[];
   activeVouchers: ActiveVoucher[];
