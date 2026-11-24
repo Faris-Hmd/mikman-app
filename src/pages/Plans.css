@@ -71,18 +71,23 @@
   width: 34px;
   height: 34px;
   border-radius: 11px;
-  background: linear-gradient(135deg, var(--primary) 0%, #3B82F6 100%);
+  background: var(--logo-bg);
+  color: var(--logo-fg);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 3px 12px rgba(var(--primary-rgb), 0.4);
+  box-shadow: none;
 }
 
 .plans-logo-title {
-  font-size: 17px;
+  font-size: var(--font-xl);
   font-weight: 900;
   color: var(--foreground);
   letter-spacing: 0.6px;
+}
+
+:root[data-theme='light'] .plans-logo-title {
+  color: var(--foreground);
 }
 
 .plans-nav-right {
@@ -100,7 +105,7 @@
   background-color: var(--card-bg);
   border: 1px solid var(--glass-border);
   color: var(--foreground);
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -112,18 +117,18 @@
   gap: 5px;
   padding: 7px 13px;
   border-radius: 11px;
-  background-color: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  color: #ef4444;
-  font-size: 12px;
+  background-color: var(--danger-bg-subtle);
+  border: 1px solid var(--danger-border-subtle);
+  color: var(--danger-text);
+  font-size: var(--font-base);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .plans-signout-btn:hover {
-  background-color: #ef4444;
-  color: #ffffff;
+  background-color: var(--danger);
+  color: var(--white);
 }
 
 /* Header Text */
@@ -133,14 +138,14 @@
 }
 
 .plans-main-title {
-  font-size: 24px;
+  font-size: var(--font-3xl);
   font-weight: 900;
   color: var(--foreground);
   margin: 0 0 8px 0;
 }
 
 .plans-subtitle {
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--text-muted);
   max-width: 500px;
   margin: 0 auto;
@@ -174,9 +179,9 @@
 }
 
 .plans-card.selected {
-  border-color: #2563eb;
-  background: rgba(37, 99, 235, 0.06);
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.2);
+  border-color: var(--primary);
+  background: var(--primary-bg-subtle, rgba(29, 78, 216, 0.08));
+  box-shadow: 0 8px 24px rgba(29, 78, 216, 0.25);
 }
 
 .plans-card.disabled {
@@ -185,7 +190,7 @@
 }
 
 .plans-card-title {
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 800;
   color: var(--foreground);
   margin: 0;
@@ -198,13 +203,13 @@
 }
 
 .plans-price-val {
-  font-size: 26px;
+  font-size: var(--font-3xl);
   font-weight: 900;
   color: var(--foreground);
 }
 
 .plans-price-period {
-  font-size: 12px;
+  font-size: var(--font-base);
   color: var(--text-muted);
 }
 
@@ -212,7 +217,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--font-base);
   color: var(--foreground);
 }
 
@@ -228,20 +233,20 @@
   padding: 10px 16px;
   border-radius: 10px;
   border: none;
-  font-size: 13px;
+  font-size: var(--font-md);
   font-weight: 800;
   cursor: pointer;
   transition: opacity 0.15s ease;
 }
 
 .plans-select-btn.selected {
-  background-color: #2563eb;
-  color: #ffffff;
+  background-color: var(--primary);
+  color: var(--white);
 }
 
 .plans-select-btn.unselected {
-  background-color: #334155;
-  color: #ffffff;
+  background-color: var(--slate-btn-bg);
+  color: var(--slate-btn-text);
 }
 
 /* WhatsApp Checkout Card */
@@ -264,14 +269,14 @@
   gap: 8px;
   padding: 12px 24px;
   border-radius: 12px;
-  background-color: #10b981;
-  color: #ffffff;
+  background-color: var(--success);
+  color: var(--white);
   border: none;
-  font-size: 14px;
+  font-size: var(--font-normal);
   font-weight: 800;
   cursor: pointer;
   transition: opacity 0.15s ease;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  box-shadow: 0 4px 14px rgba(var(--success-rgb), 0.35);
 }
 
 .plans-whatsapp-btn:hover {
@@ -283,8 +288,8 @@
   top: -12px;
   inset-inline-end: 16px;
   background-color: var(--primary);
-  color: #ffffff;
-  font-size: 10px;
+  color: var(--white);
+  font-size: var(--font-xs);
   font-weight: 800;
   padding: 4px 10px;
   border-radius: 9999px;

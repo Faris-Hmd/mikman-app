@@ -171,7 +171,7 @@ export const PrintConfigModal: React.FC<PrintConfigModalProps> = ({
 
   return (
     <div
-      className="voucher-modal-overlay"
+      className="print-modal-overlay voucher-modal-overlay"
       dir={isRtl ? 'rtl' : 'ltr'}
       onClick={onClose}
     >

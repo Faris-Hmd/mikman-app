@@ -4,6 +4,7 @@ import {
   X,
   Layers,
   Clock,
+  HardDrive,
   Database,
   Globe,
   Activity,
@@ -16,6 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatBytes, formatRemainingTime } from '../../lib/helpers';
 import { NetworkClient } from './types';
 
 interface ClientDetailModalProps {
@@ -107,14 +109,36 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
           )}
 
           {/* Remaining Time Row */}
-          {client.remainingTime && client.remainingTime !== '0s' && (
+          {(() => {
+            const clientTime =
+              client.remainingTime ||
+              client.timeLeft ||
+              (client as any).timeLeftText ||
+              (client.remainingSeconds != null ? formatRemainingTime(client.remainingSeconds) : null);
+            if (!clientTime || clientTime === '0s') return null;
+            return (
+              <div className="user-detail-row">
+                <div className="user-detail-label">
+                  <Clock size={13} className="text-amber" />
+                  <span>{t('users.remainingTime')}</span>
+                </div>
+                <span className="user-detail-value text-amber">
+                  {clientTime}
+                </span>
+              </div>
+            );
+          })()}
+
+          {/* Remaining Data Row */}
+          {(client.dataLeft || (client as any).remainingData || (client.remainingBytes != null ? formatBytes(client.remainingBytes) : null)) &&
+            (client.dataLeft || (client as any).remainingData) !== '0 MB' && (
             <div className="user-detail-row">
               <div className="user-detail-label">
-                <Clock size={13} className="text-amber" />
-                <span>{t('users.remainingTime')}</span>
+                <HardDrive size={13} className="text-purple" />
+                <span>{t('users.remainingData')}</span>
               </div>
-              <span className="user-detail-value text-amber">
-                {client.remainingTime}
+              <span className="user-detail-value text-purple font-mono">
+                {client.dataLeft || (client as any).remainingData || formatBytes(client.remainingBytes)}
               </span>
             </div>
           )}

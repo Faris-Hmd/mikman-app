@@ -9,7 +9,13 @@ export interface NetworkClient {
   isSignedIn: boolean;
   uptime?: string;
   timeLeft?: string;
+  timeLeftText?: string;
   remainingTime?: string;
+  remainingSeconds?: number | null;
+  remainingBytes?: number | null;
+  limitBytesTotal?: number | null;
+  dataLeft?: string | null;
+  remainingData?: string | null;
   rxBytes?: number;
   txBytes?: number;
   formattedRxBytes?: string;

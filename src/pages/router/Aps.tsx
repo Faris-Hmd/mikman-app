@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -23,6 +23,9 @@ import {
   Tv,
   HardDrive,
   Shield,
+  Filter,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import './Aps.css';
 
@@ -41,7 +44,27 @@ export default function ApsPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'bypassed'>('all');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<DeviceItem | null>(null);
+  const filterDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isFilterOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFilterOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isFilterOpen]);
 
   // Fetch IP Bindings from server
   const { data: bindingsData, isLoading: isLoadingBindings, mutate: mutateBindings } = useSWR(
@@ -66,10 +89,12 @@ export default function ApsPage() {
 
   const portForwardMap = useMemo(() => {
     const map = new Map<string, PortForwardRule>();
-    if (Array.isArray(pfData)) {
-      pfData.forEach((pf: any) => {
-        if (pf.toAddresses) {
-          map.set(pf.toAddresses, pf);
+    const list = Array.isArray(pfData) ? pfData : pfData?.portForwards;
+    if (Array.isArray(list)) {
+      list.forEach((pf: any) => {
+        const targetIp = pf.toAddress || pf.toAddresses || pf['to-addresses'];
+        if (targetIp) {
+          map.set(targetIp, pf);
         }
       });
     }
@@ -86,14 +111,15 @@ export default function ApsPage() {
     // Seed with IP Bindings (Bypassed / Fixed Devices)
     if (Array.isArray(bindingsData)) {
       bindingsData.forEach((b: any) => {
-        const cleanMac = (b.macAddress || b['mac-address'] || '').toLowerCase();
+        const cleanMac = (b.macAddress || b['mac-address'] || b.mac || '').toLowerCase();
         if (!cleanMac) return;
 
+        const bId = b.id || b['.id'] || b._id;
         macMap.set(cleanMac, {
-          id: b.id || b['.id'],
-          bindingId: b.id || b['.id'],
+          id: bId,
+          bindingId: bId,
           mac: cleanMac,
-          ip: b.address || '',
+          ip: b.address || b.ip || '',
           isBypassed: b.isBypassed ?? b.type === 'bypassed',
           category: (b.category as DeviceCategory) || 'other',
           comment: b.comment || '',
@@ -164,18 +190,28 @@ export default function ApsPage() {
 
   const handleToggleBypass = async (device: DeviceItem) => {
     if (!routerId) return;
-    if (device.isBypassed && device.bindingId) {
-      await removeIpBindingAPI(routerId, device.bindingId);
+    if (device.isBypassed) {
+      const bindingId = device.bindingId || device.id;
+      if (!bindingId) {
+        throw new Error('Missing IP binding ID');
+      }
+      const res: any = await removeIpBindingAPI(routerId, bindingId);
+      if (res && res.success === false) {
+        throw new Error(res.error || res.message || 'Failed to remove IP binding');
+      }
     } else {
-      await addIpBindingAPI(
+      const res: any = await addIpBindingAPI(
         routerId,
         device.mac,
         device.ip || '',
         device.name || device.comment || 'AP Bypassed',
         'bypassed'
       );
+      if (res && res.success === false) {
+        throw new Error(res.error || res.message || 'Failed to add IP binding');
+      }
     }
-    await mutateBindings();
+    await Promise.all([mutateBindings(), mutateClients()]);
   };
 
   const handleTogglePortForward = async (device: DeviceItem, rule?: PortForwardRule) => {
@@ -272,21 +308,56 @@ export default function ApsPage() {
           />
         </div>
 
-        <div className="aps-filter-toggle">
+        <div className="aps-filter-dropdown" ref={filterDropdownRef}>
           <button
             type="button"
-            className={`aps-filter-btn ${selectedFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setSelectedFilter('all')}
+            className={`aps-filter-dropdown-btn ${selectedFilter === 'bypassed' ? 'active' : ''}`}
+            onClick={() => setIsFilterOpen((prev) => !prev)}
+            aria-expanded={isFilterOpen}
+            aria-haspopup="listbox"
           >
-            {t('aps.allDevices')}
+            <Filter size={13} />
+            <span>
+              {selectedFilter === 'bypassed' ? t('aps.bypassedDevices') : t('aps.allDevices')}
+            </span>
+            <ChevronDown size={14} className={`aps-filter-chevron ${isFilterOpen ? 'open' : ''}`} />
           </button>
-          <button
-            type="button"
-            className={`aps-filter-btn ${selectedFilter === 'bypassed' ? 'active' : ''}`}
-            onClick={() => setSelectedFilter('bypassed')}
-          >
-            {t('aps.bypassedDevices')}
-          </button>
+
+          {isFilterOpen && (
+            <div className="aps-filter-menu" role="listbox">
+              <button
+                type="button"
+                role="option"
+                aria-selected={selectedFilter === 'all'}
+                className={`aps-filter-option ${selectedFilter === 'all' ? 'selected' : ''}`}
+                onClick={() => {
+                  setSelectedFilter('all');
+                  setIsFilterOpen(false);
+                }}
+              >
+                <span className="aps-filter-option-label">
+                  {t('aps.allDevices')} ({totalCount})
+                </span>
+                {selectedFilter === 'all' && <Check size={14} />}
+              </button>
+
+              <button
+                type="button"
+                role="option"
+                aria-selected={selectedFilter === 'bypassed'}
+                className={`aps-filter-option ${selectedFilter === 'bypassed' ? 'selected' : ''}`}
+                onClick={() => {
+                  setSelectedFilter('bypassed');
+                  setIsFilterOpen(false);
+                }}
+              >
+                <span className="aps-filter-option-label">
+                  {t('aps.bypassedDevices')} ({bypassedCount})
+                </span>
+                {selectedFilter === 'bypassed' && <Check size={14} />}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

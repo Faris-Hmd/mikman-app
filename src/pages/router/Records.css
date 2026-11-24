@@ -59,41 +59,9 @@
 }
 
 .records-stat-tab.active-other {
-  background: rgba(59, 130, 246, 0.14);
-  border-color: rgba(59, 130, 246, 0.45);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
-}
-
-.records-stat-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  background: var(--secondary);
-  color: var(--foreground);
-  border: 1px solid var(--glass-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.records-stat-content {
-  min-width: 0;
-  flex: 1;
-}
-
-.records-stat-label {
-  font-size: 10px;
-  color: var(--text-muted);
-  font-weight: 500;
-  line-height: 1;
-}
-
-.records-stat-val {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--foreground);
-  margin-top: 2px;
+  background: var(--primary-bg-subtle);
+  border-color: var(--primary-border-subtle);
+  box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.2);
 }
 
 .records-search-wrapper {
@@ -122,7 +90,7 @@
   box-sizing: border-box;
   padding-top: 8px;
   padding-bottom: 8px;
-  font-size: 12px;
+  font-size: var(--font-base);
   border-radius: 8px;
   border: 1px solid var(--glass-border);
   background: var(--glass-bg);
@@ -172,6 +140,25 @@
   gap: 8px;
 }
 
+.records-load-more-btn {
+  background: var(--primary);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: var(--font-base);
+  font-weight: 700;
+  cursor: pointer;
+  margin: 12px auto 0 auto;
+  display: block;
+  transition: opacity 0.15s ease;
+  box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.35);
+}
+
+.records-load-more-btn:hover {
+  opacity: 0.9;
+}
+
 .records-item-card {
   display: flex;
   flex-direction: column;
@@ -207,39 +194,39 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 700;
 }
 
 .records-action-tag.create {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: var(--success-bg-subtle);
+  color: var(--success-text);
+  border: 1px solid var(--success-border-subtle);
 }
 
 .records-action-tag.delete {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: var(--danger-bg-subtle);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border-subtle);
 }
 
 .records-action-tag.bypass {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: var(--purple-bg-subtle);
+  color: var(--purple-text);
+  border: 1px solid var(--purple-border-subtle);
 }
 
 .records-action-tag.other {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: var(--primary-bg-subtle);
+  color: var(--primary-text);
+  border: 1px solid var(--primary-border-subtle);
 }
 
 .records-operator-info {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--text-muted);
 }
 
@@ -247,7 +234,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--text-muted);
 }
 
@@ -265,7 +252,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 700;
   color: var(--foreground);
 }
@@ -278,12 +265,12 @@
 }
 
 .records-chip-item {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 6px;
   background: var(--glass-bg);
-  color: var(--foreground);
+  color: var(--chip-color, var(--foreground));
   border: 1px solid var(--glass-border);
 }
 
@@ -303,7 +290,7 @@
 .records-modal-card {
   width: 100%;
   max-width: 480px;
-  background: var(--card-bg);
+  background: var(--modal-bg);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
   padding: 20px;
@@ -339,30 +326,30 @@
 
 .records-modal-action-icon.create,
 .records-banner-summary.create {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: var(--success-bg-subtle);
+  color: var(--success-text);
+  border: 1px solid var(--success-border-subtle);
 }
 
 .records-modal-action-icon.delete,
 .records-banner-summary.delete {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: var(--danger-bg-subtle);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border-subtle);
 }
 
 .records-modal-action-icon.bypass,
 .records-banner-summary.bypass {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: var(--purple-bg-subtle);
+  color: var(--purple-text);
+  border: 1px solid var(--purple-border-subtle);
 }
 
 .records-modal-action-icon.other,
 .records-banner-summary.other {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: var(--primary-bg-subtle);
+  color: var(--primary-text);
+  border: 1px solid var(--primary-border-subtle);
 }
 
 .records-modal-close-btn {
@@ -400,22 +387,22 @@
   border: none;
   background: transparent;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .records-view-btn.active {
-  background: #2563eb;
-  color: #ffffff;
+  background: var(--primary);
+  color: var(--white);
 }
 
 .records-meta-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--font-base);
 }
 
 .records-meta-row {
@@ -440,7 +427,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 700;
 }
 
@@ -461,13 +448,13 @@
 }
 
 .records-chip-label {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--text-muted);
   font-weight: 600;
 }
 
 .records-chip-value {
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 800;
   color: var(--foreground);
   word-break: break-all;
@@ -494,12 +481,12 @@
 
 .records-pin-badge {
   font-family: monospace;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
   background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  color: var(--danger-text);
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
@@ -509,7 +496,7 @@
   border-radius: 8px;
   border: 1px solid var(--glass-border);
   font-family: monospace;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--foreground);
   white-space: pre-wrap;
   word-break: break-all;
@@ -533,7 +520,7 @@
   padding: 8px 16px;
   border-radius: 8px;
   border: none;
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.15s ease;
@@ -544,13 +531,13 @@
 }
 
 .records-btn-blue {
-  background: #2563eb;
-  color: #ffffff;
+  background: var(--primary);
+  color: var(--white);
 }
 
 .records-btn-slate {
-  background: #334155;
-  color: #ffffff;
+  background: var(--slate-btn-bg);
+  color: var(--slate-btn-text);
 }
 
 .records-empty-box {

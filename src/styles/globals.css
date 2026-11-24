@@ -6,49 +6,13 @@ html, body, #root {
   height: 100%;
 }
 
-/* ─── Responsive Batch Telemetry Utilities ─── */
+.hide-on-mobile {
+  display: inline-flex;
+}
+
 @media (max-width: 640px) {
   .hide-on-mobile {
     display: none !important;
-  }
-  .batch-metrics-grid {
-    grid-template-columns: repeat(3, minmax(34px, 46px)) !important;
-    gap: 2px !important;
-  }
-  .batch-metrics-grid span {
-    font-size: 8.5px !important;
-  }
-  .batch-metrics-grid strong {
-    font-size: 11px !important;
-  }
-  .batch-footer-metrics span {
-    font-size: 8.5px !important;
-  }
-  .batch-footer-metrics strong {
-    font-size: 11px !important;
-  }
-}
-@media (max-width: 480px) {
-  .batch-metrics-grid {
-    grid-template-columns: repeat(3, minmax(28px, 40px)) !important;
-    gap: 1px !important;
-  }
-  .batch-metrics-grid span {
-    font-size: 8px !important;
-  }
-  .batch-metrics-grid strong {
-    font-size: 10px !important;
-  }
-  .batch-footer-metrics span {
-    font-size: 8px !important;
-  }
-  .batch-footer-metrics strong {
-    font-size: 10px !important;
-  }
-}
-@media (min-width: 641px) {
-  .batch-metrics-grid {
-    grid-template-columns: repeat(4, minmax(55px, 70px)) !important;
   }
 }
 
@@ -128,7 +92,7 @@ html, body, #root {
 
 .page-header-btn-primary {
   background: var(--primary);
-  color: #ffffff;
+  color: var(--white);
   border: none;
 }
 
@@ -181,7 +145,6 @@ html, body, #root {
     line-height: 1.35;
   }
 
-  /* Compact headings on mobile screens */
   h1, .page-title {
     font-size: var(--font-lg) !important;
     letter-spacing: -0.2px;
@@ -194,12 +157,10 @@ html, body, #root {
     font-size: var(--font-base) !important;
   }
 
-  /* Form controls density */
   input, select, textarea {
     font-size: var(--font-sm) !important;
   }
 
-  /* Tables density on small viewports */
   table th {
     font-size: var(--font-2xs) !important;
     padding: 4px 6px !important;
@@ -239,188 +200,12 @@ html, body, #root {
   }
 }
 
-/* ─── List Container - Consistent vertical spacing between items ─── */
-.list-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-@media (max-width: 640px) {
-  .list-container {
-    gap: 8px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .list-container {
-    gap: 7px !important;
-  }
-}
-
-/* ─── Standardized Global Card, Bill, & List Item Design System ─── */
-.list-item-card,
-.bill-card,
-.standard-card {
-  background: var(--card-bg, rgba(255, 255, 255, 0.05));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
-  border-radius: 12px;
-  padding: 12px 14px;
-  box-sizing: border-box;
-  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-
-.item-title,
-.bill-title,
-.card-item-title {
-  font-size: var(--font-base);
-  font-weight: 700;
-  color: var(--foreground);
-  line-height: 1.25;
-}
-
-.item-subtext,
-.bill-subtext,
-.card-item-subtext,
+/* Shared Item Metadata Utility */
 .item-meta {
   font-size: var(--font-xs);
   font-weight: 500;
   color: var(--text-muted);
   line-height: 1.25;
-}
-
-.item-value,
-.bill-value,
-.card-item-value,
-.batch-stat-card-val,
-.stat-value {
-  font-size: var(--font-base);
-  font-weight: 800;
-  color: var(--foreground);
-  line-height: 1.2;
-  display: block;
-  margin-top: 2px;
-}
-
-.item-badge,
-.card-item-badge {
-  font-size: var(--font-xs);
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 5px;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.item-icon,
-.card-icon-box {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.item-icon svg,
-.card-icon-box svg {
-  width: 16px;
-  height: 16px;
-}
-
-/* Tablet & Mobile Overrides for Cards, Bills, & List Items */
-@media (max-width: 640px) {
-  .list-item-card,
-  .bill-card,
-  .standard-card,
-  .responsive-card {
-    padding: 10px 12px !important;
-    border-radius: 10px !important;
-  }
-  .item-title,
-  .bill-title,
-  .card-item-title {
-    font-size: var(--font-sm) !important;
-  }
-  .item-subtext,
-  .bill-subtext,
-  .card-item-subtext,
-  .item-meta {
-    font-size: var(--font-xs) !important;
-  }
-  .item-value,
-  .bill-value,
-  .card-item-value,
-  .batch-stat-card-val,
-  .stat-value {
-    font-size: var(--font-sm) !important;
-  }
-  .item-badge,
-  .card-item-badge {
-    font-size: var(--font-2xs) !important;
-    padding: 2px 5px !important;
-  }
-  .item-icon,
-  .card-icon-box {
-    width: 28px !important;
-    height: 28px !important;
-    border-radius: 7px !important;
-  }
-  .item-icon svg,
-  .card-icon-box svg {
-    width: 14px !important;
-    height: 14px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .list-item-card,
-  .bill-card,
-  .standard-card,
-  .responsive-card {
-    padding: 8px 10px !important;
-    border-radius: 8px !important;
-  }
-  .item-title,
-  .bill-title,
-  .card-item-title {
-    font-size: var(--font-xs) !important;
-  }
-  .item-subtext,
-  .bill-subtext,
-  .card-item-subtext,
-  .item-meta {
-    font-size: var(--font-2xs) !important;
-  }
-  .item-value,
-  .bill-value,
-  .card-item-value,
-  .batch-stat-card-val,
-  .stat-value {
-    font-size: var(--font-xs) !important;
-  }
-  .item-badge,
-  .card-item-badge {
-    font-size: 8.5px !important;
-    padding: 1px 4px !important;
-    height: 18px !important;
-  }
-  .item-icon,
-  .card-icon-box {
-    width: 26px !important;
-    height: 26px !important;
-    border-radius: 6px !important;
-  }
-  .item-icon svg,
-  .card-icon-box svg {
-    width: 13px !important;
-    height: 13px !important;
-  }
 }
 
 /* ─── Mobile Native App Feel & Interactions ─── */
@@ -440,13 +225,6 @@ button:active:not(:disabled),
   transition: transform 0.08s ease;
 }
 
-.layout-main,
-.layout-content-wrapper,
-.batch-detail-modal-content,
-.scrollable-content {
-  -webkit-overflow-scrolling: touch;
-}
-
 /* Sheet drag handle indicator (shown on mobile bottom sheets) */
 .sheet-drag-handle {
   display: none;
@@ -458,34 +236,13 @@ button:active:not(:disabled),
   flex-shrink: 0;
 }
 
-/* Create Batch Drawer Desktop & Mobile Styles */
-.create-batch-drawer-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.create-batch-drawer-content {
-  width: 100%;
-  max-width: 500px;
-  height: 100%;
-  background: var(--card-bg, #1a1a1a);
-  display: flex;
-  flex-direction: column;
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-}
-
-@media (min-width: 641px) {
-  .create-batch-drawer-content {
-    animation: drawerSlideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+@media (max-width: 640px) {
+  .sheet-drag-handle {
+    display: block !important;
   }
 }
 
+/* Shared Mobile Drawer & Sheet Animations */
 @keyframes drawerSlideInRight {
   from {
     transform: translateX(100%);
@@ -495,55 +252,12 @@ button:active:not(:disabled),
   }
 }
 
-/* Mobile Native Bottom-Sheet Transform for Modals */
-@media (max-width: 640px) {
-  .modal-overlay,
-  .batch-detail-modal-overlay,
-  .create-batch-drawer-overlay {
-    align-items: flex-end !important;
-    justify-content: center !important;
-    padding: 0 !important;
+@keyframes drawerSlideInLeft {
+  from {
+    transform: translateX(-100%);
   }
-
-  .batch-detail-modal-content,
-  .modal-sheet-content,
-  .modal-overlay > div:not(.non-sheet) {
-    width: 100% !important;
-    max-width: 100% !important;
-    max-height: 92vh !important;
-    border-radius: 20px 20px 0 0 !important;
-    border-bottom: none !important;
-    border-left: none !important;
-    border-right: none !important;
-    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.7) !important;
-    animation: sheetSlideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  }
-
-  .create-batch-drawer-content {
-    width: 100% !important;
-    max-width: 100% !important;
-    max-height: 94vh !important;
-    height: auto !important;
-    border-radius: 20px 20px 0 0 !important;
-    border-bottom: none !important;
-    border-left: none !important;
-    border-right: none !important;
-    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.7) !important;
-    animation: sheetSlideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    overflow: hidden !important;
-  }
-
-  .batch-detail-modal-content,
-  .modal-sheet-content {
-    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
-  }
-
-  .create-batch-drawer-footer {
-    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
-  }
-
-  .sheet-drag-handle {
-    display: block !important;
+  to {
+    transform: translateX(0);
   }
 }
 

@@ -18,33 +18,20 @@ export default function BrandLogo({
   subtitle,
   className = '',
 }: BrandLogoProps) {
-  const borderRadius = Math.max(8, Math.round(size * 0.28));
+  const sizeClass = size <= 32 ? 'brand-logo-badge-32' : size <= 36 ? 'brand-logo-badge-36' : 'brand-logo-badge-56';
 
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
-      <div
-        style={{
-          width: size,
-          height: size,
-          borderRadius: `${borderRadius}px`,
-          backgroundColor: '#3B82F6',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
-          boxSizing: 'border-box',
-        }}
-      >
-        <ZapIcon size={iconSize} color="#ffffff" fill="#ffffff" strokeWidth="1.2" />
+      <div className={`brand-logo-badge ${sizeClass}`}>
+        <ZapIcon size={iconSize} color="var(--white)" fill="var(--white)" strokeWidth="1.2" />
       </div>
       {showText && (
         <div className="flex flex-col text-start">
-          <h1 className="text-[15px] font-[900] m-0 tracking-tight leading-tight text-foreground">
+          <h1 className="brand-logo-title">
             {textTitle}
           </h1>
           {subtitle && (
-            <span className="text-[10px] font-semibold uppercase tracking-[0.5px] text-muted">
+            <span className="brand-logo-subtitle">
               {subtitle}
             </span>
           )}

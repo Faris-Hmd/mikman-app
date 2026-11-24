@@ -9,9 +9,9 @@ interface WireguardIconProps {
 
 export default function WireguardIcon({
   size = 18,
-  color = '#ef4444',
+  color = 'var(--danger)',
   className = '',
-  style = {},
+  ...props
 }: WireguardIconProps) {
   return (
     <svg
@@ -20,13 +20,8 @@ export default function WireguardIcon({
       width={size}
       height={size}
       fill={color}
-      className={className}
-      style={{
-        display: 'inline-block',
-        verticalAlign: 'middle',
-        flexShrink: 0,
-        ...style,
-      }}
+      className={`inline-block align-middle shrink-0 ${className}`}
+      {...props}
       xmlns="http://www.w3.org/2000/svg"
     >
       <title>WireGuard</title>

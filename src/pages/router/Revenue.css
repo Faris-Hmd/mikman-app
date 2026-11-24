@@ -33,7 +33,7 @@
   border: none;
   color: var(--foreground);
   font-weight: 700;
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   outline: none;
   cursor: pointer;
 }
@@ -56,21 +56,21 @@
   background: var(--secondary);
   color: var(--foreground);
   font-weight: 600;
-  font-size: 11px;
+  font-size: var(--font-sm);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .revenue-filter-btn:hover {
-  background: #334155;
-  color: #ffffff;
+  background: var(--slate-btn-bg);
+  color: var(--slate-btn-text);
 }
 
 .revenue-filter-btn.active {
-  background: #2563eb;
-  color: #ffffff;
+  background: var(--primary);
+  color: var(--white);
   font-weight: 700;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 2px 6px rgba(var(--primary-rgb), 0.3);
 }
 
 .revenue-kpi-grid {
@@ -84,73 +84,6 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
-}
-
-.revenue-kpi-card {
-  padding: 6px 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.revenue-kpi-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.revenue-kpi-icon.blue {
-  background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.3) 100%);
-  color: #3b82f6;
-  border: 1px solid rgba(59,130,246,0.25);
-}
-
-.revenue-kpi-icon.green {
-  background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.3) 100%);
-  color: #10b981;
-  border: 1px solid rgba(16,185,129,0.25);
-}
-
-.revenue-kpi-icon.purple {
-  background: linear-gradient(135deg, rgba(168,85,247,0.15) 0%, rgba(147,51,234,0.3) 100%);
-  color: #a855f7;
-  border: 1px solid rgba(168,85,247,0.25);
-}
-
-.revenue-kpi-icon.amber {
-  background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(217,119,6,0.3) 100%);
-  color: #f59e0b;
-  border: 1px solid rgba(245,158,11,0.25);
-}
-
-.revenue-kpi-content {
-  min-width: 0;
-  flex: 1;
-}
-
-.revenue-kpi-label {
-  font-size: 9.5px;
-  color: var(--text-muted);
-  font-weight: 500;
-  line-height: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.revenue-kpi-val {
-  font-size: 13.5px;
-  font-weight: 800;
-  margin-top: 2px;
-  color: var(--foreground);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Chart Styles */
@@ -176,13 +109,13 @@
 
 .revenue-chart-title h3 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--font-md);
   font-weight: 700;
   color: var(--foreground);
 }
 
 .revenue-chart-badge {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--text-muted);
   background: var(--secondary);
   padding: 2px 8px;
@@ -204,7 +137,7 @@
   justify-content: space-between;
   height: 140px;
   padding-top: 12px;
-  font-size: 8.5px;
+  font-size: var(--font-3xs);
   font-weight: 700;
   color: var(--text-muted);
   width: 24px;
@@ -232,14 +165,15 @@
 .revenue-chart-tooltip {
   position: absolute;
   top: -8px;
+  left: var(--tooltip-left, 50%);
   transform: translateX(-50%);
   background: rgba(24, 24, 27, 0.95);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #fff;
+  color: var(--white);
   padding: 4px 8px;
   border-radius: 8px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
   white-space: nowrap;
   z-index: 10;
@@ -297,17 +231,18 @@
 
 .revenue-chart-bar-fill {
   width: 100%;
+  height: var(--bar-height, 0%);
   border-radius: 3px 3px 0 0;
   transition: all 0.15s ease;
 }
 
 .revenue-chart-bar-fill.active {
-  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.7);
+  background: var(--primary-hover);
+  box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.7);
 }
 
 .revenue-chart-bar-fill.positive {
-  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+  background: var(--primary);
 }
 
 .revenue-chart-bar-fill.zero {
@@ -318,7 +253,7 @@
   display: flex;
   justify-content: space-between;
   margin-top: 6px;
-  font-size: 9.5px;
+  font-size: var(--font-2xs);
   color: var(--text-muted);
   width: 100%;
   min-width: 0;
@@ -411,9 +346,25 @@
 }
 
 .revenue-profile-bar-fill {
+  width: var(--bar-width, 0%);
   height: 100%;
   border-radius: 2px;
+  background: var(--bar-bg, var(--primary));
   transition: width 0.3s ease-out;
+}
+
+.revenue-profile-badge {
+  color: var(--item-color);
+  background: var(--item-bg);
+  border: 1px solid var(--item-border);
+}
+
+.revenue-profile-pct {
+  color: var(--item-color);
+}
+
+.revenue-donut-val {
+  color: var(--item-color, var(--foreground));
 }
 
 /* Segmented mode selector - Solid style buttons */
@@ -433,16 +384,16 @@
   background: transparent;
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 11px;
+  font-size: var(--font-sm);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .revenue-mode-btn.active {
-  background: #2563eb;
-  color: #ffffff;
+  background: var(--primary);
+  color: var(--white);
   font-weight: 700;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 2px 4px rgba(var(--primary-rgb), 0.3);
 }
 
 .revenue-records-list {
@@ -463,9 +414,9 @@
   width: 26px;
   height: 26px;
   border-radius: 6px;
-  background: rgba(59, 130, 246, 0.12);
+  background: var(--primary-bg-subtle);
   color: var(--primary);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  border: 1px solid var(--primary-border-subtle);
   display: flex;
   align-items: center;
   justify-content: center;

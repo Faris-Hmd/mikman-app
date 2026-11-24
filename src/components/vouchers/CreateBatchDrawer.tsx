@@ -295,7 +295,7 @@ export const CreateBatchDrawer: React.FC<CreateBatchDrawerProps> = ({
                 <div className="drawer-progress-bar">
                   <div
                     className="drawer-progress-fill progress-bar-fill"
-                    style={{ width: `${jobProgress}%` }}
+                    style={{ '--fill-pct': `${jobProgress}%` } as React.CSSProperties}
                   />
                 </div>
                 <div className="drawer-progress-text">

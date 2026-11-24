@@ -46,18 +46,19 @@
   gap: 6px;
   padding: 7px 14px;
   border-radius: 8px;
-  background-color: #2563eb;
-  color: #ffffff;
+  background-color: var(--primary);
+  color: var(--white);
   border: none;
   font-weight: 700;
-  font-size: 12px;
+  font-size: var(--font-base);
   cursor: pointer;
   text-decoration: none;
   transition: opacity 0.15s ease;
 }
 
 .landing-add-btn:hover {
-  opacity: 0.9;
+  background-color: var(--primary-hover);
+  opacity: 0.95;
 }
 
 /* Account Status Bar */
@@ -99,7 +100,7 @@
 }
 
 .account-status-name {
-  font-size: 13px;
+  font-size: var(--font-md);
   font-weight: 750;
   color: var(--foreground);
   white-space: nowrap;
@@ -127,7 +128,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   color: var(--text-muted);
 }
 
@@ -137,7 +138,7 @@
   gap: 4px;
   color: var(--foreground);
   font-weight: 700;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   white-space: nowrap;
 }
 
@@ -167,24 +168,24 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background-color: rgba(245, 158, 11, 0.18);
+  background-color: var(--warning-bg-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #f59e0b;
+  color: var(--warning-text);
   flex-shrink: 0;
 }
 
 .landing-prompt-title {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--font-md);
   font-weight: 800;
   color: var(--foreground);
 }
 
 .landing-prompt-desc {
   margin: 2px 0 0 0;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   color: var(--text-muted);
   line-height: 1.4;
 }
@@ -192,16 +193,16 @@
 .landing-prompt-btn {
   padding: 7px 14px;
   border-radius: 8px;
-  background-color: #f59e0b;
-  color: #000000;
+  background-color: var(--warning);
+  color: var(--white);
   font-weight: 800;
-  font-size: 12px;
+  font-size: var(--font-base);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 2px 8px rgba(var(--warning-rgb), 0.3);
   transition: all 0.2s ease;
 }
 
@@ -212,7 +213,7 @@
 
 
 .landing-section-title {
-  font-size: 12.5px;
+  font-size: var(--font-base);
   font-weight: 800;
   margin: 0 0 8px 0;
   color: var(--foreground);
@@ -255,9 +256,9 @@
 }
 
 .landing-peer-del-btn {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  color: #ef4444;
+  background: var(--danger-bg-subtle);
+  border: 1px solid var(--danger-border-subtle);
+  color: var(--danger-text);
   border-radius: 6px;
   width: 26px;
   height: 26px;
@@ -271,8 +272,8 @@
 }
 
 .landing-peer-del-btn:hover {
-  background: #ef4444;
-  color: #ffffff;
+  background: var(--danger);
+  color: var(--white);
 }
 
 /* Router Grid */
@@ -345,12 +346,12 @@
 }
 
 .landing-router-status-dot.online {
-  background-color: #22c55e;
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+  background-color: var(--success);
+  box-shadow: 0 0 6px rgba(var(--success-rgb), 0.6);
 }
 
 .landing-router-status-dot.offline {
-  background-color: #94a3b8;
+  background-color: var(--text-muted);
 }
 
 .landing-router-content {
@@ -370,7 +371,7 @@
 }
 
 .landing-router-name {
-  font-size: 14px;
+  font-size: var(--font-normal);
   font-weight: 800;
   color: var(--foreground);
   margin: 0;
@@ -433,7 +434,7 @@
   border: none;
   background: transparent;
   color: var(--foreground);
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 700;
   cursor: pointer;
   width: 100%;
@@ -454,23 +455,28 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: 4px;
-  flex-wrap: wrap;
+  gap: 3px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
   margin-top: 3px;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
+  font-variant-numeric: tabular-nums;
   color: var(--foreground);
 }
 
 .landing-telemetry-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .landing-telemetry-sep {
   opacity: 0.3;
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 
 .landing-empty-fleet {

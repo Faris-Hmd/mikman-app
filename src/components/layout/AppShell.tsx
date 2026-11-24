@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import RouterStatusHeader from './RouterStatusHeader';
 import BottomNavBar from './BottomNavBar';
-import VpnAccessModal from '../ui/VpnAccessModal';
-import { useVpnModal } from '../../context/VpnModalContext';
 import './shell.css';
 
 export default function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { isVpnModalOpen, selectedRouterVpnIp, initialTab, closeVpnModal } = useVpnModal();
+  const location = useLocation();
+  const params = useParams();
+  const hasBottomBar = Boolean(params?.routerId && location.pathname !== '/');
 
   return (
     <div className="shell-layout-container">
@@ -21,14 +21,14 @@ export default function AppShell() {
           isMobileMenuOpen={isMobileMenuOpen}
         />
         <RouterStatusHeader />
-        <main className="shell-main">
+        <main className={`shell-main ${hasBottomBar ? 'has-bottom-bar' : ''}`}>
           <div className="shell-page-inner">
             <div className="shell-page-content">
               <Outlet />
             </div>
           </div>
         </main>
-        <BottomNavBar />
+        {hasBottomBar && <BottomNavBar />}
       </div>
 
       {isMobileMenuOpen && (
@@ -44,13 +44,6 @@ export default function AppShell() {
           </div>
         </div>
       )}
-
-      <VpnAccessModal
-        isOpen={isVpnModalOpen}
-        onClose={closeVpnModal}
-        selectedRouterVpnIp={selectedRouterVpnIp}
-        initialTab={initialTab}
-      />
     </div>
   );
 }

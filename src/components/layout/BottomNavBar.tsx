@@ -1,5 +1,5 @@
 import { useLocation, Link, useParams } from 'react-router-dom';
-import { LayoutDashboard, Ticket, Layers, TrendingUp, Users, Settings, Home } from 'lucide-react';
+import { LayoutDashboard, Ticket, Layers, TrendingUp, Users, Settings } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import './shell.css';
 
@@ -11,7 +11,12 @@ export default function BottomNavBar() {
 
   const routerId = params?.routerId as string | undefined;
 
-  const routerNavItems = routerId ? [
+  // The bottom navigation bar only belongs to router sub-pages, never on the landing page or global pages
+  if (!routerId || pathname === '/') {
+    return null;
+  }
+
+  const routerNavItems = [
     {
       href: `/${routerId}`,
       label: isRtl ? 'الرئيسية' : 'Home',
@@ -48,13 +53,6 @@ export default function BottomNavBar() {
       icon: Settings,
       isActive: pathname.startsWith(`/${routerId}/settings`)
     }
-  ] : [
-    {
-      href: '/',
-      label: isRtl ? 'الرئيسية' : 'Home',
-      icon: Home,
-      isActive: pathname === '/'
-    },
   ];
 
   return (

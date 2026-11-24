@@ -3,9 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { Sun, Moon, Menu } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
-import { useVpnModal } from '../../context/VpnModalContext';
 import BrandLogo from '../ui/BrandLogo';
-import WireguardIcon from '../ui/WireguardIcon';
 import './shell.css';
 
 interface HeaderProps {
@@ -18,7 +16,6 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const pathname = location.pathname;
   const { language, setLanguage, t } = useLanguage();
   const { user } = useAuth();
-  const { openVpnModal } = useVpnModal();
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
@@ -67,7 +64,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
               <Menu size={20} color="var(--foreground)" />
             </button>
           )}
-          <Link to="/" className="mobile-nav flex items-center gap-2 rounded-lg px-1 py-1 no-underline border-none" title={t('header.routerSelection')}>
+          <Link to="/" className="mobile-nav flex items-center gap-2 rounded-lg px-1 py-1 no-underline border-none text-inherit" title={t('header.routerSelection')}>
             <BrandLogo size={32} iconSize={18} showText textTitle="MIKMAN" subtitle={title} />
           </Link>
           <div className="desktop-nav">
@@ -75,15 +72,6 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {user && (
-            <button
-              onClick={() => openVpnModal()}
-              className="header-action-btn flex items-center justify-center p-1.5 border-none outline-none"
-              title={t('vpnModal.title') || 'WireGuard VPN Access'}
-            >
-              <WireguardIcon size={20} color="#ef4444" />
-            </button>
-          )}
           <button
             onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
             className="desktop-nav header-action-btn flex items-center justify-center p-1.5 border-none outline-none"

@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { useAuth } from '../context/AuthContext';
 import { generateCloudScriptAPI } from '../api';
+import { getRouterImage } from '../lib/helpers';
 import './RegisterRouter.css';
 import { Router, Cpu, User, Lock, ArrowLeft, Terminal, Copy, Check, Info } from 'lucide-react';
 
@@ -185,7 +186,7 @@ export default function RegisterRouterPage() {
               onClick={copyScript}
               className="btn-solid-blue px-3 py-1.5 text-xs rounded-md inline-flex items-center gap-1.5"
             >
-              {scriptCopied ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
+              {scriptCopied ? <Check size={13} color="var(--success)" /> : <Copy size={13} />}
               <span>{scriptCopied ? (t('common.copied') || 'Copied!') : (t('common.copy') || 'Copy Script')}</span>
             </button>
           </div>
@@ -197,16 +198,16 @@ export default function RegisterRouterPage() {
         <div className="flex items-center justify-between gap-3">
           <button
             onClick={goBack}
-            className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs border-none cursor-pointer inline-flex items-center gap-1.5"
+            className="btn-solid-slate px-4 py-2 text-xs rounded-lg inline-flex items-center gap-1.5"
           >
             <ArrowLeft size={14} />
             <span>{t('common.back') || 'Back'}</span>
           </button>
           <button
             onClick={() => navigate('/')}
-            className="btn-solid-blue px-4 py-2 text-xs rounded-lg"
+            className="btn-solid-blue px-4 py-2 text-xs rounded-lg inline-flex items-center gap-1.5"
           >
-            <span>{t('common.done') || 'Go to Dashboard'}</span>
+            <span>{t('common.done') || 'Done'}</span>
           </button>
         </div>
       </div>
@@ -230,7 +231,7 @@ export default function RegisterRouterPage() {
         </div>
 
         <div className="register-grid">
-          <div className="register-field">
+          <div className="register-field register-field-full">
             <label className="register-label">
               <Router size={12} color="var(--primary)" />
               <span>{t('dashboard.routerName') || 'Device Label'}</span>
@@ -240,29 +241,56 @@ export default function RegisterRouterPage() {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="e.g. Main Gateway"
+              placeholder={t('dashboard.placeholderDeviceName') || 'e.g. Main Gateway'}
               className="register-input"
               required
             />
           </div>
 
-          <div className="register-field">
+          <div className="register-field register-field-full">
             <label className="register-label">
               <Cpu size={12} color="var(--primary)" />
               <span>{t('dashboard.hardwareModel') || 'Hardware Model'}</span>
             </label>
-            <select
-              name="model"
-              value={formData.model}
-              onChange={handleChange}
-              className="register-select"
-            >
-              {HARDWARE_MODELS.map(m => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
+
+            {/* Visual Hardware Model Cards Selector with Images */}
+            <div className="register-models-grid">
+              {HARDWARE_MODELS.map((m) => {
+                const isSelected = formData.model === m.value;
+                const imgSrc = getRouterImage(m.value);
+
+                return (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, model: m.value }))}
+                    className={`register-model-card ${isSelected ? 'selected' : ''}`}
+                    title={m.label}
+                  >
+                    <div className="register-model-img-wrapper">
+                      {m.value === 'other' ? (
+                        <div className="register-model-other-icon">
+                          <Cpu size={24} color="var(--primary)" />
+                        </div>
+                      ) : (
+                        <img
+                          src={imgSrc}
+                          alt={m.label}
+                          className="register-model-img"
+                          loading="lazy"
+                        />
+                      )}
+                    </div>
+                    <span className="register-model-label">{m.label}</span>
+                    {isSelected && (
+                      <span className="register-model-check">
+                        <Check size={11} />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -274,7 +302,7 @@ export default function RegisterRouterPage() {
           <div className="register-field">
             <label className="register-label">
               <User size={12} color="var(--primary)" />
-              <span>{t('dashboard.adminUser') || 'Admin Username'}</span>
+              <span>{t('dashboard.adminUsername') || 'Admin Username'}</span>
             </label>
             <input
               type="text"
@@ -297,7 +325,7 @@ export default function RegisterRouterPage() {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="••••••••"
+              placeholder={t('dashboard.placeholderPassword') || '••••••••'}
               className="register-input"
             />
           </div>
@@ -309,7 +337,11 @@ export default function RegisterRouterPage() {
           className="register-btn-primary"
         >
           <Terminal size={15} />
-          <span>{isSubmitting ? (t('common.processing') || 'Processing...') : (t('dashboard.generateSetupScript') || 'Generate Setup Script')}</span>
+          <span>
+            {isSubmitting
+              ? t('common.processing') || 'Processing...'
+              : t('dashboard.generateSetupScript') || 'Generate Setup Script'}
+          </span>
         </button>
       </form>
     </div>

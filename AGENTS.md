@@ -5,7 +5,7 @@
 - **No Unsolicited Badges, Tags, or Pills**: NEVER add badges, pill labels, status tags, or chip indicators unless the user explicitly asks for them.
 - **No Filler Text or Space Fillers**: Do NOT insert random subtitle blurbs, placeholder text, or decorative chips just to fill up empty screen space. Layouts must remain clean, direct, high-density, and purposeful.
 - **No Outline/Ghost Buttons**: NEVER use thin, hollow, or faded outline button styles (`border: 1px solid ...; background: transparent`).
-- **Solid High-Contrast Buttons**: Always use solid, filled button themes with distinct background fills (`var(--primary)`, `#2563eb`, `#10b981`, `#334155`), bold typography, and clear contrast on mobile and desktop.
+- **Solid High-Contrast Buttons**: Always use solid, filled button themes with distinct background fills (`var(--primary)`, `#1e40af`, `#10b981`, `#334155`), bold typography, and clear contrast on mobile and desktop.
 - **Language & Communication**: Always communicate in English clearly, directly, and concisely.
 
 ## 2. Server-Side Data Normalization (MVC Architecture)

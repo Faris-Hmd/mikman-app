@@ -22,7 +22,7 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--card-bg);
+  background-color: var(--modal-bg);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
@@ -49,8 +49,8 @@
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: var(--danger-bg-subtle);
+  border: 1px solid var(--danger-border-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -89,21 +89,21 @@
   background-color: var(--input-bg);
   color: var(--text-muted);
   border: 1px solid var(--glass-border);
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 800;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .vpn-tab-btn.active-pc {
-  background-color: #2563eb;
-  color: #ffffff;
+  background-color: var(--primary);
+  color: var(--white);
   border: none;
 }
 
 .vpn-tab-btn.active-phone {
-  background-color: #10b981;
-  color: #ffffff;
+  background-color: var(--success);
+  color: var(--white);
   border: none;
 }
 
@@ -133,7 +133,7 @@
   background: transparent;
   border: none;
   color: var(--foreground);
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   font-weight: 700;
   outline: none;
   flex: 1;
@@ -141,7 +141,7 @@
 }
 
 .vpn-qr-box {
-  background: #ffffff;
+  background: var(--white);
   padding: 12px;
   border-radius: 12px;
   display: inline-flex;
@@ -162,17 +162,18 @@
   gap: 6px;
   padding: 9px 16px;
   border-radius: 8px;
-  background-color: #2563eb;
-  color: #ffffff;
+  background-color: var(--primary);
+  color: var(--white);
   border: none;
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.15s ease;
 }
 
 .vpn-btn-blue:hover {
-  opacity: 0.9;
+  background-color: var(--primary-hover);
+  opacity: 0.95;
 }
 
 .vpn-btn-green {
@@ -182,17 +183,18 @@
   gap: 6px;
   padding: 9px 16px;
   border-radius: 8px;
-  background-color: #10b981;
-  color: #ffffff;
+  background-color: var(--success);
+  color: var(--white);
   border: none;
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.15s ease;
 }
 
 .vpn-btn-green:hover {
-  opacity: 0.9;
+  background-color: var(--success-hover);
+  opacity: 0.95;
 }
 
 .vpn-btn-slate {
@@ -202,17 +204,18 @@
   gap: 6px;
   padding: 9px 16px;
   border-radius: 8px;
-  background-color: #334155;
-  color: #ffffff;
+  background-color: var(--slate-btn-bg);
+  color: var(--slate-btn-text);
   border: none;
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.15s ease;
 }
 
 .vpn-btn-slate:hover {
-  opacity: 0.9;
+  background-color: var(--slate-btn-hover);
+  opacity: 0.95;
 }
 
 .vpn-raw-code-box {
@@ -221,7 +224,7 @@
   border-radius: 8px;
   padding: 12px;
   font-family: monospace;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--foreground);
   max-height: 200px;
   overflow-y: auto;
@@ -243,5 +246,153 @@
   background: var(--input-bg);
   border: 1px solid var(--glass-border);
   border-radius: 8px;
-  font-size: 11.5px;
+  font-size: var(--font-sm);
+}
+
+/* ─── Redesigned WireGuard Settings Panel ─── */
+.vpn-unregistered-box {
+  padding: 20px;
+  text-align: center;
+  background: var(--secondary);
+  border-radius: 12px;
+  border: 1px dashed var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.vpn-unregistered-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--primary-bg-subtle);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vpn-tunnel-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vpn-tunnel-panel.with-qr {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.vpn-qr-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.vpn-tunnel-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.vpn-ip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.vpn-ip-tile {
+  background: var(--secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vpn-ip-label {
+  font-size: var(--font-2xs, 11px);
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.vpn-ip-val-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vpn-ip-val {
+  font-family: monospace;
+  font-size: var(--font-sm);
+  font-weight: 800;
+  color: var(--primary-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vpn-advanced-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vpn-collapse-card {
+  background: var(--secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.vpn-collapse-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vpn-collapse-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--foreground);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 0;
+  text-align: start;
+}
+
+.vpn-linux-code {
+  display: block;
+  margin-top: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--primary-text);
+  font-family: monospace;
+  font-size: 11px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  word-break: break-all;
+  user-select: all;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .vpn-tunnel-panel.with-qr {
+    grid-template-columns: 1fr;
+  }
 }

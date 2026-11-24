@@ -9,8 +9,8 @@ interface ZapIconProps extends React.SVGProps<SVGSVGElement> {
 
 export function ZapIcon({
   size = 20,
-  color = '#ffffff',
-  fill = '#ffffff',
+  color = 'var(--white)',
+  fill = 'var(--white)',
   strokeWidth = '1.2',
   style,
   className = '',
@@ -27,8 +27,7 @@ export function ZapIcon({
       strokeLinecap="butt"
       strokeLinejoin="miter"
       strokeMiterlimit="10"
-      className={className}
-      style={{ display: 'block', overflow: 'visible', ...style }}
+      className={`block overflow-visible ${className}`}
       {...props}
     >
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />

@@ -1,30 +1,117 @@
 :root {
+  /* ─── Base & Surface Color Tokens ─── */
   --background: #121214;
   --foreground: #f4f4f5;
-  --primary: #3b82f6;
-  --primary-rgb: 59, 130, 246;
-  --primary-hover: #2563eb;
-  --accent: #10b981;
-  --secondary: rgba(255, 255, 255, 0.06);
   --card-bg: rgba(26, 26, 29, 0.85);
+  --card-bg-elevated: #1e1e22;
   --glass-bg: rgba(22, 22, 25, 0.88);
   --glass-border: rgba(255, 255, 255, 0.09);
-  --text-muted: #9ca3af;
+  --glass-border-strong: rgba(255, 255, 255, 0.16);
   --input-bg: rgba(32, 32, 36, 0.75);
   --header-bg: rgba(18, 18, 20, 0.94);
+  --modal-bg: #18181b;
+  --modal-overlay: rgba(0, 0, 0, 0.7);
+  --text-muted: #9ca3af;
+  --text-dim: #71717a;
+  --secondary: rgba(255, 255, 255, 0.06);
+
+  /* ─── Consolidated Palette: Single Source of Truth (No Unnecessary Colors) ─── */
+  /* Primary / Vibrant Cobalt Blue */
+  --primary: #1d4ed8;
+  --primary-rgb: 29, 78, 216;
+  --primary-hover: #1e40af;
+  --primary-active: #172554;
+  --primary-text: #60a5fa;
+  --primary-bg-subtle: rgba(29, 78, 216, 0.2);
+  --primary-border-subtle: rgba(29, 78, 216, 0.45);
+
+  /* Success / Emerald Green */
+  --success: #10b981;
+  --success-rgb: 16, 185, 129;
+  --success-hover: #059669;
+  --success-text: #22c55e;
+  --success-bg-subtle: rgba(16, 185, 129, 0.14);
+  --success-border-subtle: rgba(16, 185, 129, 0.35);
+  --accent: var(--primary);
+
+  /* Danger / Crimson Red */
+  --danger: #ef4444;
+  --danger-rgb: 239, 68, 68;
+  --danger-hover: #dc2626;
+  --danger-text: #ef4444;
+  --danger-bg-subtle: rgba(239, 68, 68, 0.14);
+  --danger-border-subtle: rgba(239, 68, 68, 0.35);
+
+  /* Warning / Amber */
+  --warning: #f59e0b;
+  --warning-rgb: 245, 158, 11;
+  --warning-hover: #d97706;
+  --warning-text: #f59e0b;
+  --warning-bg-subtle: rgba(245, 158, 11, 0.14);
+  --warning-border-subtle: rgba(245, 158, 11, 0.35);
+
+  /* Aliased Secondary/Functional Colors mapped strictly to Core Palette */
+  --purple: var(--primary);
+  --purple-rgb: var(--primary-rgb);
+  --purple-hover: var(--primary-hover);
+  --purple-text: var(--primary-text);
+  --purple-bg-subtle: var(--primary-bg-subtle);
+  --purple-border-subtle: var(--primary-border-subtle);
+
+  --cyan: var(--primary);
+  --cyan-rgb: var(--primary-rgb);
+  --cyan-hover: var(--primary-hover);
+  --cyan-text: var(--primary-text);
+  --cyan-bg-subtle: var(--primary-bg-subtle);
+  --cyan-border-subtle: var(--primary-border-subtle);
+
+  --pink: var(--warning);
+  --pink-rgb: var(--warning-rgb);
+  --pink-text: var(--warning-text);
+  --pink-bg-subtle: var(--warning-bg-subtle);
+  --pink-border-subtle: var(--warning-border-subtle);
+
+  /* Slate Neutral (Buttons & Badges) */
+  --slate-btn-bg: #334155;
+  --slate-btn-hover: #475569;
+  --slate-btn-text: #ffffff;
+  --btn-text: #ffffff;
+  --white: #ffffff;
+  --black: #000000;
+
   --font-family: 'Nunito', 'Cairo', system-ui, -apple-system, sans-serif;
   --font-family-mono: 'Courier New', Courier, monospace;
-  --danger: #ef4444;
 
-  /* ─── Standardized Typography Tokens (Single Source of Truth) ─── */
-  --font-2xs: 9px;
-  --font-xs: 10px;
-  --font-sm: 11px;
-  --font-base: 12px;
-  --font-md: 13px;
-  --font-lg: 15px;
-  --font-xl: 17px;
-  --font-2xl: 20px;
+  /* App Brand Logo Tokens (Vibrant Blue with White Zap, No Shadow/Glow) */
+  --logo-bg: #1d4ed8;
+  --logo-fg: #ffffff;
+  --logo-shadow: none;
+
+  /* ─── Standardized Typography Tokens (Single Source of Truth, Fluid Responsive Units) ─── */
+  --font-3xs: clamp(0.625rem, 0.59rem + 0.15vw, 0.6875rem);   /* ~10px - 11px */
+  --font-2xs: clamp(0.6875rem, 0.65rem + 0.18vw, 0.75rem);    /* ~11px - 12px */
+  --font-xs:  clamp(0.75rem, 0.71rem + 0.2vw, 0.8125rem);     /* ~12px - 13px */
+  --font-sm:  clamp(0.8125rem, 0.77rem + 0.2vw, 0.875rem);    /* ~13px - 14px */
+  --font-base: clamp(0.875rem, 0.83rem + 0.2vw, 0.9375rem);   /* ~14px - 15px */
+  --font-md:  clamp(0.9375rem, 0.88rem + 0.25vw, 1rem);       /* ~15px - 16px */
+  --font-normal: clamp(0.875rem, 0.82rem + 0.3vw, 0.9375rem); /* ~14px - 15px */
+  --font-lg:  clamp(0.9375rem, 0.88rem + 0.3vw, 1rem);        /* ~15px - 16px */
+  --font-xl:  clamp(1.0625rem, 0.98rem + 0.45vw, 1.1875rem);  /* ~17px - 19px */
+  --font-2xl: clamp(1.25rem, 1.15rem + 0.55vw, 1.375rem);     /* ~20px - 22px */
+  --font-3xl: clamp(1.5rem, 1.35rem + 0.75vw, 1.75rem);       /* ~24px - 28px */
+
+  /* Aliases for convenience */
+  --text-3xs: var(--font-3xs);
+  --text-2xs: var(--font-2xs);
+  --text-xs: var(--font-xs);
+  --text-sm: var(--font-sm);
+  --text-base: var(--font-base);
+  --text-md: var(--font-md);
+  --text-normal: var(--font-normal);
+  --text-lg: var(--font-lg);
+  --text-xl: var(--font-xl);
+  --text-2xl: var(--font-2xl);
+  --text-3xl: var(--font-3xl);
 
   --scrollbar-thumb: rgba(255, 255, 255, 0.16);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.28);
@@ -63,22 +150,97 @@ html[dir="rtl"],
 
 
 :root[data-theme='light'] {
+  /* ─── Base & Surface Color Tokens ─── */
   --background: #f8fafc;
   --foreground: #0f172a;
-  --primary: #2563eb;
-  --primary-rgb: 37, 99, 235;
-  --primary-hover: #1d4ed8;
-  --accent: #10b981;
-  --secondary: rgba(241, 245, 249, 0.7);
   --card-bg: #ffffff;
+  --card-bg-elevated: #f1f5f9;
   --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(148, 163, 184, 0.18);
-  --text-muted: #64748b;
-  --input-bg: rgba(241, 245, 249, 0.7);
+  --glass-border: rgba(148, 163, 184, 0.22);
+  --glass-border-strong: rgba(148, 163, 184, 0.38);
+  --input-bg: rgba(241, 245, 249, 0.8);
   --header-bg: rgba(248, 250, 252, 0.96);
+  --modal-bg: #ffffff;
+  --modal-overlay: rgba(15, 23, 42, 0.6);
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --secondary: rgba(241, 245, 249, 0.85);
 
-  --scrollbar-thumb: rgba(37, 99, 235, 0.3);
-  --scrollbar-thumb-hover: rgba(37, 99, 235, 0.55);
+  /* ─── Semantic Palette: Single Source of Truth ─── */
+  /* Primary / Vibrant Cobalt Blue */
+  --primary: #1d4ed8;
+  --primary-rgb: 29, 78, 216;
+  --primary-hover: #1e40af;
+  --primary-active: #172554;
+  --primary-text: #1d4ed8;
+  --primary-bg-subtle: #dbeafe;
+  --primary-border-subtle: #93c5fd;
+
+  /* Success / Emerald Green */
+  --success: #15803d;
+  --success-rgb: 21, 128, 61;
+  --success-hover: #166534;
+  --success-text: #15803d;
+  --success-bg-subtle: #dcfce7;
+  --success-border-subtle: #86efac;
+  --accent: var(--success);
+
+  /* Danger / Crimson Red */
+  --danger: #b91c1c;
+  --danger-rgb: 185, 28, 28;
+  --danger-hover: #991b1b;
+  --danger-text: #b91c1c;
+  --danger-bg-subtle: #fee2e2;
+  --danger-border-subtle: #fca5a5;
+
+  /* Warning / Amber */
+  --warning: #b45309;
+  --warning-rgb: 180, 83, 9;
+  --warning-hover: #92400e;
+  --warning-text: #b45309;
+  --warning-bg-subtle: #fef3c7;
+  --warning-border-subtle: #fcd34d;
+
+  /* Aliased Secondary/Functional Colors mapped strictly to Core Palette */
+  --purple: var(--primary);
+  --purple-rgb: var(--primary-rgb);
+  --purple-hover: var(--primary-hover);
+  --purple-text: var(--primary-text);
+  --purple-bg-subtle: var(--primary-bg-subtle);
+  --purple-border-subtle: var(--primary-border-subtle);
+
+  --cyan: var(--primary);
+  --cyan-rgb: var(--primary-rgb);
+  --cyan-hover: var(--primary-hover);
+  --cyan-text: var(--primary-text);
+  --cyan-bg-subtle: var(--primary-bg-subtle);
+  --cyan-border-subtle: var(--primary-border-subtle);
+
+  --pink: var(--warning);
+  --pink-rgb: var(--warning-rgb);
+  --pink-text: var(--warning-text);
+  --pink-bg-subtle: var(--warning-bg-subtle);
+  --pink-border-subtle: var(--warning-border-subtle);
+
+  /* Slate Neutral (Buttons & Badges) */
+  --slate-btn-bg: #334155;
+  --slate-btn-hover: #475569;
+  --slate-btn-text: #ffffff;
+  --btn-text: #ffffff;
+  --white: #ffffff;
+  --black: #000000;
+
+  /* Slate Neutral (Buttons & Badges) */
+  --slate-btn-bg: #334155;
+  --slate-btn-hover: #1e293b;
+  --slate-btn-text: #ffffff;
+
+  --scrollbar-thumb: rgba(29, 78, 216, 0.3);
+  --scrollbar-thumb-hover: rgba(29, 78, 216, 0.55);
+
+  --logo-bg: #1d4ed8;
+  --logo-fg: #ffffff;
+  --logo-shadow: none;
 }
 
 /* ─── Global Scrollbar ─── */
@@ -134,6 +296,9 @@ input, textarea { font-family: inherit; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.75); } }
 @keyframes jumping-dot { 0%, 100% { transform: translateY(0); opacity: 0.4; } 50% { transform: translateY(-10px); opacity: 1; } }
+.jumping-dot-0 { animation: jumping-dot 1.2s ease-in-out 0s infinite; }
+.jumping-dot-1 { animation: jumping-dot 1.2s ease-in-out 0.15s infinite; }
+.jumping-dot-2 { animation: jumping-dot 1.2s ease-in-out 0.3s infinite; }
 .spinner { animation: spin 1s linear infinite; }
 
 /* ─── Modal Animations & Skeleton ─── */
@@ -182,11 +347,11 @@ input, textarea { font-family: inherit; }
 /* ─── Buttons ─── */
 .btn-primary {
   background-color: var(--primary);
-  color: #fff;
+  color: var(--white);
   padding: 14px;
   border-radius: 14px;
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--font-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -203,7 +368,7 @@ input, textarea { font-family: inherit; }
   background-color: var(--secondary);
   color: var(--foreground);
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--font-lg);
   text-align: center;
   display: flex;
   align-items: center;
@@ -327,11 +492,11 @@ input, textarea { font-family: inherit; }
   align-items: center;
   gap: 6px;
   background-color: var(--primary);
-  color: #fff;
+  color: var(--white);
   border: none;
   border-radius: 8px;
   padding: 8px 14px;
-  font-size: 12.5px;
+  font-size: var(--font-base);
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -354,12 +519,12 @@ input, textarea { font-family: inherit; }
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 :root[data-theme='light'] .gateway-info-panel {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(99, 102, 241, 0.04) 100%), var(--card-bg);
-  border: 1.2px solid rgba(37, 99, 235, 0.16);
+  background: linear-gradient(135deg, rgba(29, 78, 216, 0.04) 0%, rgba(99, 102, 241, 0.04) 100%), var(--card-bg);
+  border: 1.2px solid rgba(29, 78, 216, 0.16);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
 }
 
-.page-title { font-size: 24px; font-weight: 700; margin: 0; }
+.page-title { font-size: var(--font-3xl); font-weight: 700; margin: 0; }
 
 .router-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 @media (min-width: 640px) { .router-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -405,7 +570,7 @@ input, textarea { font-family: inherit; }
 /* ─── Responsive Cleanup ─── */
 @media (max-width: 768px) {
   .app-container { padding: 8px 12px; }
-  .page-title { font-size: 15px; }
+  .page-title { font-size: var(--font-lg); }
   .gateway-header-container { flex-direction: row; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 12px; }
   .gateway-actions-container { width: auto; justify-content: flex-end; }
   .glass-card { padding: 12px !important; }
@@ -413,8 +578,8 @@ input, textarea { font-family: inherit; }
 
 @media (max-width: 480px) {
   .gateway-refresh-btn { width: 32px; height: 32px; border-radius: 6px; }
-  .gateway-add-btn { height: 32px; padding: 6px 10px; font-size: 11.5px; border-radius: 6px; gap: 4px; }
-  .page-title { font-size: 13px !important; }
+  .gateway-add-btn { height: 32px; padding: 6px 10px; font-size: var(--font-sm); border-radius: 6px; gap: 4px; }
+  .page-title { font-size: var(--font-md) !important; }
 }
 
 /* ─── Router Dashboard Compact Responsive Styles ─── */
@@ -435,57 +600,323 @@ input, textarea { font-family: inherit; }
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   UNIFIED STAT CARDS SYSTEM (Single Source of Truth)
+   Standardized across Dashboard, Vouchers, Users, Profiles, APs,
+   Revenue, Records, Settings Hardware, and Batch Details
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* 1. Stat Summary Grids */
+.stat-summary-grid,
+.vouchers-stats-grid,
+.users-stats-grid,
+.profiles-stats-grid,
+.aps-stats-grid,
+.revenue-kpi-grid,
+.records-stats-grid,
+.batch-stat-grid,
 .system-health-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 8px;
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 8px !important;
+  margin-bottom: 12px !important;
 }
 
-@media (max-width: 640px) {
+@media (min-width: 640px) {
+  .stat-summary-grid,
+  .users-stats-grid,
+  .profiles-stats-grid,
+  .aps-stats-grid,
+  .records-stats-grid,
   .system-health-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
   }
 }
 
-
-.stat-card-compact {
-  background: var(--card-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  min-width: 0;
-  transition: transform 0.15s ease, border-color 0.15s ease;
-}
-
-@media (max-width: 640px) {
-  .stat-card-compact {
-    padding: 6px 8px;
-    gap: 5px;
-    border-radius: 10px;
+@media (min-width: 768px) {
+  .vouchers-stats-grid,
+  .revenue-kpi-grid,
+  .batch-stat-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
   }
 }
 
-.stat-icon-compact {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: rgba(var(--primary-rgb), 0.1);
+/* 2. Stat Cards Container (No bottom clipping, consistent padding & height) */
+.stat-card,
+.stat-card-compact,
+.dash-stat-row,
+.voucher-stat-card,
+.user-stat-card,
+.profile-stat-card,
+.aps-stat-card,
+.revenue-kpi-card,
+.records-stat-tab,
+.records-stat-card,
+.batch-stat-card,
+.settings-stat-badge {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 10px !important;
+  padding: 8px 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+  position: relative !important;
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease !important;
 }
 
-@media (max-width: 640px) {
-  .stat-icon-compact {
-    width: 26px;
-    height: 26px;
-    border-radius: 6px;
+@media (max-width: 480px) {
+  .stat-card,
+  .stat-card-compact,
+  .dash-stat-row,
+  .voucher-stat-card,
+  .user-stat-card,
+  .profile-stat-card,
+  .aps-stat-card,
+  .revenue-kpi-card,
+  .records-stat-tab,
+  .records-stat-card,
+  .batch-stat-card,
+  .settings-stat-badge {
+    padding: 7px 9px !important;
+    gap: 7px !important;
+    min-height: 46px !important;
+    border-radius: 9px !important;
   }
+}
+
+/* Clickable / Active state */
+.user-stat-card.active,
+.records-stat-tab.active,
+.stat-card.active {
+  background: var(--primary-bg-subtle, rgba(29, 78, 216, 0.16)) !important;
+  border-color: var(--primary-border-subtle, rgba(29, 78, 216, 0.45)) !important;
+}
+
+/* 3. Stat Card Icon */
+.stat-card-icon,
+.stat-icon-compact,
+.dash-stat-icon-wrap,
+.voucher-stat-icon,
+.user-stat-icon-box,
+.user-stat-icon,
+.profile-stat-icon,
+.aps-stat-icon,
+.revenue-kpi-icon,
+.records-stat-icon,
+.batch-stat-card-icon,
+.settings-stat-icon {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  border-radius: 7px !important;
+  background: var(--secondary, rgba(255, 255, 255, 0.06)) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1)) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+@media (max-width: 480px) {
+  .stat-card-icon,
+  .stat-icon-compact,
+  .dash-stat-icon-wrap,
+  .voucher-stat-icon,
+  .user-stat-icon-box,
+  .user-stat-icon,
+  .profile-stat-icon,
+  .aps-stat-icon,
+  .revenue-kpi-icon,
+  .records-stat-icon,
+  .batch-stat-card-icon,
+  .settings-stat-icon {
+    width: 25px !important;
+    height: 25px !important;
+    min-width: 25px !important;
+    min-height: 25px !important;
+    border-radius: 6px !important;
+  }
+}
+
+.stat-card-icon svg,
+.stat-icon-compact svg,
+.dash-stat-icon-wrap svg,
+.voucher-stat-icon svg,
+.user-stat-icon-box svg,
+.user-stat-icon svg,
+.profile-stat-icon svg,
+.aps-stat-icon svg,
+.revenue-kpi-icon svg,
+.records-stat-icon svg,
+.batch-stat-card-icon svg,
+.settings-stat-icon svg {
+  width: 13.5px !important;
+  height: 13.5px !important;
+  flex-shrink: 0 !important;
+}
+
+/* 4. Stat Card Info Container */
+.stat-card-info,
+.dash-stat-info,
+.voucher-stat-info,
+.user-stat-info,
+.profile-stat-info,
+.aps-stat-info,
+.revenue-kpi-content,
+.records-stat-content,
+.settings-stat-info {
+  min-width: 0 !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+/* 5. Stat Card Label */
+.stat-card-label,
+.dash-stat-label,
+.voucher-stat-label,
+.user-stat-label,
+.profile-stat-label,
+.aps-stat-label,
+.revenue-kpi-label,
+.records-stat-label,
+.batch-stat-card-label,
+.settings-stat-label {
+  font-size: var(--font-2xs) !important;
+  color: var(--text-muted) !important;
+  font-weight: 500 !important;
+  display: block !important;
+  line-height: 1.25 !important;
+  margin: 0 0 1.5px 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* 6. Stat Card Value / Content - Decreased Font Size & Anti-Clipping */
+.stat-card-value,
+.dash-stat-value,
+.voucher-stat-value,
+.user-stat-value,
+.profile-stat-value,
+.aps-stat-value,
+.revenue-kpi-val,
+.records-stat-val,
+.batch-stat-card-val,
+.settings-stat-value {
+  font-size: var(--font-sm) !important;
+  color: var(--foreground) !important;
+  font-weight: 800 !important;
+  display: block !important;
+  line-height: 1.35 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  letter-spacing: -0.15px !important;
+  padding-bottom: 1.5px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+@media (min-width: 768px) {
+  .stat-card-value,
+  .dash-stat-value,
+  .voucher-stat-value,
+  .user-stat-value,
+  .profile-stat-value,
+  .aps-stat-value,
+  .revenue-kpi-val,
+  .records-stat-val,
+  .batch-stat-card-val,
+  .settings-stat-value {
+    font-size: var(--font-base) !important;
+  }
+}
+
+/* 7. Color Modifiers for Unified Stat Cards */
+.stat-card-icon.blue,
+.dash-stat-icon-wrap.text-blue,
+.revenue-kpi-icon.blue,
+.settings-stat-icon.blue,
+.user-stat-icon-box.signed,
+.aps-stat-icon.total {
+  background: var(--primary-bg-subtle) !important;
+  color: var(--primary-text) !important;
+  border-color: var(--primary-border-subtle) !important;
+}
+
+.stat-card-icon.green,
+.dash-stat-icon-wrap.text-emerald,
+.revenue-kpi-icon.green,
+.settings-stat-icon.green,
+.user-stat-icon-box.all,
+.aps-stat-icon.bypassed {
+  background: var(--success-bg-subtle) !important;
+  color: var(--success-text) !important;
+  border-color: var(--success-border-subtle) !important;
+}
+
+.stat-card-icon.amber,
+.dash-stat-icon-wrap.text-amber,
+.revenue-kpi-icon.amber,
+.settings-stat-icon.amber,
+.user-stat-icon-box.waiting {
+  background: var(--warning-bg-subtle) !important;
+  color: var(--warning-text) !important;
+  border-color: var(--warning-border-subtle) !important;
+}
+
+.stat-card-icon.purple,
+.dash-stat-icon-wrap.text-purple,
+.revenue-kpi-icon.purple,
+.settings-stat-icon.purple,
+.aps-stat-icon.online {
+  background: var(--purple-bg-subtle) !important;
+  color: var(--purple-text) !important;
+  border-color: var(--purple-border-subtle) !important;
+}
+
+.stat-card-icon.cyan,
+.dash-stat-icon-wrap.text-cyan {
+  background: var(--primary-bg-subtle) !important;
+  color: var(--primary-text) !important;
+  border-color: var(--primary-border-subtle) !important;
+}
+
+.stat-card-value.unused,
+.stat-card-value.text-emerald,
+.voucher-stat-value.unused {
+  color: var(--success-text) !important;
+}
+
+.stat-card-value.active,
+.stat-card-value.text-blue,
+.voucher-stat-value.active,
+.profile-stat-value.unlimited {
+  color: var(--primary-text) !important;
+}
+
+.profile-stat-value.limited,
+.stat-card-value.text-amber {
+  color: var(--warning-text) !important;
+}
+
+.stat-card-value.text-danger,
+.dash-stat-value .text-danger {
+  color: var(--danger-text) !important;
 }
 
 .quick-actions-grid {
@@ -536,10 +967,10 @@ input, textarea { font-family: inherit; }
     height: 14px !important;
   }
   .batch-stat-card-val {
-    font-size: 13px !important;
+    font-size: var(--font-md) !important;
   }
   .batch-stat-card-label {
-    font-size: 10px !important;
+    font-size: var(--font-xs) !important;
   }
 }
 
@@ -555,10 +986,22 @@ input, textarea { font-family: inherit; }
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+}
+
+@media (min-width: 1440px) {
+  .responsive-container {
+    max-width: 1400px;
+  }
+}
+
+@media (min-width: 1680px) {
+  .responsive-container {
+    max-width: 1536px;
+  }
 }
 
 .responsive-card {
@@ -640,43 +1083,160 @@ input, textarea { font-family: inherit; }
   }
 }
 
-/* ─── Responsive Stat Summary Grid (Standardized across all pages: 2 cols on mobile) ─── */
-.stat-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-@media (min-width: 640px) {
-  .stat-summary-grid {
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-}
-
-/* ─── Global Solid Button Tokens (No Outline/Ghost Themes) ─── */
+/* ─── Global Solid Button Tokens (Rule 1: Solid High-Contrast, No Outline/Ghost Themes) ─── */
 .btn-solid-primary,
-.page-header-btn-primary {
-  background: var(--primary, #3b82f6) !important;
-  color: #ffffff !important;
+.page-header-btn-primary,
+.btn-solid-blue {
+  background: var(--primary) !important;
+  color: var(--btn-text) !important;
   border: none !important;
   font-weight: 700 !important;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.35) !important;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+.btn-solid-primary:hover,
+.page-header-btn-primary:hover,
+.btn-solid-blue:hover {
+  background: var(--primary-hover) !important;
+  opacity: 0.95;
 }
 
-.btn-solid-success {
-  background: #10b981 !important;
-  color: #ffffff !important;
+.btn-solid-success,
+.btn-solid-green {
+  background: var(--success) !important;
+  color: var(--btn-text) !important;
   border: none !important;
   font-weight: 700 !important;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(var(--success-rgb), 0.35) !important;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+.btn-solid-success:hover,
+.btn-solid-green:hover {
+  background: var(--success-hover) !important;
+  opacity: 0.95;
 }
 
-.btn-solid-secondary {
-  background: #334155 !important;
-  color: #ffffff !important;
+.btn-solid-danger,
+.btn-solid-red {
+  background: var(--danger) !important;
+  color: var(--btn-text) !important;
   border: none !important;
   font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(var(--danger-rgb), 0.35) !important;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+.btn-solid-danger:hover,
+.btn-solid-red:hover {
+  background: var(--danger-hover) !important;
+  opacity: 0.95;
+}
+
+.btn-solid-secondary,
+.btn-solid-slate {
+  background: var(--slate-btn-bg) !important;
+  color: var(--slate-btn-text) !important;
+  border: none !important;
+  font-weight: 700 !important;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+.btn-solid-secondary:hover,
+.btn-solid-slate:hover {
+  background: var(--slate-btn-hover) !important;
+  opacity: 0.95;
+}
+
+/* ─── Global Utility Text & Icon Colors (Single Source of Truth) ─── */
+.text-primary,
+.text-blue {
+  color: var(--primary-text) !important;
+}
+
+.text-success,
+.text-emerald,
+.text-green {
+  color: var(--success-text) !important;
+}
+
+.text-danger,
+.text-red {
+  color: var(--danger-text) !important;
+}
+
+.text-warning,
+.text-amber {
+  color: var(--warning-text) !important;
+}
+
+.text-purple {
+  color: var(--purple-text) !important;
+}
+
+.text-cyan,
+.text-sky {
+  color: var(--cyan-text) !important;
+}
+
+.text-pink {
+  color: var(--pink-text) !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* ─── App Brand Logo (Vibrant Cobalt Blue with White Zap, No Shadow/Glow) ─── */
+.brand-logo-badge {
+  background-color: var(--logo-bg);
+  color: var(--logo-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: none;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.brand-logo-badge-32 {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+
+.brand-logo-badge-36 {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.brand-logo-badge-56 {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+}
+
+.brand-logo-title {
+  color: var(--foreground);
+  font-size: var(--font-lg);
+  font-weight: 900;
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+:root[data-theme='light'] .brand-logo-title {
+  color: var(--foreground);
+}
+
+.brand-logo-subtitle {
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+:root[data-theme='light'] .brand-logo-subtitle {
+  color: var(--text-muted);
 }

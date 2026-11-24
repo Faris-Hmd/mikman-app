@@ -12,9 +12,16 @@ import {
   Loader2,
   X,
   AlertCircle,
+  LogIn,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useModal } from '../../context/ModalContext';
+import {
+  formatBytes,
+  formatRemainingTime,
+  parseCommentRemainingTime,
+} from '../../lib/helpers';
+import { formatRelativeAge } from './voucherHelpers';
 import {
   type VoucherBatch,
   type VoucherBatchDetail,
@@ -23,6 +30,7 @@ import {
   type ExpiredVoucher,
 } from '../../api';
 import { PrintConfigModal } from './PrintConfigModal';
+import { BatchRing } from './BatchRing';
 
 interface BatchDetailModalProps {
   selectedBatch: VoucherBatch | null;
@@ -102,7 +110,7 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
     });
   }, [detailSearch, activeTab, unusedVouchers, activeVouchers, expiredVouchers]);
 
-  if (!selectedBatch) return null;
+  if (!selectedBatch || !batchDetail || isLoading) return null;
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -132,10 +140,21 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
   };
 
   const tabs = [
-    { key: 'unused' as const, label: t('batch.tabUnused'), count: selectedBatch.unusedCount ?? unusedVouchers.length },
-    { key: 'active' as const, label: t('batch.tabActive'), count: selectedBatch.activeCount ?? activeVouchers.length },
-    { key: 'expired' as const, label: t('batch.tabExpired'), count: selectedBatch.expiredCount ?? expiredVouchers.length },
+    { key: 'unused' as const, label: t('batch.tabUnused') || t('batch.statusUnused') || 'Unused', count: selectedBatch.unusedCount ?? unusedVouchers.length },
+    { key: 'active' as const, label: t('batch.tabActive') || t('batch.statusActive') || 'In Use', count: selectedBatch.activeCount ?? activeVouchers.length },
+    { key: 'expired' as const, label: t('batch.tabExpired') || t('batch.statusExpired') || 'Expired', count: selectedBatch.expiredCount ?? expiredVouchers.length },
   ];
+
+  const batchAge = formatRelativeAge(selectedBatch.createdAt || batchDetail?.createdAt, t) || t('batch.noDate');
+  const unusedCount = selectedBatch.unusedCount ?? unusedVouchers.length;
+  const activeCount = selectedBatch.activeCount ?? activeVouchers.length;
+  const expiredCount = selectedBatch.expiredCount ?? expiredVouchers.length;
+  const totalCount = selectedBatch.originalCount ?? (unusedCount + activeCount + expiredCount);
+  const cleanComment = selectedBatch.cleanComment ?? selectedBatch.comment;
+  const metaParts = [
+    selectedBatch.dataBadge,
+    selectedBatch.rateLimit,
+  ].filter(Boolean);
 
   return (
     <>
@@ -167,10 +186,10 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
               </div>
               <div>
                 <h3 className="drawer-title">
-                  {selectedBatch.printLabel || selectedBatch.profile}
+                  {selectedBatch.profile}
                 </h3>
                 <div className="batch-detail-subtitle">
-                  {selectedBatch.profile}
+                  {batchAge}
                   {selectedBatch.formattedPrice ? ` • ${selectedBatch.formattedPrice}` : ''}
                   {selectedBatch.validityBadge ? ` • ${selectedBatch.validityBadge}` : ''}
                 </div>
@@ -181,11 +200,11 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
               {/* Print PDF Button */}
               <button
                 onClick={() => setIsPrintModalOpen(true)}
-                title={t('batch.printPdf')}
+                title={t('batch.printPdf') || t('batch.printBtn') || 'Print'}
                 className="batch-header-btn print"
               >
                 <Printer size={15} />
-                <span>{t('batch.printPdf')}</span>
+                <span>{t('batch.printBtn') || t('batch.printPdf') || 'Print'}</span>
               </button>
 
               {/* Delete Batch Button */}
@@ -193,7 +212,7 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
                 <button
                   onClick={handleDeleteEntireBatch}
                   disabled={isDeletingBatch}
-                  title={t('common.delete')}
+                  title={t('common.delete') || 'Delete'}
                   className="batch-header-btn delete"
                 >
                   {isDeletingBatch ? (
@@ -201,7 +220,7 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
                   ) : (
                     <Trash2 size={15} />
                   )}
-                  <span>{t('common.delete')}</span>
+                  <span>{t('common.delete') || 'Delete'}</span>
                 </button>
               )}
 
@@ -211,6 +230,55 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
               >
                 <X size={18} />
               </button>
+            </div>
+          </div>
+
+          {/* Batch Info Strip */}
+          <div className="batch-detail-info-strip">
+            <BatchRing
+              originalCount={totalCount}
+              unusedCount={unusedCount}
+              activeCount={activeCount}
+              expiredCount={expiredCount}
+            />
+            <div className="batch-detail-info-body">
+              <div className="batch-stats-summary">
+                <span className="batch-stat-item">
+                  <strong>{totalCount}</strong> {t('batch.totalVouchers')}
+                </span>
+                <span className="batch-stat-sep" aria-hidden="true">·</span>
+                <span className="batch-stat-item">
+                  <strong>{unusedCount}</strong> {t('batch.statusUnused')}
+                </span>
+                <span className="batch-stat-sep" aria-hidden="true">·</span>
+                <span className="batch-stat-item">
+                  <strong>{activeCount}</strong> {t('batch.statusActive')}
+                </span>
+                {expiredCount > 0 && (
+                  <>
+                    <span className="batch-stat-sep" aria-hidden="true">·</span>
+                    <span className="batch-stat-item">
+                      <strong>{expiredCount}</strong> {t('batch.statusExpired')}
+                    </span>
+                  </>
+                )}
+              </div>
+              {(cleanComment || metaParts.length > 0) && (
+                <div className="batch-detail-info-meta">
+                  {metaParts.map((part, idx) => (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && <span aria-hidden="true">·</span>}
+                      <span>{part}</span>
+                    </React.Fragment>
+                  ))}
+                  {cleanComment && (
+                    <>
+                      {metaParts.length > 0 && <span aria-hidden="true">·</span>}
+                      <span className="batch-detail-info-comment">{cleanComment}</span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -227,7 +295,7 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
                       setDetailSearch('');
                       setModalDisplayLimit(60);
                     }}
-                    className={`batch-tab-btn ${isActive ? 'active' : ''}`}
+                    className={`batch-tab-btn tab-${tab.key} ${isActive ? 'active' : ''}`}
                   >
                     <span>{tab.label}</span>
                     <span className="batch-tab-count">
@@ -272,17 +340,113 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
                 {modalFilteredVouchers.slice(0, modalDisplayLimit).map((vItem, idx) => {
                   const isCopied = copiedCode === vItem.name;
                   const vName = vItem.name || (vItem as any)['.id'] || '';
+                  const vAny = vItem as any;
+
+                  // Remaining Time: check normalized string, remainingSeconds, or comment EXP date
+                  let rTime: string | null = null;
+                  let timePct: number | null = null;
+
+                  if (activeTab !== 'unused') {
+                    const rawTimeStr = vItem.timeLeft || (vItem as ActiveVoucher).timeLeftText || vAny.remainingTime;
+                    if (
+                      rawTimeStr &&
+                      rawTimeStr !== '0s' &&
+                      rawTimeStr !== 'Expired' &&
+                      !rawTimeStr.toLowerCase().includes('mb') &&
+                      !rawTimeStr.toLowerCase().includes('gb')
+                    ) {
+                      rTime = rawTimeStr;
+                    }
+
+                    const rawRemSec = vItem.remainingSeconds ?? vAny['remaining-seconds'];
+                    const remSecNum = rawRemSec != null && rawRemSec !== '' ? Number(rawRemSec) : null;
+                    const rawTotalSec = vAny.limitUptimeSeconds ?? vAny['limit-uptime-seconds'] ?? vAny.limitUptime;
+                    const totalSecNum = rawTotalSec != null && !isNaN(Number(rawTotalSec)) ? Number(rawTotalSec) : null;
+
+                    if (!rTime && remSecNum != null && !isNaN(remSecNum) && remSecNum > 0) {
+                      rTime = formatRemainingTime(remSecNum);
+                    }
+
+                    if (!rTime && vItem.comment) {
+                      const expTime = parseCommentRemainingTime(vItem.comment);
+                      if (expTime && expTime !== '0s') {
+                        rTime = expTime;
+                      }
+                    }
+
+                    if (vItem.timePercent != null && !isNaN(Number(vItem.timePercent))) {
+                      timePct = Math.round(Number(vItem.timePercent));
+                    } else if (remSecNum != null && totalSecNum != null && totalSecNum > 0) {
+                      timePct = Math.round(Math.min(100, Math.max(0, (remSecNum / totalSecNum) * 100)));
+                    }
+                  }
+
+                  // Remaining Data: check normalized string, remainingBytes, or quota calculation
+                  let rData: string | null = null;
+                  let dataPct: number | null = null;
+
+                  if (activeTab !== 'unused') {
+                    const rawDataStr = vItem.dataLeft || vAny.remainingData;
+                    if (rawDataStr && rawDataStr !== '0 MB' && rawDataStr !== '0 B') {
+                      rData = rawDataStr;
+                    }
+
+                    const rawRemBytes = vItem.remainingBytes ?? vAny['remaining-bytes'];
+                    const remBytesNum = rawRemBytes != null && rawRemBytes !== '' ? Number(rawRemBytes) : null;
+                    const rawLimitBytes = vItem.limitBytesTotal ?? vAny['limit-bytes-total'];
+                    const limitBytesNum = rawLimitBytes != null && !isNaN(Number(rawLimitBytes)) ? Number(rawLimitBytes) : 0;
+
+                    if (!rData && remBytesNum != null && !isNaN(remBytesNum) && remBytesNum > 0) {
+                      rData = formatBytes(remBytesNum);
+                    }
+
+                    if (!rData && limitBytesNum > 0) {
+                      const bIn = Number(vAny.bytesIn ?? vAny['bytes-in'] ?? 0);
+                      const bOut = Number(vAny.bytesOut ?? vAny['bytes-out'] ?? 0);
+                      const usedBytes = (isNaN(bIn) ? 0 : bIn) + (isNaN(bOut) ? 0 : bOut);
+                      const calculatedRem = Math.max(0, limitBytesNum - usedBytes);
+                      if (calculatedRem > 0) {
+                        rData = formatBytes(calculatedRem);
+                      }
+                    }
+
+                    if (vItem.dataPercent != null && !isNaN(Number(vItem.dataPercent))) {
+                      dataPct = Math.round(Number(vItem.dataPercent));
+                    } else if (limitBytesNum > 0) {
+                      const bytesForPct = remBytesNum != null && !isNaN(remBytesNum)
+                        ? remBytesNum
+                        : (rData ? limitBytesNum - (Number(vAny.bytesIn ?? 0) + Number(vAny.bytesOut ?? 0)) : null);
+                      if (bytesForPct != null) {
+                        dataPct = Math.round(Math.min(100, Math.max(0, (bytesForPct / limitBytesNum) * 100)));
+                      }
+                    }
+                  }
+
+                  // Clean Device Name
+                  const rawDevName = (vItem.deviceName || vAny.hostName || '').trim();
+                  let cleanDeviceName = '';
+                  if (rawDevName) {
+                    const lowerDev = rawDevName.toLowerCase();
+                    const lowerName = vName.toLowerCase();
+                    if (
+                      lowerDev !== lowerName &&
+                      !lowerDev.includes('#metadata:') &&
+                      !lowerDev.includes('batch_') &&
+                      !lowerDev.includes('login:') &&
+                      !lowerDev.includes('exp:') &&
+                      lowerDev !== 'active client' &&
+                      lowerDev !== 'unnamed client'
+                    ) {
+                      cleanDeviceName = rawDevName;
+                    }
+                  }
+
+                  const loginDate = vItem.loginDate;
 
                   return (
                     <div key={(vItem as any)['.id'] || vName || idx} className="voucher-card-item">
                       <div className="voucher-card-row">
                         <div className="voucher-card-left">
-                          {vItem.disabled && (
-                            <span className="voucher-disabled-badge">
-                              Disabled
-                            </span>
-                          )}
-
                           <strong className="voucher-card-code">{vName}</strong>
 
                           <button
@@ -295,27 +459,50 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
                         </div>
 
                         <div className="voucher-badges-stack">
-                          {/* Pre-normalized Remaining Time */}
-                          {vItem.timeLeft && vItem.timeLeft !== '0s' && (
-                            <span className="voucher-badge-pill time">
-                              <Clock size={10} />
-                              <span>{vItem.timeLeft}</span>
+                          {/* Login Date for expired pins */}
+                          {loginDate && activeTab === 'expired' && (
+                            <span
+                              className="voucher-badge-pill login-date"
+                              title={t('vouchers.loginDate') || 'Login Date'}
+                            >
+                              <LogIn size={10} />
+                              <span>{loginDate}</span>
                             </span>
                           )}
 
-                          {/* Pre-normalized Remaining Data */}
-                          {vItem.dataLeft && vItem.dataLeft !== '0 MB' && (
-                            <span className="voucher-badge-pill data">
+                          {/* Remaining Time */}
+                          {rTime && (
+                            <span
+                              className="voucher-badge-pill time"
+                              title={t('common.remainingTime') || 'Remaining Time'}
+                            >
+                              <Clock size={10} />
+                              <span>{rTime}</span>
+                              {timePct != null && (
+                                <span className="voucher-badge-percent">({timePct}%)</span>
+                              )}
+                            </span>
+                          )}
+
+                          {/* Remaining Data */}
+                          {rData && (
+                            <span
+                              className="voucher-badge-pill data"
+                              title={t('common.remainingData') || 'Remaining Data'}
+                            >
                               <HardDrive size={10} />
-                              <span>{vItem.dataLeft}</span>
+                              <span>{rData}</span>
+                              {dataPct != null && (
+                                <span className="voucher-badge-percent">({dataPct}%)</span>
+                              )}
                             </span>
                           )}
 
                           {/* Connected Device Name */}
-                          {vItem.deviceName && (
-                            <span className="voucher-badge-pill device" title={vItem.deviceName}>
+                          {cleanDeviceName && (
+                            <span className="voucher-badge-pill device" title={cleanDeviceName}>
                               <Smartphone size={10} />
-                              <span>{vItem.deviceName}</span>
+                              <span>{cleanDeviceName}</span>
                             </span>
                           )}
                         </div>
@@ -342,13 +529,15 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
       </div>
 
       {/* Embedded Print PDF Config Modal */}
-      <PrintConfigModal
-        isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
-        selectedBatch={selectedBatch}
-        defaultWifiName={defaultWifiName}
-        onFetchCodes={onFetchCodes}
-      />
+      {isPrintModalOpen && (
+        <PrintConfigModal
+          isOpen={isPrintModalOpen}
+          onClose={() => setIsPrintModalOpen(false)}
+          selectedBatch={selectedBatch}
+          defaultWifiName={defaultWifiName}
+          onFetchCodes={onFetchCodes}
+        />
+      )}
     </>
   );
 };

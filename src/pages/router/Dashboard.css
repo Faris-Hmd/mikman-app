@@ -3,160 +3,377 @@
 .dash-container {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Hero Router Showcase Card ─── */
+.dash-hero-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 22px;
+  border-radius: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+}
+
+.dash-hero-visual {
+  width: 112px;
+  height: 112px;
+  border-radius: 14px;
+  background: var(--secondary);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  flex-shrink: 0;
+}
+
+.dash-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.25));
+}
+
+.dash-hero-img-fallback {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--glass-border, rgba(255, 255, 255, 0.1));
+}
+
+.dash-hero-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 12px;
 }
 
-.dash-header {
-  padding: 8px 12px;
-  gap: 8px;
-}
-
-.dash-header-left {
+.dash-hero-identity {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
 }
 
-.dash-header-avatar-box {
-  position: relative;
-  display: inline-flex;
+.dash-hero-status-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.dash-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.dash-header-avatar-img {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
+.dash-status-dot.online {
+  background: var(--success-text);
+  box-shadow: 0 0 0 3px var(--success-bg-subtle);
 }
 
-.dash-header-titles {
-  min-width: 0;
-  flex: 1;
+.dash-status-dot.offline {
+  background: var(--danger-text);
 }
 
-.dash-header-title {
-  font-size: 15px;
+.dash-hero-sep {
+  opacity: 0.45;
+}
+
+.dash-hero-model {
+  letter-spacing: 0.03em;
+}
+
+.dash-hero-title {
   margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.dash-header-subtitle {
-  font-size: 10.5px;
-  margin: 0;
+.dash-hero-clock {
+  flex-shrink: 0;
+  text-align: end;
+}
+
+.dash-hero-time {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.dash-hero-date {
+  font-size: var(--font-2xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.dash-hero-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding-top: 10px;
+  border-top: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+}
+
+.dash-hero-meta-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.dash-hero-meta-label {
+  font-size: var(--font-xs);
   color: var(--text-muted);
 }
 
-.dash-header-time-box {
-  flex-shrink: 0;
-}
-
-[dir="rtl"] .dash-header-time-box {
-  text-align: left;
-}
-
-[dir="ltr"] .dash-header-time-box {
-  text-align: right;
-}
-
-.dash-header-time {
-  font-size: 12.5px;
-  font-weight: 800;
+.dash-hero-meta-val {
+  font-size: var(--font-sm);
+  font-weight: 700;
   color: var(--foreground);
   font-variant-numeric: tabular-nums;
 }
 
-.dash-header-date {
-  font-size: 9.5px;
-  color: var(--text-muted);
-}
-
-/* Stat Rows */
-.dash-stat-row {
-  padding: 6px 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.dash-stat-icon-wrap {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  background: var(--secondary);
-  border: 1px solid var(--glass-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.dash-stat-info {
-  min-width: 0;
-  flex: 1;
-}
-
-.dash-stat-label {
-  font-size: 9.5px;
-  color: var(--text-muted);
-  font-weight: 500;
-  display: block;
-  line-height: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dash-stat-value {
-  font-size: 13.5px;
-  color: var(--foreground);
-  font-weight: 800;
-  margin-top: 2px;
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
+/* ─── Section Header ─── */
 .dash-section-header {
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 .dash-section-title {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 800;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.dash-ram-bar-bg {
-  height: 3px;
-  background: var(--secondary);
-  border-radius: 2px;
-  margin-top: 3px;
-  overflow: hidden;
+/* ─── Bento Visual Gauges Grid ─── */
+.dash-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
 }
 
-.dash-ram-bar-fill {
+.dash-gauge-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  gap: 10px;
+  min-height: 164px;
+  border-radius: 14px;
+}
+
+.dash-gauge-card-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dash-gauge-label {
+  font-size: var(--font-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dash-gauge-icon {
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+/* CPU Semi-Circular Arc Gauge */
+.dash-arc-wrap {
+  position: relative;
+  width: 140px;
+  height: 84px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  margin: auto 0;
+}
+
+.dash-arc-svg {
+  width: 100%;
   height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s;
+  overflow: visible;
 }
 
-.dash-ram-bar-fill.normal {
-  background: #3b82f6;
+.dash-arc-track {
+  fill: none;
+  stroke: var(--secondary);
+  stroke-width: 9;
+  stroke-linecap: round;
 }
 
-.dash-ram-bar-fill.warn {
-  background: #f59e0b;
+.dash-arc-fill {
+  fill: none;
+  stroke-width: 9;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.35s ease;
 }
 
-.dash-ram-bar-fill.crit {
-  background: #ef4444;
+.dash-arc-fill.normal {
+  stroke: var(--primary);
+}
+
+.dash-arc-fill.warn {
+  stroke: var(--warning);
+}
+
+.dash-arc-fill.crit {
+  stroke: var(--danger);
+}
+
+.dash-arc-value {
+  position: absolute;
+  bottom: 4px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+/* RAM Ring Gauge */
+.dash-ring-gauge-wrap {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-ring-gauge-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.dash-ring-gauge-track {
+  fill: none;
+  stroke: var(--secondary);
+  stroke-width: 8;
+}
+
+.dash-ring-gauge-fill {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.35s ease;
+}
+
+.dash-ring-gauge-fill.normal {
+  stroke: var(--primary);
+}
+
+.dash-ring-gauge-fill.warn {
+  stroke: var(--warning);
+}
+
+.dash-ring-gauge-fill.crit {
+  stroke: var(--danger);
+}
+
+.dash-ring-gauge-center {
+  position: absolute;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-gauge-sub {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Hero Metric & Thermal Bar */
+.dash-hero-metric {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.dash-hero-metric-num {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.dash-temp-scale-wrap {
+  width: 100%;
+}
+
+.dash-temp-svg {
+  width: 100%;
+  height: 8px;
+  display: block;
+}
+
+.dash-temp-track {
+  fill: var(--secondary);
+}
+
+.dash-temp-fill {
+  transition: width 0.35s ease;
+}
+
+.dash-temp-fill.normal {
+  fill: var(--success-text);
+}
+
+.dash-temp-fill.warn {
+  fill: var(--warning);
+}
+
+.dash-temp-fill.crit {
+  fill: var(--danger);
+}
+
+/* ─── Quick Actions Grid ─── */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
 }
 
 .dash-quick-link {
@@ -164,14 +381,132 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 8px 6px;
+  gap: 8px;
+  padding: 14px 10px;
   text-decoration: none;
   color: var(--foreground);
+  border-radius: 12px;
+}
+
+.dash-quick-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--primary-bg-subtle);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dash-quick-link-text {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
   text-align: center;
+}
+
+/* ─── Responsive Breakpoints ─── */
+@media (max-width: 960px) {
+  .dash-bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .dash-container {
+    gap: 10px;
+  }
+
+  .dash-section-header {
+    margin-bottom: 6px;
+  }
+
+  .dash-hero-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .dash-hero-visual {
+    width: 56px;
+    height: 56px;
+    padding: 6px;
+    border-radius: 10px;
+  }
+
+  .dash-hero-content {
+    gap: 6px;
+  }
+
+  .dash-hero-title {
+    font-size: 1.05rem;
+  }
+
+  .dash-hero-time {
+    font-size: 0.95rem;
+  }
+
+  .dash-hero-meta-row {
+    gap: 12px;
+    padding-top: 6px;
+  }
+
+  .dash-hero-meta-label,
+  .dash-hero-meta-val {
+    font-size: var(--font-2xs);
+  }
+
+  .dash-bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .dash-gauge-card {
+    min-height: 112px;
+    padding: 10px;
+    gap: 6px;
+    border-radius: 12px;
+  }
+
+  .dash-arc-wrap {
+    width: 96px;
+    height: 56px;
+  }
+
+  .dash-arc-value {
+    font-size: 1.05rem;
+    bottom: 2px;
+  }
+
+  .dash-ring-gauge-wrap {
+    width: 64px;
+    height: 64px;
+  }
+
+  .dash-ring-gauge-center {
+    font-size: 0.95rem;
+  }
+
+  .dash-hero-metric-num {
+    font-size: 1.45rem;
+  }
+
+  .quick-actions-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .dash-quick-link {
+    padding: 8px 6px;
+    gap: 5px;
+    border-radius: 10px;
+  }
+
+  .dash-quick-icon-box {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
 }

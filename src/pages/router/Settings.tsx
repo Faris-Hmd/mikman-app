@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import useSWR, { mutate } from 'swr';
 import {
   fetchSingleRouterStatusAPI,
@@ -16,9 +16,10 @@ import {
 import { useLanguage } from '../../context/LanguageContext';
 import { useModal } from '../../context/ModalContext';
 import { useAuth } from '../../context/AuthContext';
-import { useVpnModal } from '../../context/VpnModalContext';
 import { RouterHardwareCard } from '../../components/settings/RouterHardwareCard';
+import { WireguardSettingsCard } from '../../components/settings/WireguardSettingsCard';
 import { TerminalScriptModal } from '../../components/settings/TerminalScriptModal';
+import { getRouterVpnIp } from '../../lib/helpers';
 import { TIMEZONES } from '../../constants/timezones';
 import {
   Settings as SettingsIcon,
@@ -34,6 +35,8 @@ import {
   Plus,
   Trash2,
   ChevronDown,
+  Users,
+  Info,
 } from 'lucide-react';
 import './Settings.css';
 
@@ -51,18 +54,32 @@ const HARDWARE_MODELS = [
 
 export default function SettingsPage() {
   const { routerId } = useParams<{ routerId: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const { t, language } = useLanguage();
   const isRtl = language === 'ar';
   const { showAlert, showConfirm } = useModal();
   const { user } = useAuth();
-  const { openVpnModal } = useVpnModal();
   const currentUserEmail = user?.email ? user.email.toLowerCase().trim() : '';
+
+  // Smooth scroll to WireGuard VPN section when navigated with #wireguard hash
+  useEffect(() => {
+    if (location.hash === '#wireguard') {
+      const timer = setTimeout(() => {
+        const el = document.getElementById('wireguard');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [location.hash]);
 
   const [primaryOwner, setPrimaryOwner] = useState<string>('');
 
   // Loading states
   const [isSavingInfo, setIsSavingInfo] = useState(false);
+  const [isSavingOwners, setIsSavingOwners] = useState(false);
   const [isProvisioningWifi, setIsProvisioningWifi] = useState(false);
   const [isProvisioningServer, setIsProvisioningServer] = useState(false);
   const [isProvisioningFiles, setIsProvisioningFiles] = useState(false);
@@ -140,6 +157,11 @@ export default function SettingsPage() {
     }
   }, [profilesData, routerId, status]);
 
+  const currentRouter = profilesData?.profiles?.find(
+    (p: any) => String(p.id) === String(routerId) || p.name === routerId
+  );
+  const routerVpnIp = getRouterVpnIp(currentRouter, status as any);
+
   const safeOwners = Array.isArray(infoForm.owners) ? infoForm.owners : [''];
 
   const handleOwnerChange = (index: number, val: string) => {
@@ -166,15 +188,12 @@ export default function SettingsPage() {
     e.preventDefault();
     if (!routerId) return;
 
-    const ownersArray = safeOwners.map((o) => o.trim()).filter((o) => o.length > 0);
-
     try {
       setIsSavingInfo(true);
       await updateRouterProfileAPI(routerId, {
         name: infoForm.name.trim(),
         model: infoForm.model,
         timezone: infoForm.timezone,
-        owners: ownersArray,
       });
 
       showAlert(t('common.success'), t('settings.infoSavedSuccess'), 'success');
@@ -184,6 +203,28 @@ export default function SettingsPage() {
       showAlert(t('dashboard.saveFailed'), err?.message || 'Failed to save', 'error');
     } finally {
       setIsSavingInfo(false);
+    }
+  };
+
+  // 2. Save Authorized Admin Accounts
+  const handleSaveOwners = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!routerId) return;
+
+    const ownersArray = safeOwners.map((o) => o.trim()).filter((o) => o.length > 0);
+
+    try {
+      setIsSavingOwners(true);
+      await updateRouterProfileAPI(routerId, {
+        owners: ownersArray,
+      });
+
+      showAlert(t('common.success'), t('settings.ownersSavedSuccess') || t('settings.infoSavedSuccess'), 'success');
+      mutateProfiles();
+    } catch (err: any) {
+      showAlert(t('dashboard.saveFailed'), err?.message || 'Failed to update admin accounts', 'error');
+    } finally {
+      setIsSavingOwners(false);
     }
   };
 
@@ -379,249 +420,306 @@ export default function SettingsPage() {
         routerStatus={status}
         infoForm={infoForm}
         liveSsid={status?.wifiName || wifiSsid}
-        onOpenVpnModal={openVpnModal}
+        onOpenVpnModal={() => {
+          const el = document.getElementById('wireguard');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
       />
 
-      {/* ─── 1. Router Info & Owners ─── */}
-      <form onSubmit={handleSaveRouterInfo} className="settings-card">
-        <div className="settings-section-header">
-          <div className="settings-section-icon blue">
-            <Router size={16} />
-          </div>
-          <div>
-            <h3 className="settings-section-title">{t('settings.routerInfoTitle')}</h3>
-            <p className="settings-section-subtitle">{t('settings.routerInfoSubtitle')}</p>
-          </div>
-        </div>
+      {/* ─── WireGuard VPN Configuration & Peer Tunnels ─── */}
+      <WireguardSettingsCard
+        routerId={routerId}
+        routerVpnIp={routerVpnIp || null}
+        routerName={infoForm.name || currentRouter?.name}
+      />
 
-        <div className="settings-form-grid">
+      {/* ─── Configuration Sections Grid: Router Identity & Authorized Admin Accounts ─── */}
+      <div className="settings-cards-grid">
+        {/* ─── 1. Router Info ─── */}
+        <form onSubmit={handleSaveRouterInfo} className="settings-card">
+          <div className="settings-section-header">
+            <div className="settings-section-icon blue">
+              <Router size={16} />
+            </div>
+            <div>
+              <h3 className="settings-section-title">{t('settings.routerInfoTitle')}</h3>
+              <p className="settings-section-subtitle">{t('settings.routerInfoSubtitle')}</p>
+            </div>
+          </div>
+
+          <div className="settings-form-grid">
+            <div className="settings-form-group">
+              <label className="settings-form-label">{t('settings.routerNameLabel')}</label>
+              <input
+                type="text"
+                required
+                value={infoForm.name}
+                onChange={(e) => setInfoForm({ ...infoForm, name: e.target.value })}
+                className="settings-input"
+              />
+            </div>
+
+            <div className="settings-form-group">
+              <label className="settings-form-label">{t('settings.hardwareModelLabel')}</label>
+              <div className="settings-input-wrapper">
+                <select
+                  value={infoForm.model}
+                  onChange={(e) => setInfoForm({ ...infoForm, model: e.target.value })}
+                  className="settings-select"
+                >
+                  {HARDWARE_MODELS.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="profile-select-chevron" />
+              </div>
+            </div>
+
+            <div className="settings-form-group">
+              <label className="settings-form-label">{t('settings.timezoneLabel')}</label>
+              <div className="settings-input-wrapper">
+                <select
+                  value={infoForm.timezone}
+                  onChange={(e) => setInfoForm({ ...infoForm, timezone: e.target.value })}
+                  className="settings-select"
+                >
+                  {TIMEZONES.map((tz) => (
+                    <option key={tz} value={tz}>{tz}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="profile-select-chevron" />
+              </div>
+            </div>
+          </div>
+
+          <div className="settings-footer-actions-border">
+            <button
+              type="submit"
+              disabled={isSavingInfo}
+              className="settings-btn-primary"
+            >
+              <Save size={14} />
+              <span>{isSavingInfo ? t('common.saving') : (t('settings.saveRouterInfoBtn') || t('common.save'))}</span>
+            </button>
+          </div>
+        </form>
+
+        {/* ─── 2. Authorized Admin Accounts ─── */}
+        <form onSubmit={handleSaveOwners} className="settings-card">
+          <div className="settings-section-header">
+            <div className="settings-section-icon indigo">
+              <Users size={16} />
+            </div>
+            <div>
+              <h3 className="settings-section-title">{t('settings.adminAccountsTitle') || 'Authorized Admin Accounts'}</h3>
+              <p className="settings-section-subtitle">{t('settings.adminAccountsSubtitle') || 'Manage accounts with administrator access to this router'}</p>
+            </div>
+          </div>
+
+          <div className={`settings-instruction-box ${!isPrimaryOwner ? 'warning' : ''}`}>
+            <Info size={16} />
+            <span>
+              {isPrimaryOwner
+                ? (t('settings.adminAccountsInstructions') || 'Enter the registered MikMan email addresses of administrators you want to grant access to this router. Authorized admins will be able to manage vouchers, view active sessions, and configure settings. Only the primary owner can add or remove admin accounts.')
+                : (t('settings.onlyPrimaryCanEditOwners') || 'Only the primary router owner can add or edit authorized owners.')}
+            </span>
+          </div>
+
           <div className="settings-form-group">
-            <label className="settings-form-label">{t('settings.routerNameLabel')}</label>
+            <label className="settings-form-label">{t('settings.authorizedOwnersLabel')}</label>
+            <div className="settings-dns-list">
+              {safeOwners.map((owner, idx) => (
+                <div key={idx} className="settings-dns-row">
+                  <input
+                    type="email"
+                    disabled={!isPrimaryOwner}
+                    value={owner}
+                    onChange={(e) => handleOwnerChange(idx, e.target.value)}
+                    placeholder="owner@example.com"
+                    className="settings-input"
+                  />
+                  {isPrimaryOwner && safeOwners.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveOwner(idx)}
+                      className="settings-btn-danger settings-dns-remove-btn"
+                      title={t('common.delete') || 'Delete'}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {isPrimaryOwner && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleAddOwner}
+                    className="settings-btn-secondary settings-dns-add-btn"
+                  >
+                    <Plus size={13} />
+                    <span>{t('settings.addOwnerBtn') || 'Add Admin Account'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {isPrimaryOwner && (
+            <div className="settings-footer-actions-border">
+              <button
+                type="submit"
+                disabled={isSavingOwners}
+                className="settings-btn-primary"
+              >
+                <Save size={14} />
+                <span>{isSavingOwners ? t('common.saving') : (t('settings.saveAdminAccountsBtn') || t('common.save'))}</span>
+              </button>
+            </div>
+          )}
+        </form>
+      </div>
+
+      {/* ─── Wi-Fi Radio Broadcast & Hotspot Branding Grid ─── */}
+      <div className="settings-cards-grid">
+        {/* ─── 3. Wi-Fi SSID ─── */}
+        <form onSubmit={handleProvisionWifi} className="settings-card">
+          <div className="settings-section-header">
+            <div className="settings-section-icon green">
+              <Wifi size={16} />
+            </div>
+            <div>
+              <h3 className="settings-section-title">{t('settings.wifiSsidTitle')}</h3>
+              <p className="settings-section-subtitle">{t('settings.wifiSsidSubtitle')}</p>
+            </div>
+          </div>
+
+          <div className="settings-form-group">
+            <label className="settings-form-label">{t('settings.wifiSsidLabel')}</label>
             <input
               type="text"
               required
-              value={infoForm.name}
-              onChange={(e) => setInfoForm({ ...infoForm, name: e.target.value })}
+              value={wifiSsid}
+              onChange={(e) => setWifiSsid(e.target.value)}
+              placeholder="e.g. My-Hotspot-WiFi"
               className="settings-input"
             />
           </div>
 
-          <div className="settings-form-group">
-            <label className="settings-form-label">{t('settings.hardwareModelLabel')}</label>
-            <div className="settings-input-wrapper">
-              <select
-                value={infoForm.model}
-                onChange={(e) => setInfoForm({ ...infoForm, model: e.target.value })}
-                className="settings-select"
-              >
-                {HARDWARE_MODELS.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="profile-select-chevron" />
-            </div>
+          <div className="settings-footer-actions-border">
+            <button
+              type="submit"
+              disabled={isProvisioningWifi}
+              className="settings-btn-primary"
+            >
+              <Wifi size={14} />
+              <span>{isProvisioningWifi ? (t('settings.provisioning') || t('common.saving')) : (t('settings.provisionWifiBtn') || t('settings.resetWifiBtn') || t('common.save'))}</span>
+            </button>
           </div>
+        </form>
 
-          <div className="settings-form-group">
-            <label className="settings-form-label">{t('settings.timezoneLabel')}</label>
-            <div className="settings-input-wrapper">
-              <select
-                value={infoForm.timezone}
-                onChange={(e) => setInfoForm({ ...infoForm, timezone: e.target.value })}
-                className="settings-select"
-              >
-                {TIMEZONES.map((tz) => (
-                  <option key={tz} value={tz}>{tz}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="profile-select-chevron" />
+        {/* ─── 4. Hotspot Branding & Card Labels ─── */}
+        <form onSubmit={handleSaveBranding} className="settings-card">
+          <div className="settings-section-header">
+            <div className="settings-section-icon pink">
+              <Tag size={16} />
             </div>
-          </div>
-        </div>
-
-        {/* Owners List */}
-        <div className="settings-form-group">
-          <label className="settings-form-label">{t('settings.authorizedOwnersLabel')}</label>
-          <div className="settings-dns-list">
-            {safeOwners.map((owner, idx) => (
-              <div key={idx} className="settings-dns-row">
-                <input
-                  type="email"
-                  value={owner}
-                  onChange={(e) => handleOwnerChange(idx, e.target.value)}
-                  placeholder="owner@example.com"
-                  className="settings-input"
-                />
-                {safeOwners.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveOwner(idx)}
-                    className="settings-btn-danger settings-dns-remove-btn"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                )}
-              </div>
-            ))}
             <div>
-              <button
-                type="button"
-                onClick={handleAddOwner}
-                className="settings-btn-secondary settings-dns-add-btn"
-              >
-                <Plus size={13} />
-                <span>{t('settings.addOwnerBtn')}</span>
-              </button>
+              <h3 className="settings-section-title">{t('settings.brandingTitle')}</h3>
+              <p className="settings-section-subtitle">{t('settings.brandingSubtitle')}</p>
             </div>
           </div>
-        </div>
 
-        <div className="settings-footer-actions-border">
-          <button
-            type="submit"
-            disabled={isSavingInfo}
-            className="settings-btn-primary"
-          >
-            <Save size={14} />
-            <span>{isSavingInfo ? t('common.saving') : t('common.save')}</span>
-          </button>
-        </div>
-      </form>
+          <div className="settings-form-grid">
+            <div className="settings-form-group">
+              <label className="settings-form-label">{t('settings.hotspotWifiNameLabel')}</label>
+              <input
+                type="text"
+                value={hotspotWifiName}
+                onChange={(e) => setHotspotWifiName(e.target.value)}
+                placeholder={t('settings.hotspotWifiNamePlaceholder') || 'e.g. Starlink Guest'}
+                className="settings-input"
+              />
+            </div>
 
-      {/* ─── 2. Wi-Fi SSID ─── */}
-      <form onSubmit={handleProvisionWifi} className="settings-card">
-        <div className="settings-section-header">
-          <div className="settings-section-icon green">
-            <Wifi size={16} />
-          </div>
-          <div>
-            <h3 className="settings-section-title">{t('settings.wifiSsidTitle')}</h3>
-            <p className="settings-section-subtitle">{t('settings.wifiSsidSubtitle')}</p>
-          </div>
-        </div>
-
-        <div className="settings-form-group">
-          <label className="settings-form-label">{t('settings.wifiSsidLabel')}</label>
-          <input
-            type="text"
-            required
-            value={wifiSsid}
-            onChange={(e) => setWifiSsid(e.target.value)}
-            placeholder="e.g. My-Hotspot-WiFi"
-            className="settings-input"
-          />
-        </div>
-
-        <div className="settings-footer-actions-border">
-          <button
-            type="submit"
-            disabled={isProvisioningWifi}
-            className="settings-btn-primary"
-          >
-            <Wifi size={14} />
-            <span>{isProvisioningWifi ? t('settings.provisioning') : t('settings.provisionWifiBtn')}</span>
-          </button>
-        </div>
-      </form>
-
-      {/* ─── 3. Hotspot Branding & Card Labels ─── */}
-      <form onSubmit={handleSaveBranding} className="settings-card">
-        <div className="settings-section-header">
-          <div className="settings-section-icon pink">
-            <Tag size={16} />
-          </div>
-          <div>
-            <h3 className="settings-section-title">{t('settings.brandingTitle')}</h3>
-            <p className="settings-section-subtitle">{t('settings.brandingSubtitle')}</p>
-          </div>
-        </div>
-
-        <div className="settings-form-grid">
-          <div className="settings-form-group">
-            <label className="settings-form-label">{t('settings.hotspotWifiNameLabel')}</label>
-            <input
-              type="text"
-              value={hotspotWifiName}
-              onChange={(e) => setHotspotWifiName(e.target.value)}
-              placeholder="e.g. Starlink Guest"
-              className="settings-input"
-            />
+            <div className="settings-form-group">
+              <label className="settings-form-label">{t('settings.cardPrintLabel') || t('settings.cardPrintLabelLabel')}</label>
+              <input
+                type="text"
+                value={cardPrintLabel}
+                onChange={(e) => setCardPrintLabel(e.target.value)}
+                placeholder={t('settings.cardPrintLabelPlaceholder') || 'e.g. High Speed Wi-Fi'}
+                className="settings-input"
+              />
+            </div>
           </div>
 
-          <div className="settings-form-group">
-            <label className="settings-form-label">{t('settings.cardPrintLabel')}</label>
-            <input
-              type="text"
-              value={cardPrintLabel}
-              onChange={(e) => setCardPrintLabel(e.target.value)}
-              placeholder="e.g. High Speed Wi-Fi"
-              className="settings-input"
-            />
+          <div className="settings-footer-actions-border">
+            <button
+              type="submit"
+              disabled={isSavingBranding}
+              className="settings-btn-primary"
+            >
+              <Save size={14} />
+              <span>{isSavingBranding ? t('common.saving') : t('common.save')}</span>
+            </button>
           </div>
-        </div>
-
-        <div className="settings-footer-actions-border">
-          <button
-            type="submit"
-            disabled={isSavingBranding}
-            className="settings-btn-primary"
-          >
-            <Save size={14} />
-            <span>{isSavingBranding ? t('common.saving') : t('common.save')}</span>
-          </button>
-        </div>
-      </form>
-
-
-
-      {/* ─── 5. Separate Hotspot Server ─── */}
-      <div className="settings-card">
-        <div className="settings-section-header">
-          <div className="settings-section-icon purple">
-            <Server size={16} />
-          </div>
-          <div>
-            <h3 className="settings-section-title">{t('settings.hotspotServerTitle')}</h3>
-            <p className="settings-section-subtitle">{t('settings.hotspotServerSubtitle')}</p>
-          </div>
-        </div>
-
-        <div className="settings-footer-actions">
-          <button
-            type="button"
-            onClick={handleProvisionHotspotServer}
-            disabled={isProvisioningServer}
-            className="settings-btn-primary"
-          >
-            <Server size={14} />
-            <span>{isProvisioningServer ? t('settings.provisioning') : t('settings.provisionHotspotServerBtn')}</span>
-          </button>
-        </div>
+        </form>
       </div>
 
-      {/* ─── 6. Hotspot Login Portal Files ─── */}
-      <form onSubmit={handleProvisionHotspotFiles} className="settings-card">
-        <div className="settings-section-header">
-          <div className="settings-section-icon amber">
-            <UploadCloud size={16} />
+      {/* ─── MikroTik Hotspot Server & Portal Files Grid ─── */}
+      <div className="settings-cards-grid">
+        {/* ─── 5. Separate Hotspot Server ─── */}
+        <div className="settings-card">
+          <div className="settings-section-header">
+            <div className="settings-section-icon purple">
+              <Server size={16} />
+            </div>
+            <div>
+              <h3 className="settings-section-title">{t('settings.hotspotServerTitle')}</h3>
+              <p className="settings-section-subtitle">{t('settings.hotspotServerSubtitle')}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="settings-section-title">{t('settings.hotspotFilesTitle')}</h3>
-            <p className="settings-section-subtitle">{t('settings.hotspotFilesSubtitle')}</p>
+
+          <div className="settings-footer-actions">
+            <button
+              type="button"
+              onClick={handleProvisionHotspotServer}
+              disabled={isProvisioningServer}
+              className="settings-btn-primary"
+            >
+              <Server size={14} />
+              <span>{isProvisioningServer ? t('settings.provisioning') : t('settings.provisionHotspotServerBtn')}</span>
+            </button>
           </div>
         </div>
 
-        <div className="settings-footer-actions">
-          <button
-            type="submit"
-            disabled={isProvisioningFiles}
-            className="settings-btn-primary"
-          >
-            <UploadCloud size={14} />
-            <span>{isProvisioningFiles ? t('settings.sending') : t('settings.sendHotspotFilesBtn')}</span>
-          </button>
-        </div>
-      </form>
+        {/* ─── 6. Hotspot Login Portal Files ─── */}
+        <form onSubmit={handleProvisionHotspotFiles} className="settings-card">
+          <div className="settings-section-header">
+            <div className="settings-section-icon amber">
+              <UploadCloud size={16} />
+            </div>
+            <div>
+              <h3 className="settings-section-title">{t('settings.hotspotFilesTitle')}</h3>
+              <p className="settings-section-subtitle">{t('settings.hotspotFilesSubtitle')}</p>
+            </div>
+          </div>
+
+          <div className="settings-footer-actions">
+            <button
+              type="submit"
+              disabled={isProvisioningFiles}
+              className="settings-btn-primary"
+            >
+              <UploadCloud size={14} />
+              <span>{isProvisioningFiles ? t('settings.sending') : t('settings.sendHotspotFilesBtn')}</span>
+            </button>
+          </div>
+        </form>
+      </div>
 
       {/* ─── 7. Terminal Provisioning Script ─── */}
       <div className="settings-card">

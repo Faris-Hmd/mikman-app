@@ -19,10 +19,12 @@ import {
   Search,
   ArrowUpRight,
   Clock,
+  HardDrive,
   Layers,
   Smartphone,
   Shield,
 } from 'lucide-react';
+import { formatBytes } from '../../lib/helpers';
 import './Users.css';
 
 export default function UsersPage() {
@@ -41,9 +43,32 @@ export default function UsersPage() {
   );
 
   const clientList: NetworkClient[] = useMemo(() => {
-    return Array.isArray(clientsRaw)
+    const rawList: any[] = Array.isArray(clientsRaw)
       ? clientsRaw
       : (clientsRaw as any)?.clients || (clientsRaw as any)?.data || [];
+
+    return rawList.map((c) => {
+      // Robust detection of signed-in status:
+      // A client is signed in if:
+      // 1. Explicitly marked isSignedIn === true by the server
+      // 2. Has an active session ID (from /ip/hotspot/active)
+      // 3. Has a voucher code or user login
+      // 4. Has a profile assigned or active uptime
+      const isExplicitTrue = c.isSignedIn === true || c.isSignedIn === 'true';
+      const hasSession = Boolean(c.sessionId && c.sessionId !== 'null' && c.sessionId !== '');
+      const hasUser = Boolean((c.user && c.user.trim() !== '') || (c.voucherCode && c.voucherCode.trim() !== ''));
+      const hasProfile = Boolean(c.profile && c.profile.trim() !== '' && c.profile.toLowerCase() !== 'waiting');
+      const hasUptime = Boolean(c.uptime && c.uptime.trim() !== '');
+
+      const isSignedIn = isExplicitTrue || hasSession || hasUser || (hasProfile && hasUptime) || (hasProfile && hasUser);
+
+      return {
+        ...c,
+        user: c.user || c.voucherCode || '',
+        voucherCode: c.voucherCode || c.user || '',
+        isSignedIn,
+      };
+    });
   }, [clientsRaw]);
 
   // Filtered by tab
@@ -117,25 +142,32 @@ export default function UsersPage() {
     <div className="responsive-container users-container" dir={isRtl ? 'rtl' : 'ltr'}>
       {/* ─── Page Header Card ─── */}
       <div className="page-header-card users-header">
-        <div className="users-header-info">
-          <h2 className="page-header-title users-header-title">
-            {t('sidebar.users') || 'Connected Users'}
-          </h2>
-          <p className="page-header-subtitle users-header-subtitle">
-            {t('users.subtitle') || 'Monitor and manage connected hotspot clients and waiting devices'}
-          </p>
+        <div className="page-header-left-group">
+          <div className="page-header-icon">
+            <Users size={16} />
+          </div>
+          <div className="page-header-titles">
+            <h2 className="page-header-title">
+              {t('sidebar.users') || 'Connected Users'}
+            </h2>
+            <p className="page-header-subtitle">
+              {t('users.subtitle') || 'Monitor and manage connected hotspot clients and waiting devices'}
+            </p>
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => mutate()}
-          disabled={isLoading}
-          className="users-refresh-btn"
-          title={t('common.refresh')}
-        >
-          <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
-          <span>{t('common.refresh')}</span>
-        </button>
+        <div className="page-header-actions-group">
+          <button
+            type="button"
+            onClick={() => mutate()}
+            disabled={isLoading}
+            className="page-header-btn users-refresh-btn"
+            title={t('common.refresh')}
+          >
+            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+            <span>{t('common.refresh')}</span>
+          </button>
+        </div>
       </div>
 
       {/* ─── Client Metric KPI Cards ─── */}
@@ -230,6 +262,25 @@ export default function UsersPage() {
                 {group.clients.map((client) => {
                   const devName = client.dhcpHostName || client.name || client.ip || 'Device';
 
+                  const rawTime = client.remainingTime || client.timeLeft || (client as any).timeLeftText;
+                  const rTime =
+                    rawTime &&
+                    rawTime !== '0s' &&
+                    rawTime !== 'Expired' &&
+                    !rawTime.toLowerCase().includes('mb') &&
+                    !rawTime.toLowerCase().includes('gb')
+                      ? rawTime
+                      : null;
+
+                  const rawData =
+                    client.dataLeft ||
+                    (client as any).remainingData ||
+                    (client.remainingBytes != null ? formatBytes(client.remainingBytes) : null);
+                  const rData =
+                    rawData && rawData !== '0 MB' && rawData !== '0 B'
+                      ? rawData
+                      : null;
+
                   return (
                     <div
                       key={client.id || client.mac}
@@ -251,17 +302,17 @@ export default function UsersPage() {
                       </div>
 
                       <div className="user-badges-row">
-                        {client.profile && (
-                          <span className="user-meta-badge profile">
-                            <Layers size={9.5} />
-                            <span>{client.profile}</span>
+                        {rTime && (
+                          <span className="user-meta-badge time" title={t('users.remainingTime')}>
+                            <Clock size={9.5} />
+                            <span>{rTime}</span>
                           </span>
                         )}
 
-                        {client.remainingTime && client.remainingTime !== '0s' && (
-                          <span className="user-meta-badge time">
-                            <Clock size={9.5} />
-                            <span>{client.remainingTime}</span>
+                        {rData && (
+                          <span className="user-meta-badge data" title={t('users.remainingData')}>
+                            <HardDrive size={9.5} />
+                            <span>{rData}</span>
                           </span>
                         )}
                       </div>

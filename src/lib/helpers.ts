@@ -66,3 +66,52 @@ export const getRouterVpnIp = (
   const trimmed = raw.split('/')[0].trim();
   return trimmed === '10.8.0.1' ? '' : trimmed;
 };
+
+/**
+ * Formats byte values into clean human-readable strings (e.g. 500 MB, 1.2 GB).
+ */
+export const formatBytes = (bytes?: number | string | null): string | null => {
+  if (bytes == null || bytes === '') return null;
+  const num = typeof bytes === 'number' ? bytes : parseInt(String(bytes), 10);
+  if (isNaN(num) || num <= 0) return null;
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let b = num;
+  let i = 0;
+  while (b >= 1024 && i < units.length - 1) {
+    b /= 1024;
+    i++;
+  }
+  return `${b.toFixed(i === 0 ? 0 : 1).replace(/\.0$/, '')} ${units[i]}`;
+};
+
+/**
+ * Formats seconds into clean duration strings (e.g. 2d 5h, 3h 20m, 45m).
+ */
+export const formatRemainingTime = (seconds?: number | null): string | null => {
+  if (seconds == null || isNaN(seconds)) return null;
+  if (seconds <= 0) return '0s';
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (d > 0) return h > 0 ? `${d}d ${h}h` : `${d}d`;
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  if (m > 0) return `${m}m`;
+  return `${s}s`;
+};
+
+/**
+ * Parses remaining time from comment if comment contains EXP date.
+ */
+export const parseCommentRemainingTime = (comment?: string | null): string | null => {
+  if (!comment) return null;
+  const expMatch = comment.match(/(?:^|[|\s])EXP:\s*([^\r\n|]+)/i);
+  if (!expMatch) return null;
+  const dateStr = expMatch[1].trim();
+  const parsed = Date.parse(dateStr);
+  if (!isNaN(parsed)) {
+    const diffSec = Math.floor((parsed - Date.now()) / 1000);
+    return formatRemainingTime(diffSec);
+  }
+  return null;
+};

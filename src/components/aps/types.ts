@@ -19,7 +19,9 @@ export interface PortForwardRule {
   '.id'?: string;
   comment?: string;
   dstPort?: string;
+  toAddress?: string;
   toAddresses?: string;
+  toPort?: string;
   toPorts?: string;
   protocol?: string;
   disabled?: boolean;

@@ -52,7 +52,7 @@ export default function BannedScreen() {
         {/* Brand Logo Header */}
         <div className="flex flex-col items-center gap-2">
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-            <Ticket size={28} color="#fff" className="-rotate-45" />
+            <Ticket size={28} color="var(--white)" className="-rotate-45" />
           </div>
           <div className="flex flex-col gap-0.5">
             <h1 className="text-xl font-black text-[var(--foreground)] m-0 tracking-wide">

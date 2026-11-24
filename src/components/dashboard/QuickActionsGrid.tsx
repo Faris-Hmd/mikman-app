@@ -33,7 +33,9 @@ export default function QuickActionsGrid({ routerId }: QuickActionsGridProps) {
             to={`/${routerId}/${slug}`}
             className="responsive-card hover-card dash-quick-link"
           >
-            <Icon size={16} className="text-blue" />
+            <div className="dash-quick-icon-box">
+              <Icon size={18} />
+            </div>
             <span className="dash-quick-link-text">{t(`sidebar.${tk}`) || tk}</span>
           </Link>
         ))}

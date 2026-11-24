@@ -129,7 +129,7 @@ export default function PlansPage() {
 
             <div className="flex items-center gap-2.5">
               <div className="plans-logo-badge">
-                <Zap size={19} color="#fff" strokeWidth={2.5} />
+                <Zap size={19} color="currentColor" fill="currentColor" strokeWidth={2.5} />
               </div>
               <span className="plans-logo-title">
                 MIKMAN

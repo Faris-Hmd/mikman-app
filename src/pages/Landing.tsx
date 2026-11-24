@@ -5,16 +5,11 @@ import {
   fetchRouterProfilesWithUserAPI,
   fetchAllRoutersStatusAPI,
   formatUptimeAPI,
-  fetchUserVpnPeersStatusAPI,
-  deleteUserVpnPeerAPI,
-  UserPeerStatusItem,
 } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useVpnModal } from '../context/VpnModalContext';
 import { getRouterImage, getQuotaName, getRouterVpnIp } from '../lib/helpers';
-import { getPublicKeyFromPrivateKey } from '../lib/wireguardVpn';
 import './Landing.css';
 
 import {
@@ -32,18 +27,13 @@ import {
   Copy,
   Check,
   Globe,
-  Laptop,
-  Smartphone,
-  Trash2,
   MoreVertical,
   Terminal,
   ExternalLink,
-  X,
 } from 'lucide-react';
 
 export default function LandingPage() {
   const { user: currentUser } = useAuth();
-  const { openVpnModal } = useVpnModal();
   const { showAlert } = useModal();
   const { t, language, isRtl } = useLanguage();
   const [nowTime, setNowTime] = useState<number>(() => Date.now());
@@ -51,8 +41,6 @@ export default function LandingPage() {
   const [copiedIpMap, setCopiedIpMap] = useState<Record<string, boolean>>({});
   const [copiedSshMap, setCopiedSshMap] = useState<Record<string, boolean>>({});
   const [openMenuRouterId, setOpenMenuRouterId] = useState<string | null>(null);
-  const [peerToDelete, setPeerToDelete] = useState<UserPeerStatusItem | null>(null);
-  const [isDeletingPeer, setIsDeletingPeer] = useState(false);
 
   const { data: routerData, mutate: mutateRouters } = useSWR(
     'router-profiles',
@@ -167,67 +155,6 @@ export default function LandingPage() {
 
   const userName = userData?.name || currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0] : '');
 
-  const normalizedUserEmail = currentUser?.email?.toLowerCase().trim() || '';
-  const { data: peerTelemetryList, mutate: mutatePeers } = useSWR(
-    normalizedUserEmail ? ['user-vpn-peers-telemetry', normalizedUserEmail] : null,
-    async () => {
-      try {
-        return await fetchUserVpnPeersStatusAPI();
-      } catch {
-        return [];
-      }
-    },
-    { refreshInterval: 10000, dedupingInterval: 5000, revalidateOnFocus: true }
-  );
-
-  const confirmDeletePeer = async () => {
-    if (!peerToDelete) return;
-    setIsDeletingPeer(true);
-    try {
-      const targetKey = peerToDelete.publicKey || peerToDelete.clientIp;
-      const success = await deleteUserVpnPeerAPI(targetKey, peerToDelete.clientIp);
-      if (success) {
-        const email = currentUser?.email?.toLowerCase().trim() || '';
-        if (email) {
-          ['pc', 'phone', 'device', 'client', 'default'].forEach((slot) => {
-            const priv = localStorage.getItem(`@wg_user_privkey_${email}_${slot}`);
-            if (priv && (getPublicKeyFromPrivateKey(priv) === peerToDelete.publicKey || !peerToDelete.publicKey)) {
-              localStorage.removeItem(`@wg_user_privkey_${email}_${slot}`);
-              localStorage.removeItem(`@wg_dev_name_${slot}_${email}`);
-            }
-          });
-          const legacyPriv = localStorage.getItem(`@wg_user_privkey_${email}`);
-          if (legacyPriv && (getPublicKeyFromPrivateKey(legacyPriv) === peerToDelete.publicKey || !peerToDelete.publicKey)) {
-            localStorage.removeItem(`@wg_user_privkey_${email}`);
-          }
-        }
-        const deletedPubKey = peerToDelete.publicKey;
-        const deletedIp = peerToDelete.clientIp;
-        await mutatePeers(
-          (currentPeers: UserPeerStatusItem[] | undefined) =>
-            (currentPeers || []).filter((p) => {
-              if (deletedPubKey && p.publicKey === deletedPubKey) return false;
-              if (deletedIp && p.clientIp === deletedIp) return false;
-              return p !== peerToDelete;
-            }),
-          false
-        );
-        setPeerToDelete(null);
-      } else {
-        showAlert(t('common.error') || 'Error', t('dashboard.deletePeerFailed') || 'Failed to delete peer from server', 'error');
-      }
-    } catch (err: any) {
-      showAlert(t('common.error') || 'Error', err?.message || String(err), 'error');
-    } finally {
-      setIsDeletingPeer(false);
-    }
-  };
-
-  const isPeersLoading = peerTelemetryList === undefined;
-  const livePeers = (peerTelemetryList || []).filter(
-    (p) => Boolean(p.publicKey && p.publicKey.trim().length > 20)
-  );
-
   return (
     <div className={`landing-container ${isRtl ? 'rtl' : 'ltr'}`}>
       {/* Header Section */}
@@ -332,90 +259,6 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* WireGuard Peers List (PC & Phone) */}
-      <div className="landing-peers-section">
-        <h3 className="landing-section-title">
-          {t('dashboard.vpnPeersTitle') || 'WireGuard Peers'}
-        </h3>
-        <div className="landing-peers-grid">
-          {isPeersLoading ? (
-            [1, 2].map(n => (
-              <div key={n} className="landing-peer-card">
-                <div className="skeleton-box skeleton-icon-sm" />
-                <div className="flex-1">
-                  <div className="skeleton-box skeleton-text-60" />
-                </div>
-                <div className="skeleton-box skeleton-text-40" />
-              </div>
-            ))
-          ) : livePeers.length === 0 ? (
-            <div className="landing-peer-empty">
-              <div className="flex items-center gap-2">
-                <Laptop size={15} className="opacity-60 flex-shrink-0" />
-                <span className="text-xs">
-                  {t('dashboard.noPeersDesc') || 'No WireGuard peers connected. View your pre-configured tunnels to connect.'}
-                </span>
-              </div>
-              <button
-                onClick={() => openVpnModal()}
-                className="btn-solid-blue px-3 py-1.5 text-xs rounded-md"
-              >
-                {t('dashboard.openVpnAccess') || 'Open VPN Access'}
-              </button>
-            </div>
-          ) : (
-            livePeers.map((peer, idx) => {
-              const isPhone = peer.deviceType === 'phone' || peer.name.toLowerCase().includes('phone');
-              const Icon = isPhone ? Smartphone : Laptop;
-              const iconColor = isPhone ? '#10b981' : 'var(--primary)';
-
-              return (
-                <div
-                  key={peer.publicKey || peer.clientIp || idx}
-                  onClick={() => openVpnModal(undefined, isPhone ? 'phone' : 'pc')}
-                  className="landing-peer-card"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Icon size={15} color={iconColor} className="flex-shrink-0" />
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-foreground truncate">
-                        {peer.name || (isPhone ? 'Admin Phone' : 'Admin PC')}
-                      </div>
-                      <div className="text-[10.5px] text-muted">
-                        {isPhone ? 'Phone' : 'PC'}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className={isRtl ? 'text-left' : 'text-right'}>
-                      <div className={`text-[11px] font-bold ${peer.isOnline ? 'text-emerald-500' : 'text-muted'}`}>
-                        {peer.isOnline ? (isRtl ? 'متصل' : 'Online') : (isRtl ? 'غير متصل' : 'Offline')}
-                      </div>
-                      <div className="text-[10px] text-muted">
-                        {peer.lastHandshakeHuman !== 'Never' ? `${peer.lastHandshakeHuman}` : (isRtl ? 'لم يتصل' : 'Never')}
-                      </div>
-                    </div>
-                    {(peer.publicKey || peer.clientIp) && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setPeerToDelete(peer);
-                        }}
-                        title={t('common.delete') || 'Delete Peer'}
-                        className="landing-peer-del-btn"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
       {/* Routers Grid Header */}
       {(savedRouters.length > 0 || isInitialLoading) && (
         <div className="mb-2 flex items-center justify-between">
@@ -429,18 +272,17 @@ export default function LandingPage() {
       <div className="landing-router-grid">
         {isInitialLoading ? (
           [1, 2].map(n => (
-            <div key={n} className="responsive-card flex flex-col gap-2 p-3">
-              <div className="flex items-center gap-2.5">
+            <div key={n} className="landing-router-card pointer-events-none">
+              <div className="landing-router-img-wrapper">
                 <div className="skeleton-box skeleton-avatar" />
-                <div className="flex-1">
-                  <div className="skeleton-box skeleton-text-55" />
-                </div>
               </div>
-              <div className="pt-2 border-t border-glass flex justify-between items-center">
-                <div className="skeleton-box skeleton-pill" />
-                <div className="skeleton-box skeleton-pill" />
-                <div className="skeleton-box skeleton-pill" />
-                <div className="skeleton-box skeleton-pill" />
+              <div className="landing-router-content">
+                <div className="skeleton-box skeleton-text-55 mb-2" />
+                <div className="flex items-center gap-2">
+                  <div className="skeleton-box skeleton-pill" />
+                  <div className="skeleton-box skeleton-pill" />
+                  <div className="skeleton-box skeleton-pill" />
+                </div>
               </div>
             </div>
           ))
@@ -547,7 +389,7 @@ export default function LandingPage() {
                             className={`landing-dropdown-item ${isSshCopied ? 'text-emerald-500' : ''}`}
                           >
                             {isSshCopied ? (
-                              <Check size={14} color="#10b981" className="flex-shrink-0" />
+                              <Check size={14} color="var(--success)" className="flex-shrink-0" />
                             ) : (
                               <Terminal size={14} color="var(--primary)" className="flex-shrink-0" />
                             )}
@@ -563,7 +405,7 @@ export default function LandingPage() {
                             className={`landing-dropdown-item ${isIpCopied ? 'text-emerald-500' : ''}`}
                           >
                             {isIpCopied ? (
-                              <Check size={14} color="#10b981" className="flex-shrink-0" />
+                              <Check size={14} color="var(--success)" className="flex-shrink-0" />
                             ) : (
                               <Copy size={14} color="var(--primary)" className="flex-shrink-0" />
                             )}
@@ -594,7 +436,11 @@ export default function LandingPage() {
 
                     <div className="landing-telemetry-item" title="RAM Usage">
                       <Cpu size={13} color="var(--primary)" />
-                      <span className="font-bold">{isOnline && status && typeof status.totalMemory === 'number' ? `${Math.round((status.totalMemory - status.freeMemory) / (1024 * 1024))}M` : '—'}</span>
+                      <span className="font-bold">
+                        {isOnline && status && typeof status.totalMemory === 'number' && status.totalMemory > 0 && typeof status.freeMemory === 'number'
+                          ? `${Math.round(((status.totalMemory - status.freeMemory) / status.totalMemory) * 100)}%`
+                          : '—'}
+                      </span>
                     </div>
 
                     <span className="landing-telemetry-sep">|</span>
@@ -617,94 +463,6 @@ export default function LandingPage() {
           })
         )}
       </div>
-
-      {/* Dedicated Delete WireGuard Peer Modal */}
-      {peerToDelete && (
-        <div
-          className="landing-modal-overlay"
-          dir={isRtl ? 'rtl' : 'ltr'}
-          onClick={() => !isDeletingPeer && setPeerToDelete(null)}
-        >
-          <div
-            className="landing-modal-card"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="landing-modal-header">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-red-500/15 text-red-500 flex items-center justify-center flex-shrink-0">
-                  <Trash2 size={16} />
-                </div>
-                <div>
-                  <h3 className="m-0 text-sm font-bold text-foreground">
-                    {t('dashboard.deletePeerModalTitle') || 'Delete WireGuard Peer'}
-                  </h3>
-                </div>
-              </div>
-
-              <button
-                onClick={() => !isDeletingPeer && setPeerToDelete(null)}
-                disabled={isDeletingPeer}
-                className="w-7 h-7 rounded-md bg-input border border-glass text-muted flex items-center justify-center cursor-pointer p-0"
-                aria-label="Close modal"
-              >
-                <X size={15} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="landing-modal-body">
-              <p className="m-0 mb-3.5 text-xs text-muted leading-relaxed">
-                {t('dashboard.deletePeerModalDesc') || 'Are you sure you want to delete this WireGuard peer? The device will immediately lose VPN access to your connected routers.'}
-              </p>
-
-              {/* Peer Info Box */}
-              <div className="landing-modal-info-box">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {peerToDelete.deviceType === 'phone' || peerToDelete.name?.toLowerCase().includes('phone') ? (
-                    <Smartphone size={18} color="#10b981" className="flex-shrink-0" />
-                  ) : (
-                    <Laptop size={18} color="var(--primary)" className="flex-shrink-0" />
-                  )}
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-foreground truncate">
-                      {peerToDelete.name || 'WireGuard Device'}
-                    </div>
-                    <div className="text-[11px] text-muted font-mono">
-                      {peerToDelete.clientIp || '10.8.x.x'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className={isRtl ? 'text-left flex-shrink-0' : 'text-right flex-shrink-0'}>
-                  <span className={`text-[11px] font-bold ${peerToDelete.isOnline ? 'text-emerald-500' : 'text-muted'}`}>
-                    {peerToDelete.isOnline ? (isRtl ? 'متصل' : 'Online') : (isRtl ? 'غير متصل' : 'Offline')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Buttons (Solid High Contrast buttons per AGENTS.md) */}
-              <div className="flex items-center gap-2 justify-end">
-                <button
-                  onClick={() => setPeerToDelete(null)}
-                  disabled={isDeletingPeer}
-                  className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs cursor-pointer border-none transition-all"
-                >
-                  {t('common.cancel') || 'Cancel'}
-                </button>
-                <button
-                  onClick={confirmDeletePeer}
-                  disabled={isDeletingPeer}
-                  className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs cursor-pointer border-none flex items-center gap-1.5 transition-all"
-                >
-                  {isDeletingPeer && <RefreshCw size={13} className="spinner" />}
-                  <span>{isDeletingPeer ? (t('common.deleting') || 'Deleting...') : (t('common.delete') || 'Delete Peer')}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

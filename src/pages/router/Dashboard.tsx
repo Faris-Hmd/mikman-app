@@ -94,29 +94,60 @@ export default function RouterDashboardPage() {
 
   return (
     <div className="responsive-container dash-container" dir={isRtl ? 'rtl' : 'ltr'}>
-      {/* Page Header Card */}
-      <div className="page-header-card dash-header">
-        <div className="dash-header-left">
-          <div className="dash-header-avatar-box">
-            <img src={routerImg || ''} alt="" className="dash-header-avatar-img" />
-          </div>
-          <div className="dash-header-titles">
-            <h2 className="page-header-title dash-header-title">{routerName}</h2>
-            <p className="page-header-subtitle dash-header-subtitle">
-              {profileData?.model ? profileData.model.toUpperCase() : (status?.timezone || (isConnected ? t('common.online') : t('common.offline')))}
-            </p>
-          </div>
+      {/* Hero Router Showcase */}
+      <div className="responsive-card dash-hero-card">
+        <div className="dash-hero-visual">
+          {routerImg ? (
+            <img src={routerImg} alt={routerName} className="dash-hero-img" />
+          ) : (
+            <div className="dash-hero-img-fallback" aria-hidden="true" />
+          )}
         </div>
 
-        {isConnected && routerTime && (
-          <div className="dash-header-time-box">
-            <div className="dash-header-time">{routerTime}</div>
-            <div className="dash-header-date">{routerDate}</div>
+        <div className="dash-hero-content">
+          <div className="dash-hero-top">
+            <div className="dash-hero-identity">
+              <div className="dash-hero-status-line">
+                <span className={`dash-status-dot ${isConnected ? 'online' : 'offline'}`} aria-hidden="true" />
+                <span className="dash-hero-status-text">
+                  {isConnected ? (t('common.online') || 'Online') : (t('common.offline') || 'Offline')}
+                </span>
+                {profileData?.model && (
+                  <>
+                    <span className="dash-hero-sep" aria-hidden="true">·</span>
+                    <span className="dash-hero-model">{profileData.model.toUpperCase()}</span>
+                  </>
+                )}
+              </div>
+              <h2 className="dash-hero-title">{routerName}</h2>
+            </div>
+
+            {isConnected && routerTime && (
+              <div className="dash-hero-clock">
+                <div className="dash-hero-time">{routerTime}</div>
+                <div className="dash-hero-date">{routerDate}</div>
+              </div>
+            )}
           </div>
-        )}
+
+          <div className="dash-hero-meta-row">
+            {isConnected && upDisp && (
+              <div className="dash-hero-meta-item">
+                <span className="dash-hero-meta-label">{t('header.uptime') || 'Uptime'}</span>
+                <strong className="dash-hero-meta-val" dir="ltr">{upDisp}</strong>
+              </div>
+            )}
+            {isConnected && status?.wifiName && (
+              <div className="dash-hero-meta-item">
+                <span className="dash-hero-meta-label">{t('header.ssid') || 'SSID'}</span>
+                <strong className="dash-hero-meta-val" dir="ltr">{status.wifiName}</strong>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* System Health Section */}
+      {/* Visual System Health Gauges */}
       <SystemHealthGrid
         isConnected={isConnected}
         cpuDisp={cpuDisp}
@@ -125,6 +156,7 @@ export default function RouterDashboardPage() {
         memTotal={memTotal}
         memPct={memPct}
         tmpDisp={tmpDisp}
+        temperature={status?.temperature}
         upDisp={upDisp}
         activeUsers={status?.activeUsers}
         wifiName={status?.wifiName}

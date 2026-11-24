@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { SWRConfig } from 'swr';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ModalProvider } from './context/ModalContext';
-import { VpnModalProvider } from './context/VpnModalContext';
 import { useLanguage } from './context/LanguageContext';
 
 import LoadingScreen from './components/ui/LoadingScreen';
@@ -103,17 +103,23 @@ function AppContent() {
   // Authenticated + subscribed — render app
   return (
     <ModalProvider>
-      <VpnModalProvider>
-        <AppRoutes />
-      </VpnModalProvider>
+      <AppRoutes />
     </ModalProvider>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <SWRConfig
+      value={{
+        revalidateOnFocus: false,
+        dedupingInterval: 4000,
+        isPaused: () => typeof document !== 'undefined' && document.visibilityState === 'hidden',
+      }}
+    >
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </SWRConfig>
   );
 }

@@ -184,7 +184,7 @@ export default function RecordDetailModal({
             onClick={() => onCopy(record.id, 'id')}
             className="records-btn-solid records-btn-slate"
           >
-            {copiedField === 'id' ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+            {copiedField === 'id' ? <Check size={14} color="var(--success)" /> : <Copy size={14} />}
             <span>{copiedField === 'id' ? t('records.copied') : t('records.copyId')}</span>
           </button>
 

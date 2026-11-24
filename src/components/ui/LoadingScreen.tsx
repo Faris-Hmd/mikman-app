@@ -11,14 +11,13 @@ export default function LoadingScreen({ loadingTitle, loadingSubtitle, compact }
   return (
     <div className={`shell-loading-center ${compact ? 'compact' : ''}`}>
       <div className="shell-loading-icon-box">
-        <ZapIcon size={26} color="#ffffff" fill="#ffffff" strokeWidth="1.2" />
+        <ZapIcon size={26} color="var(--white)" fill="var(--white)" strokeWidth="1.2" />
       </div>
       <div className="flex gap-1.5 items-center">
         {[0, 1, 2].map(i => (
           <div
             key={i}
-            className="w-2 h-2 rounded-full bg-primary opacity-40"
-            style={{ animation: `jumping-dot 1.2s ease-in-out ${i * 0.15}s infinite` }}
+            className={`w-2 h-2 rounded-full bg-primary opacity-40 jumping-dot-${i}`}
           />
         ))}
       </div>

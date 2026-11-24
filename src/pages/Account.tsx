@@ -6,10 +6,8 @@ import { useModal } from '../context/ModalContext';
 import { supabase } from '../lib/supabase';
 import useSWR from 'swr';
 import { fetchUserSubscriptionHistoryAPI, fetchPlansCatalogAPI, fetchRouterProfilesWithUserAPI, SubscriptionHistoryEntry, PlanCatalogItem } from '../api';
-import { User, ShieldCheck, Clock, CreditCard, History, Calendar, AlertTriangle, KeyRound, Eye, EyeOff, Lock, CheckCircle2, LogOut, Smartphone } from 'lucide-react';
-import { useVpnModal } from '../context/VpnModalContext';
+import { User, ShieldCheck, Clock, CreditCard, History, Calendar, AlertTriangle, KeyRound, Eye, EyeOff, Lock, CheckCircle2, LogOut } from 'lucide-react';
 import LogoutConfirmModal from '../components/auth/LogoutConfirmModal';
-import WireguardIcon from '../components/ui/WireguardIcon';
 import './Account.css';
 
 function formatPlanName(quota?: string, isRtl = false, plansCatalog?: PlanCatalogItem[], maxRouters?: number): string {
@@ -45,7 +43,6 @@ export default function AccountPage() {
   const { user, userData, accountInfo } = useAuth();
   const { t, isRtl } = useLanguage();
   const { showAlert } = useModal();
-  const { openVpnModal } = useVpnModal();
   const { data: plansCatalog } = useSWR('plans-catalog', fetchPlansCatalogAPI);
   useSWR('router-profiles-user', fetchRouterProfilesWithUserAPI);
   const [history, setHistory] = useState<SubscriptionHistoryEntry[]>([]);
@@ -213,7 +210,7 @@ export default function AccountPage() {
         <div className="responsive-card account-card-content">
           <div className="account-card-header">
             <span className="account-card-title">
-              <Clock size={14} color="#f59e0b" /> {t('accountPage.remainingTime')}
+              <Clock size={14} color="var(--warning)" /> {t('accountPage.remainingTime')}
             </span>
           </div>
 
@@ -234,33 +231,6 @@ export default function AccountPage() {
               }}
             />
           </div>
-        </div>
-      </div>
-
-      {/* WireGuard VPN Access Card */}
-      <div className="responsive-card account-vpn-card">
-        <div className="account-vpn-inner">
-          <div className="account-vpn-left">
-            <div className="account-vpn-icon">
-              <WireguardIcon size={20} color="#ef4444" />
-            </div>
-            <div>
-              <h2 className="text-sm font-extrabold text-foreground m-0">
-                {t('vpnModal.title') || 'WireGuard Admin VPN Tunnel'}
-              </h2>
-              <p className="text-[11.5px] text-muted m-0 mt-0.5">
-                {t('vpnModal.subtitle') || 'Direct WinBox & WebFig access to all your MikroTik routers'}
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => openVpnModal()}
-            className="account-btn-blue w-auto px-4 py-2"
-          >
-            <Smartphone size={14} />
-            <span>{t('vpnModal.tabMobile') || 'Scan QR / Config'}</span>
-          </button>
         </div>
       </div>
 
@@ -302,7 +272,7 @@ export default function AccountPage() {
 
         {!hasPasswordState && (
           <div className="bg-amber-500/10 border border-amber-500/25 rounded-lg p-2.5 text-xs text-foreground flex items-center gap-2.5 mb-3">
-            <AlertTriangle size={16} color="#f59e0b" className="flex-shrink-0" />
+            <AlertTriangle size={16} color="var(--warning)" className="flex-shrink-0" />
             <span>
               {t('accountPage.noPasswordBanner') ||
                 (isRtl

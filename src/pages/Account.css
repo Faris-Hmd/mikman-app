@@ -46,14 +46,14 @@
 }
 
 .account-user-name {
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 800;
   color: var(--foreground);
   margin: 0;
 }
 
 .account-user-email {
-  font-size: 12px;
+  font-size: var(--font-base);
   color: var(--text-muted);
   font-family: var(--font-family-mono, monospace);
 }
@@ -67,7 +67,7 @@
 .account-status-tag {
   padding: 4px 10px;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -75,21 +75,21 @@
 }
 
 .account-status-tag.banned {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background-color: var(--danger-bg-subtle);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border-subtle);
 }
 
 .account-status-tag.expired {
-  background-color: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background-color: var(--warning-bg-subtle);
+  color: var(--warning-text);
+  border: 1px solid var(--warning-border-subtle);
 }
 
 .account-status-tag.active {
-  background-color: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background-color: var(--success-bg-subtle);
+  color: var(--success-text);
+  border: 1px solid var(--success-border-subtle);
 }
 
 .account-signout-btn {
@@ -98,18 +98,18 @@
   gap: 6px;
   padding: 6px 12px;
   border-radius: 8px;
-  background-color: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  font-size: 12px;
+  background-color: var(--danger-bg-subtle);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border-subtle);
+  font-size: var(--font-base);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .account-signout-btn:hover {
-  background-color: #ef4444;
-  color: #ffffff;
+  background-color: var(--danger);
+  color: var(--white);
 }
 
 /* Grid of 2 Cards: Plan and Remaining Time */
@@ -134,7 +134,7 @@
 }
 
 .account-card-title {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -147,7 +147,7 @@
 .account-quota-tag {
   padding: 2px 8px;
   border-radius: 6px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 800;
   background-color: rgba(99, 102, 241, 0.15);
   color: var(--primary);
@@ -156,14 +156,14 @@
 }
 
 .account-plan-name {
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 800;
   color: var(--foreground);
   margin: 0;
 }
 
 .account-plan-subtitle {
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   color: var(--text-muted);
   margin: 3px 0 0 0;
 }
@@ -173,10 +173,10 @@
   width: 100%;
   padding: 9px 14px;
   border-radius: 8px;
-  background-color: #2563eb;
-  color: #ffffff;
+  background-color: var(--primary);
+  color: var(--white);
   border: none;
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -187,21 +187,22 @@
 }
 
 .account-btn-blue:hover {
-  opacity: 0.9;
+  background-color: var(--primary-hover);
+  opacity: 0.95;
 }
 
 .account-days-display {
-  font-size: 20px;
+  font-size: var(--font-2xl);
   font-weight: 800;
   color: var(--foreground);
 }
 
 .account-days-display.expired {
-  color: #ef4444;
+  color: var(--danger-text);
 }
 
 .account-expires-date {
-  font-size: 11.5px;
+  font-size: var(--font-sm);
   color: var(--text-muted);
   margin: 3px 0 0 0;
   display: flex;
@@ -225,7 +226,7 @@
 }
 
 .account-progress-fill.expired {
-  background-color: #ef4444;
+  background-color: var(--danger);
 }
 
 /* WireGuard VPN Card */
@@ -285,17 +286,17 @@
 }
 
 .account-password-icon.is-set {
-  background-color: rgba(16, 185, 129, 0.12);
-  color: #10b981;
+  background-color: var(--success-bg-subtle);
+  color: var(--success-text);
 }
 
 .account-password-icon.is-unset {
-  background-color: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
+  background-color: var(--warning-bg-subtle);
+  color: var(--warning-text);
 }
 
 .account-password-badge {
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   font-weight: 700;
   padding: 4px 8px;
   border-radius: 6px;
@@ -305,15 +306,15 @@
 }
 
 .account-password-badge.is-set {
-  background-color: rgba(16, 185, 129, 0.12);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  background-color: var(--success-bg-subtle);
+  color: var(--success-text);
+  border: 1px solid var(--success-border-subtle);
 }
 
 .account-password-badge.is-unset {
-  background-color: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background-color: var(--warning-bg-subtle);
+  color: var(--warning-text);
+  border: 1px solid var(--warning-border-subtle);
 }
 
 .account-form-grid {
@@ -336,7 +337,7 @@
   border: 1px solid var(--glass-border);
   background-color: var(--input-bg, rgba(255,255,255,0.04));
   color: var(--foreground);
-  font-size: 13px;
+  font-size: var(--font-md);
   box-sizing: border-box;
   outline: none;
 }
@@ -369,21 +370,22 @@
 .account-save-pwd-btn {
   padding: 9px 18px;
   border-radius: 8px;
-  background-color: #2563eb;
-  color: #ffffff;
+  background-color: var(--primary);
+  color: var(--white);
   border: none;
-  font-size: 12px;
+  font-size: var(--font-base);
   font-weight: 750;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.25);
   transition: all 0.2s ease;
 }
 
 .account-save-pwd-btn:hover:not(:disabled) {
-  opacity: 0.9;
+  background-color: var(--primary-hover);
+  opacity: 0.95;
 }
 
 .account-save-pwd-btn:disabled {
@@ -421,7 +423,7 @@
 }
 
 .account-history-time {
-  font-size: 10.5px;
+  font-size: var(--font-xs);
   font-family: var(--font-family-mono, monospace);
   color: var(--text-muted);
   background-color: rgba(0, 0, 0, 0.2);

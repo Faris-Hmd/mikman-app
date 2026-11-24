@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -27,11 +27,15 @@ import {
   RefreshCw,
   Search,
   FolderOpen,
+  Loader2,
 } from 'lucide-react';
 import './Vouchers.css';
 import { formatRelativeAge } from '../../components/vouchers/voucherHelpers';
 import { CreateBatchDrawer, type CreateBatchPayload } from '../../components/vouchers/CreateBatchDrawer';
 import { BatchDetailModal } from '../../components/vouchers/BatchDetailModal';
+import { BatchRing } from '../../components/vouchers/BatchRing';
+
+export type IdentifiedVoucherBatch = VoucherBatch & { _uid?: string };
 
 export default function VouchersPage() {
   const { routerId } = useParams<{ routerId: string }>();
@@ -44,7 +48,7 @@ export default function VouchersPage() {
 
   // Modals & Drawer State
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState<boolean>(false);
-  const [selectedBatchModal, setSelectedBatchModal] = useState<VoucherBatch | null>(null);
+  const [selectedBatchModal, setSelectedBatchModal] = useState<IdentifiedVoucherBatch | null>(null);
 
   // Fetch Batches
   const {
@@ -56,7 +60,13 @@ export default function VouchersPage() {
     () => fetchVoucherBatchesAPI(routerId!),
     { revalidateOnFocus: true, refreshInterval: 15000, dedupingInterval: 3000 }
   );
-  const batchList: VoucherBatch[] = Array.isArray(batches) ? batches : [];
+  const batchList: IdentifiedVoucherBatch[] = useMemo(() => {
+    if (!Array.isArray(batches)) return [];
+    return batches.map((b, idx) => ({
+      ...b,
+      _uid: b.batchId || `${b.profile}_${b.createdAt || ''}_${b.comment || ''}_${b.originalCount}_${idx}`,
+    }));
+  }, [batches]);
 
   // Fetch Profiles for creating vouchers & filtering
   const { data: profilesRaw } = useSWR<Profile[]>(
@@ -98,14 +108,19 @@ export default function VouchersPage() {
     );
   }, [activeRouter]);
 
-  // Handle URL Param Deep-linking for Batch Detail
+  // Deep-linking flag: only process initial URL parameters once on mount
+  const initialDeepLinkHandled = useRef(false);
+
+  // Handle URL Param Deep-linking for Batch Detail on Initial Mount
   const paramProfile = searchParams.get('profile');
   const paramBatchId = searchParams.get('batchId');
   const paramComment = searchParams.get('comment');
   const paramPrintLabel = searchParams.get('printLabel');
 
   useEffect(() => {
+    if (initialDeepLinkHandled.current) return;
     if (paramProfile && !selectedBatchModal) {
+      initialDeepLinkHandled.current = true;
       const found = batchList.find(
         (b) =>
           b.profile === paramProfile &&
@@ -113,7 +128,7 @@ export default function VouchersPage() {
       );
       if (found) {
         setSelectedBatchModal(found);
-      } else {
+      } else if (batches) {
         setSelectedBatchModal({
           profile: paramProfile,
           batchId: paramBatchId || undefined,
@@ -126,12 +141,13 @@ export default function VouchersPage() {
         });
       }
     }
-  }, [paramProfile, paramBatchId, paramComment, paramPrintLabel, batchList, selectedBatchModal]);
+  }, [paramProfile, paramBatchId, paramComment, paramPrintLabel, batchList, batches, selectedBatchModal]);
 
   // Fetch Batch Detail at Page Level for the selected batch
   const {
     data: batchDetail,
     isLoading: isBatchDetailLoading,
+    error: batchDetailError,
     mutate: mutateBatchDetail,
   } = useSWR<VoucherBatchDetail>(
     routerId && selectedBatchModal?.profile
@@ -148,10 +164,38 @@ export default function VouchersPage() {
     {
       revalidateOnFocus: false,
       revalidateIfStale: false,
-      keepPreviousData: true,
+      keepPreviousData: false,
       dedupingInterval: 60000,
     }
   );
+
+  // Check if fetched batchDetail strictly matches the currently targeted batch
+  const isMatchingBatchDetail = useMemo(() => {
+    if (!batchDetail || !selectedBatchModal) return false;
+    if (batchDetail.profile !== selectedBatchModal.profile) return false;
+    if (selectedBatchModal.batchId && batchDetail.batchId && selectedBatchModal.batchId !== batchDetail.batchId) {
+      return false;
+    }
+    return true;
+  }, [batchDetail, selectedBatchModal]);
+
+  // Only open/render the Batch Detail Drawer once the batch is fully loaded
+  const isDrawerOpen = Boolean(selectedBatchModal && isMatchingBatchDetail && !isBatchDetailLoading);
+
+  // Safe modal close handler that prevents resurrecting from URL params
+  const handleCloseDetailModal = () => {
+    setSelectedBatchModal(null);
+    if (searchParams.get('profile')) {
+      setSearchParams({}, { replace: true });
+    }
+  };
+
+  // If fetching fails, reset selectedBatchModal and notify user
+  useEffect(() => {
+    if (batchDetailError && selectedBatchModal) {
+      handleCloseDetailModal();
+    }
+  }, [batchDetailError, selectedBatchModal]);
 
   // Handle Manual Refresh
   const handleManualRefresh = async () => {
@@ -296,7 +340,7 @@ export default function VouchersPage() {
 
   // Grouped Batches by Profile
   const groupedProfileBatches = useMemo(() => {
-    const map = new Map<string, { profile: string; batches: VoucherBatch[] }>();
+    const map = new Map<string, { profile: string; batches: IdentifiedVoucherBatch[] }>();
     filteredBatches.forEach((b) => {
       const pKey = b.profile || 'Default';
       let group = map.get(pKey);
@@ -511,43 +555,72 @@ export default function VouchersPage() {
                   {pGroup.batches.map((batch, bIdx) => {
                     const ageStr = formatRelativeAge(batch.createdAt, t);
                     const cleanComm = batch.cleanComment ?? batch.comment;
+                    const isThisBatchLoading =
+                      Boolean(selectedBatchModal) &&
+                      !isDrawerOpen &&
+                      (selectedBatchModal === batch ||
+                        Boolean(selectedBatchModal?._uid && selectedBatchModal._uid === batch._uid) ||
+                        Boolean(selectedBatchModal?.batchId && selectedBatchModal.batchId === batch.batchId));
 
                     return (
                       <div
-                        key={batch.batchId || bIdx}
-                        className="batch-card-item"
-                        onClick={() => setSelectedBatchModal(batch)}
+                        key={batch._uid || batch.batchId || bIdx}
+                        className={`batch-card-item ${isThisBatchLoading ? 'loading' : ''}`}
+                        onClick={() => {
+                          if (isBatchDetailLoading) return;
+                          setSelectedBatchModal(batch);
+                        }}
                       >
-                        {/* Top Badges Stack & Arrow */}
-                        <div className="batch-card-top">
-                          <div className="batch-pills-row">
-                            <span className="batch-pill">
-                              {batch.originalCount} {t('batch.totalVouchers')}
-                            </span>
-                            <span className="batch-pill unused">
-                              {batch.unusedCount} {t('batch.statusUnused')}
-                            </span>
-                            <span className="batch-pill active">
-                              {batch.activeCount} {t('batch.statusActive')}
-                            </span>
-                            {batch.expiredCount > 0 && (
-                              <span className="batch-pill expired">
-                                {batch.expiredCount} {t('batch.statusExpired')}
-                              </span>
-                            )}
-                          </div>
-                          <ChevronIcon size={14} className="flex-shrink-0" />
-                        </div>
+                        <div className="batch-card-main">
+                          <BatchRing
+                            originalCount={batch.originalCount}
+                            unusedCount={batch.unusedCount}
+                            activeCount={batch.activeCount}
+                            expiredCount={batch.expiredCount}
+                          />
 
-                        {/* Bottom Metadata (Age + Clean Comment) */}
-                        <div className="batch-card-bottom">
-                          <span>{ageStr || t('batch.noDate')}</span>
-                          {cleanComm && (
-                            <>
-                              <span>•</span>
-                              <span className="batch-card-comment">{cleanComm}</span>
-                            </>
-                          )}
+                          {/* Stats & Metadata */}
+                          <div className="batch-card-body">
+                            <div className="batch-card-top">
+                              <div className="batch-stats-summary">
+                                <span className="batch-stat-item">
+                                  <strong>{batch.originalCount}</strong> {t('batch.totalVouchers')}
+                                </span>
+                                <span className="batch-stat-sep" aria-hidden="true">·</span>
+                                <span className="batch-stat-item">
+                                  <strong>{batch.unusedCount}</strong> {t('batch.statusUnused')}
+                                </span>
+                                <span className="batch-stat-sep" aria-hidden="true">·</span>
+                                <span className="batch-stat-item">
+                                  <strong>{batch.activeCount}</strong> {t('batch.statusActive')}
+                                </span>
+                                {batch.expiredCount > 0 && (
+                                  <>
+                                    <span className="batch-stat-sep" aria-hidden="true">·</span>
+                                    <span className="batch-stat-item">
+                                      <strong>{batch.expiredCount}</strong> {t('batch.statusExpired')}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              {isThisBatchLoading ? (
+                                <Loader2 size={14} className="animate-spin text-primary flex-shrink-0" />
+                              ) : (
+                                <ChevronIcon size={14} className="flex-shrink-0" />
+                              )}
+                            </div>
+
+                            {/* Bottom Metadata (Age + Clean Comment) */}
+                            <div className="batch-card-bottom">
+                              <span>{ageStr || t('batch.noDate')}</span>
+                              {cleanComm && (
+                                <>
+                                  <span>•</span>
+                                  <span className="batch-card-comment">{cleanComm}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     );
@@ -572,19 +645,18 @@ export default function VouchersPage() {
       />
 
       {/* ─── 6. Batch Detail Modal ─── */}
-      <BatchDetailModal
-        selectedBatch={selectedBatchModal}
-        batchDetail={batchDetail}
-        isLoading={isBatchDetailLoading}
-        mutateDetail={mutateBatchDetail}
-        defaultWifiName={defaultWifiName}
-        onClose={() => {
-          setSelectedBatchModal(null);
-          setSearchParams({});
-        }}
-        onDeleteBatch={handleDeleteBatch}
-        onFetchCodes={handleFetchCodes}
-      />
+      {isDrawerOpen && (
+        <BatchDetailModal
+          selectedBatch={selectedBatchModal}
+          batchDetail={batchDetail}
+          isLoading={isBatchDetailLoading}
+          mutateDetail={mutateBatchDetail}
+          defaultWifiName={defaultWifiName}
+          onClose={handleCloseDetailModal}
+          onDeleteBatch={handleDeleteBatch}
+          onFetchCodes={handleFetchCodes}
+        />
+      )}
     </div>
   );
 }

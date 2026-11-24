@@ -274,7 +274,14 @@ export default function RevenuePage() {
       : revenue.monthly
     : [];
 
-  const profileColors = ['#3b82f6', '#10b981', '#a855f7', '#f59e0b', '#ec4899', '#06b6d4'];
+  const profileColors = [
+    'var(--primary)',
+    'var(--success)',
+    'var(--warning)',
+    'var(--primary-text)',
+    'var(--success-text)',
+    'var(--warning-text)',
+  ];
 
   return (
     <div className={`responsive-container ${isRtl ? 'rtl' : 'ltr'}`}>
@@ -440,7 +447,7 @@ export default function RevenuePage() {
                     const leftPercent = Math.min(Math.max((activeTooltip.index / Math.max(chartDaily.length - 1, 1)) * 100, 22), 78);
 
                     return (
-                      <div className="revenue-chart-tooltip" style={{ left: `${leftPercent}%` }}>
+                      <div className="revenue-chart-tooltip" style={{ ['--tooltip-left' as any]: `${leftPercent}%` }}>
                         <div className="text-muted text-[9px] font-semibold">
                           {dayName} {activeTooltip.date}
                         </div>
@@ -482,7 +489,7 @@ export default function RevenuePage() {
                         >
                           <div
                             className={`revenue-chart-bar-fill ${isHovered ? 'active' : item.revenue > 0 ? 'positive' : 'zero'}`}
-                            style={{ height: `${heightPercent}%` }}
+                            style={{ ['--bar-height' as any]: `${heightPercent}%` }}
                           />
                         </div>
                       );
@@ -568,9 +575,7 @@ export default function RevenuePage() {
                             strokeDasharray={dashArray}
                             strokeDashoffset={dashOffset}
                             className="cursor-pointer transition-all duration-200 -rotate-90 origin-center"
-                            style={{
-                              opacity: hoveredProfileIdx === null || isSelected ? 1 : 0.45
-                            }}
+                            opacity={hoveredProfileIdx === null || isSelected ? 1 : 0.45}
                             onMouseEnter={() => setHoveredProfileIdx(idx)}
                             onMouseLeave={() => setHoveredProfileIdx(null)}
                             onTouchStart={() => setHoveredProfileIdx(idx)}
@@ -586,7 +591,7 @@ export default function RevenuePage() {
                           <span className="text-[9px] font-bold text-muted uppercase max-w-[70px] truncate">
                             {activeProfile.profile}
                           </span>
-                          <span className="text-xs font-black leading-tight" style={{ color: profileColors[hoveredProfileIdx! % profileColors.length] }}>
+                          <span className="revenue-donut-val text-xs font-black leading-tight" style={{ ['--item-color' as any]: profileColors[hoveredProfileIdx! % profileColors.length] }}>
                             {formatCurrency(Number(activeProfile.revenue))}
                           </span>
                           <span className="text-[9px] font-bold text-foreground">
@@ -623,8 +628,8 @@ export default function RevenuePage() {
                         <div className="revenue-profile-meta">
                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
                             <span
-                              className="text-[9.5px] font-extrabold px-1.5 py-0.5 rounded flex-shrink-0"
-                              style={{ color, background: `${color}18`, border: `1px solid ${color}30` }}
+                              className="revenue-profile-badge text-[9.5px] font-extrabold px-1.5 py-0.5 rounded flex-shrink-0"
+                              style={{ ['--item-color' as any]: color, ['--item-bg' as any]: `${color}18`, ['--item-border' as any]: `${color}30` }}
                             >
                               #{idx + 1}
                             </span>
@@ -640,7 +645,7 @@ export default function RevenuePage() {
                             <div className="font-extrabold text-xs text-foreground">
                               {formatCurrency(Number(p.revenue))}
                             </div>
-                            <div className="text-[10px] font-bold" style={{ color }}>
+                            <div className="revenue-profile-pct text-[10px] font-bold" style={{ ['--item-color' as any]: color }}>
                               {p.percentage.toFixed(1)}%
                             </div>
                           </div>
@@ -651,8 +656,8 @@ export default function RevenuePage() {
                           <div
                             className="revenue-profile-bar-fill"
                             style={{
-                              width: `${Math.min(Math.max(p.percentage, 2), 100)}%`,
-                              background: `linear-gradient(90deg, ${color} 0%, ${color}dd 100%)`
+                              ['--bar-width' as any]: `${Math.min(Math.max(p.percentage, 2), 100)}%`,
+                              ['--bar-bg' as any]: `linear-gradient(90deg, ${color} 0%, ${color}dd 100%)`
                             }}
                           />
                         </div>

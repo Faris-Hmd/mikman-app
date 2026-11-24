@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import { fetchRecordsAPI } from '../../api';
@@ -103,41 +103,41 @@ const parseRecordDetails = (details: string | any, action: string, t: (k: string
 
   // Known key mappings for pretty chips
   if (obj.count !== undefined) {
-    chips.push({ key: 'count', label: t('records.keyCount') || 'Count', value: String(obj.count), color: '#10b981' });
+    chips.push({ key: 'count', label: t('records.keyCount') || 'Count', value: String(obj.count), color: 'var(--success)' });
   }
   if (obj.profile) {
-    chips.push({ key: 'profile', label: t('records.keyProfile') || 'Profile', value: String(obj.profile), color: '#a855f7' });
+    chips.push({ key: 'profile', label: t('records.keyProfile') || 'Profile', value: String(obj.profile), color: 'var(--primary)' });
   }
   if (obj.comment) {
-    chips.push({ key: 'comment', label: t('records.keyComment') || 'Group', value: String(obj.comment), color: '#3b82f6' });
+    chips.push({ key: 'comment', label: t('records.keyComment') || 'Group', value: String(obj.comment), color: 'var(--primary-text)' });
   }
   if (obj.batchId) {
-    chips.push({ key: 'batchId', label: t('records.keyBatchId') || 'Batch ID', value: String(obj.batchId), color: '#6366f1' });
+    chips.push({ key: 'batchId', label: t('records.keyBatchId') || 'Batch ID', value: String(obj.batchId), color: 'var(--primary)' });
   }
   if (obj.price) {
-    chips.push({ key: 'price', label: t('records.keyPrice') || 'Price', value: String(obj.price), color: '#f59e0b' });
+    chips.push({ key: 'price', label: t('records.keyPrice') || 'Price', value: String(obj.price), color: 'var(--warning)' });
   }
   if (obj.rateLimit) {
-    chips.push({ key: 'rateLimit', label: t('records.keyRateLimit') || 'Speed', value: String(obj.rateLimit), color: '#06b6d4' });
+    chips.push({ key: 'rateLimit', label: t('records.keyRateLimit') || 'Speed', value: String(obj.rateLimit), color: 'var(--primary)' });
   }
   if (obj.uptimeLimit) {
-    chips.push({ key: 'uptimeLimit', label: t('records.keyUptimeLimit') || 'Time Limit', value: String(obj.uptimeLimit), color: '#ec4899' });
+    chips.push({ key: 'uptimeLimit', label: t('records.keyUptimeLimit') || 'Time Limit', value: String(obj.uptimeLimit), color: 'var(--warning)' });
   }
   if (obj.limitBytesTotal) {
     const mb = Math.round(Number(obj.limitBytesTotal) / (1024 * 1024));
-    chips.push({ key: 'limitBytesTotal', label: t('records.keyLimitBytesTotal') || 'Data Limit', value: mb > 0 ? `${mb} MB` : String(obj.limitBytesTotal), color: '#3b82f6' });
+    chips.push({ key: 'limitBytesTotal', label: t('records.keyLimitBytesTotal') || 'Data Limit', value: mb > 0 ? `${mb} MB` : String(obj.limitBytesTotal), color: 'var(--primary-text)' });
   }
   if (obj.macAddress || obj.mac) {
-    chips.push({ key: 'macAddress', label: t('records.keyMacAddress') || 'MAC', value: String(obj.macAddress || obj.mac), color: '#14b8a6' });
+    chips.push({ key: 'macAddress', label: t('records.keyMacAddress') || 'MAC', value: String(obj.macAddress || obj.mac), color: 'var(--text-muted)' });
   }
   if (obj.ipAddress || obj.ip) {
-    chips.push({ key: 'ipAddress', label: t('records.keyIpAddress') || 'IP', value: String(obj.ipAddress || obj.ip), color: '#8b5cf6' });
+    chips.push({ key: 'ipAddress', label: t('records.keyIpAddress') || 'IP', value: String(obj.ipAddress || obj.ip), color: 'var(--text-muted)' });
   }
   if (obj.pins && Array.isArray(obj.pins)) {
-    chips.push({ key: 'pins', label: t('records.keyPins') || 'Vouchers', value: `${obj.pins.length} items`, color: '#ef4444' });
+    chips.push({ key: 'pins', label: t('records.keyPins') || 'Vouchers', value: `${obj.pins.length} items`, color: 'var(--danger)' });
   }
   if (obj.name) {
-    chips.push({ key: 'name', label: t('records.keyName') || 'Name', value: String(obj.name), color: '#3b82f6' });
+    chips.push({ key: 'name', label: t('records.keyName') || 'Name', value: String(obj.name), color: 'var(--primary-text)' });
   }
 
   // Generic key-value fallback for unmapped keys
@@ -183,9 +183,14 @@ export default function RecordsPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'create' | 'delete' | 'other'>('all');
+  const [displayLimit, setDisplayLimit] = useState(50);
   const [selectedRecord, setSelectedRecord] = useState<AuditRecord | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDisplayLimit(50);
+  }, [searchQuery, activeTab]);
 
   const { data: recordsData, isLoading, mutate } = useSWR(
     routerId ? `router-records-${routerId}` : null,
@@ -273,35 +278,35 @@ export default function RecordsPage() {
     const act = action.toUpperCase();
     if (act.includes('DELETE') || act.includes('REMOVE') || act.includes('CLEAR')) {
       return {
-        bg: 'rgba(239, 68, 68, 0.15)',
-        color: '#ef4444',
-        border: '1px solid rgba(239, 68, 68, 0.3)',
+        bg: 'var(--danger-bg-subtle)',
+        color: 'var(--danger)',
+        border: '1px solid var(--danger-border-subtle)',
         icon: <Trash2 size={13} />,
         type: 'delete',
       };
     }
     if (act.includes('CREATE') || act.includes('ADD') || act.includes('GENERATE')) {
       return {
-        bg: 'rgba(16, 185, 129, 0.15)',
-        color: '#10b981',
-        border: '1px solid rgba(16, 185, 129, 0.3)',
+        bg: 'var(--success-bg-subtle)',
+        color: 'var(--success)',
+        border: '1px solid var(--success-border-subtle)',
         icon: <PlusCircle size={13} />,
         type: 'create',
       };
     }
     if (act.includes('BYPASS') || act.includes('BINDING')) {
       return {
-        bg: 'rgba(168, 85, 247, 0.15)',
-        color: '#a855f7',
-        border: '1px solid rgba(168, 85, 247, 0.3)',
+        bg: 'var(--primary-bg-subtle)',
+        color: 'var(--primary)',
+        border: '1px solid var(--primary-border-subtle)',
         icon: <Shield size={13} />,
         type: 'bypass',
       };
     }
     return {
-      bg: 'rgba(59, 130, 246, 0.15)',
-      color: '#3b82f6',
-      border: '1px solid rgba(59, 130, 246, 0.3)',
+      bg: 'var(--primary-bg-subtle)',
+      color: 'var(--primary-text)',
+      border: '1px solid var(--primary-border-subtle)',
       icon: <Edit3 size={13} />,
       type: 'other',
     };
@@ -454,7 +459,7 @@ export default function RecordsPage() {
         </div>
       ) : (
         <div className="records-list">
-          {filteredRecords.map(record => {
+          {filteredRecords.slice(0, displayLimit).map(record => {
             const badge = getActionBadgeStyle(record.action);
             const parsedLog = parseRecordDetails(record.details, record.action, t);
 
@@ -491,7 +496,7 @@ export default function RecordsPage() {
                 {parsedLog.summaryText && parsedLog.summaryText !== '—' && (
                   <div className="records-summary-box">
                     <div className="records-summary-title">
-                      <Info size={13} style={{ color: badge.color }} />
+                      <Info size={13} color={badge.color} />
                       <span>{parsedLog.summaryText}</span>
                     </div>
 
@@ -501,7 +506,7 @@ export default function RecordsPage() {
                           <span
                             key={chip.key}
                             className="records-chip-item"
-                            style={{ color: chip.color }}
+                            style={{ ['--chip-color' as any]: chip.color }}
                           >
                             {chip.label}: <strong>{chip.value}</strong>
                           </span>
@@ -513,6 +518,16 @@ export default function RecordsPage() {
               </div>
             );
           })}
+
+          {filteredRecords.length > displayLimit && (
+            <button
+              onClick={() => setDisplayLimit(prev => prev + 50)}
+              className="records-load-more-btn"
+            >
+              {t('batch.loadMoreRemaining')?.replace('{count}', String(filteredRecords.length - displayLimit)) ||
+                `Load More Remaining (${filteredRecords.length - displayLimit})`}
+            </button>
+          )}
         </div>
       )}
 

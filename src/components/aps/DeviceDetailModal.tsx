@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Globe,
@@ -13,8 +13,6 @@ import {
   Layers,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
-import { useVpnModal } from '../../context/VpnModalContext';
-import WireguardIcon from '../ui/WireguardIcon';
 import { DeviceItem, PortForwardRule } from './types';
 
 interface DeviceDetailModalProps {
@@ -33,13 +31,18 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
   onTogglePortForward,
 }) => {
   const { t, isRtl } = useLanguage();
-  const { openVpnModal } = useVpnModal();
 
   const [copiedField, setCopiedField] = useState<'ip' | 'mac' | null>(null);
   const [isBypassSubmitting, setIsBypassSubmitting] = useState(false);
   const [bypassError, setBypassError] = useState<string | null>(null);
   const [isPfSubmitting, setIsPfSubmitting] = useState(false);
   const [pfError, setPfError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setBypassError(null);
+    setPfError(null);
+    setCopiedField(null);
+  }, [device?.id, device?.mac]);
 
   if (!device) return null;
 
@@ -254,15 +257,6 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                     )}
                   </button>
                 )}
-
-                <button
-                  type="button"
-                  className="aps-btn-secondary aps-btn-vpn-pad"
-                  onClick={() => openVpnModal()}
-                  title="WireGuard VPN"
-                >
-                  <WireguardIcon size={14} />
-                </button>
               </div>
               {pfError && (
                 <div className="aps-error-msg">
