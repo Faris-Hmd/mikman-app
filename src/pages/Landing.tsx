@@ -9,7 +9,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import { useLanguage } from '../context/LanguageContext';
-import { getRouterImage, getQuotaName, getRouterVpnIp } from '../lib/helpers';
+import { getRouterImage, getQuotaName } from '../lib/helpers';
 import './Landing.css';
 
 import {
@@ -24,23 +24,17 @@ import {
   Thermometer,
   Settings,
   KeyRound,
-  Copy,
-  Check,
-  Globe,
-  MoreVertical,
-  Terminal,
-  ExternalLink,
+  ArrowUpDown,
 } from 'lucide-react';
+
+type RouterFilterMode = 'online-first' | 'default' | 'online-only';
 
 export default function LandingPage() {
   const { user: currentUser } = useAuth();
   const { showAlert } = useModal();
   const { t, language, isRtl } = useLanguage();
-  const [nowTime, setNowTime] = useState<number>(() => Date.now());
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [copiedIpMap, setCopiedIpMap] = useState<Record<string, boolean>>({});
-  const [copiedSshMap, setCopiedSshMap] = useState<Record<string, boolean>>({});
-  const [openMenuRouterId, setOpenMenuRouterId] = useState<string | null>(null);
+  const [filterMode, setFilterMode] = useState<RouterFilterMode>('online-first');
 
   const { data: routerData, mutate: mutateRouters } = useSWR(
     'router-profiles',
@@ -62,38 +56,30 @@ export default function LandingPage() {
     return map;
   }, [routerStatuses]);
 
-  useEffect(() => {
-    setNowTime(Date.now());
-  }, []);
-
-  // Close router action dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (openMenuRouterId && !(e.target as HTMLElement).closest('.landing-router-menu-container')) {
-        setOpenMenuRouterId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openMenuRouterId]);
-
-  // Sort by date added: First added router (oldest) on top
+  // Sort & filter routers based on selected filterMode
   const sortedRouters = React.useMemo(() => {
-    return [...savedRouters]
-      .map((router, index) => {
-        const status = router.id ? statusMap.get(router.id) : undefined;
-        const rawTime = (router as any).created_at || (router as any).createdAt || (router as any).created_time;
-        const parsedTime = rawTime ? new Date(rawTime).getTime() : index;
-        return {
-          ...router,
-          _status: status,
-          _isOnline: status?.status === 'online',
-          _routerImg: getRouterImage(router),
-          _parsedTime: Number.isNaN(parsedTime) ? index : parsedTime,
-        };
-      })
-      .sort((a, b) => a._parsedTime - b._parsedTime);
-  }, [savedRouters, statusMap]);
+    const mapped = [...savedRouters].map((router, index) => {
+      const status = router.id ? statusMap.get(router.id) : undefined;
+      const rawTime = (router as any).created_at || (router as any).createdAt || (router as any).created_time;
+      const parsedTime = rawTime ? new Date(rawTime).getTime() : index;
+      return {
+        ...router,
+        _status: status,
+        _isOnline: status?.status === 'online',
+        _routerImg: getRouterImage(router),
+        _parsedTime: Number.isNaN(parsedTime) ? index : parsedTime,
+      };
+    });
+
+    const filtered = filterMode === 'online-only' ? mapped.filter(r => r._isOnline) : mapped;
+
+    return filtered.sort((a, b) => {
+      if (filterMode === 'online-first' && a._isOnline !== b._isOnline) {
+        return a._isOnline ? -1 : 1;
+      }
+      return a._parsedTime - b._parsedTime;
+    });
+  }, [savedRouters, statusMap, filterMode]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -105,46 +91,6 @@ export default function LandingPage() {
       showAlert(t('dashboard.refreshFailed'), t('dashboard.refreshFailedMsg').replace('{error}', errMsg), 'error');
     } finally {
       setIsRefreshing(false);
-    }
-  };
-
-  const handleCopyIp = async (e: React.MouseEvent, ip: string, id: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!ip) return;
-    try {
-      await navigator.clipboard.writeText(ip);
-      setCopiedIpMap((prev) => ({ ...prev, [id]: true }));
-      setTimeout(() => setCopiedIpMap((prev) => ({ ...prev, [id]: false })), 2000);
-    } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = ip;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      setCopiedIpMap((prev) => ({ ...prev, [id]: true }));
-      setTimeout(() => setCopiedIpMap((prev) => ({ ...prev, [id]: false })), 2000);
-    }
-  };
-
-  const handleCopySsh = async (e: React.MouseEvent, cmd: string, id: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!cmd) return;
-    try {
-      await navigator.clipboard.writeText(cmd);
-      setCopiedSshMap((prev) => ({ ...prev, [id]: true }));
-      setTimeout(() => setCopiedSshMap((prev) => ({ ...prev, [id]: false })), 2000);
-    } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = cmd;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      setCopiedSshMap((prev) => ({ ...prev, [id]: true }));
-      setTimeout(() => setCopiedSshMap((prev) => ({ ...prev, [id]: false })), 2000);
     }
   };
 
@@ -169,7 +115,7 @@ export default function LandingPage() {
             className="landing-refresh-btn"
             title={t('dashboard.refreshGateways')}
           >
-            <RefreshCw size={15} color="var(--primary)" className={isRefreshing ? 'spinner' : ''} />
+            <RefreshCw size={16} className={isRefreshing ? 'spinner' : ''} />
           </button>
           <Link
             to="/register-router"
@@ -261,10 +207,32 @@ export default function LandingPage() {
 
       {/* Routers Grid Header */}
       {(savedRouters.length > 0 || isInitialLoading) && (
-        <div className="mb-2 flex items-center justify-between">
+        <div className="landing-routers-bar">
           <h3 className="text-sm font-bold m-0 text-foreground">
             {t('dashboard.registeredRouters')}
           </h3>
+
+          {savedRouters.length > 0 && (
+            <div className="landing-filter-wrap">
+              <ArrowUpDown size={14} className="landing-filter-icon" />
+              <select
+                value={filterMode}
+                onChange={(e) => setFilterMode(e.target.value as RouterFilterMode)}
+                className="landing-filter-select"
+                aria-label={language === 'ar' ? 'ترتيب وتصفية الراوترات' : 'Sort and filter routers'}
+              >
+                <option value="online-first">
+                  {language === 'ar' ? 'المتصل أولاً' : 'Online First'}
+                </option>
+                <option value="default">
+                  {language === 'ar' ? 'حسب الإضافة' : 'Default Order'}
+                </option>
+                <option value="online-only">
+                  {language === 'ar' ? 'المتصل فقط' : 'Online Only'}
+                </option>
+              </select>
+            </div>
+          )}
         </div>
       )}
 
@@ -273,16 +241,20 @@ export default function LandingPage() {
         {isInitialLoading ? (
           [1, 2].map(n => (
             <div key={n} className="landing-router-card pointer-events-none">
-              <div className="landing-router-img-wrapper">
-                <div className="skeleton-box skeleton-avatar" />
-              </div>
-              <div className="landing-router-content">
-                <div className="skeleton-box skeleton-text-55 mb-2" />
-                <div className="flex items-center gap-2">
-                  <div className="skeleton-box skeleton-pill" />
-                  <div className="skeleton-box skeleton-pill" />
-                  <div className="skeleton-box skeleton-pill" />
+              <div className="landing-router-header">
+                <div className="landing-router-brand">
+                  <div className="landing-router-img-wrapper">
+                    <div className="skeleton-box skeleton-avatar" />
+                  </div>
+                  <div className="skeleton-box skeleton-text-55" />
                 </div>
+                <div className="skeleton-box skeleton-stat-sm" />
+                <div className="skeleton-box skeleton-stat-sm" />
+              </div>
+              <div className="landing-stats-resources">
+                <div className="skeleton-box skeleton-stat-sm" />
+                <div className="skeleton-box skeleton-stat-sm" />
+                <div className="skeleton-box skeleton-stat-sm" />
               </div>
             </div>
           ))
@@ -298,16 +270,45 @@ export default function LandingPage() {
               <Plus size={14} /> <span>{t('dashboard.addRouterLong')}</span>
             </Link>
           </div>
+        ) : sortedRouters.length === 0 ? (
+          <div className="landing-empty-fleet">
+            <Server size={24} color="var(--primary)" className="mb-2 opacity-80" />
+            <p className="text-sm font-bold mb-1 text-foreground">
+              {language === 'ar' ? 'لا توجد راوترات متصلة حالياً' : 'No Online Routers'}
+            </p>
+            <button
+              type="button"
+              onClick={() => setFilterMode('online-first')}
+              className="btn-solid-blue px-3 py-1.5 text-xs rounded-lg inline-flex items-center gap-1.5"
+            >
+              <span>{language === 'ar' ? 'عرض جميع الراوترات' : 'Show All Routers'}</span>
+            </button>
+          </div>
         ) : (
           sortedRouters.map(router => {
             const status = (router as any)._status;
             const isOnline = (router as any)._isOnline;
             const routerImg = (router as any)._routerImg;
-            const routerIp = getRouterVpnIp(router, status);
-            const routerUser = router.user || 'admin';
-            const sshCmd = `ssh ${routerUser}@${routerIp}`;
-            const isIpCopied = copiedIpMap[router.id || routerIp];
-            const isSshCopied = copiedSshMap[router.id || routerIp];
+
+            const activeUsersDisplay = isOnline && status ? (status.activeUsers ?? 0) : '—';
+            const uptimeDisplay = isOnline && status ? formatUptimeAPI(status.uptime || status.uptime_display) : '—';
+
+            const rawCpu = isOnline && status ? (typeof status.cpuLoad === 'number' ? status.cpuLoad : parseFloat(status.cpuLoad)) : NaN;
+            const cpuPct = !Number.isNaN(rawCpu) ? Math.min(100, Math.max(0, Math.round(rawCpu))) : 0;
+            const cpuDisplay = isOnline && status ? (status.cpuLoad_display || (status.cpuLoad !== undefined ? `${status.cpuLoad}%` : '—')) : '—';
+            const cpuTone = !isOnline || Number.isNaN(rawCpu) ? '' : cpuPct >= 90 ? 'crit' : cpuPct >= 70 ? 'warn' : '';
+
+            const ramPct =
+              isOnline && status && typeof status.totalMemory === 'number' && status.totalMemory > 0 && typeof status.freeMemory === 'number'
+                ? Math.min(100, Math.max(0, Math.round(((status.totalMemory - status.freeMemory) / status.totalMemory) * 100)))
+                : null;
+            const ramDisplay = ramPct !== null ? `${ramPct}%` : '—';
+            const ramTone = ramPct === null ? '' : ramPct >= 90 ? 'crit' : ramPct >= 75 ? 'warn' : '';
+
+            const rawTemp = isOnline && status && status.temperature != null ? Number(status.temperature) : NaN;
+            const tempPct = !Number.isNaN(rawTemp) ? Math.min(100, Math.max(0, Math.round(rawTemp))) : 0;
+            const tempDisplay = isOnline && status ? (status.temperature_display || (status.temperature != null ? `${status.temperature}°C` : '—')) : '—';
+            const tempTone = !isOnline || Number.isNaN(rawTemp) ? '' : rawTemp >= 80 ? 'crit' : rawTemp >= 65 ? 'warn' : '';
 
             return (
               <Link
@@ -315,147 +316,99 @@ export default function LandingPage() {
                 to={`/${router.id}`}
                 className={`landing-router-card ${isOnline ? 'online' : 'offline'}`}
               >
-                {/* Column 1: Vertically Centered Router Image */}
-                <div className="landing-router-img-wrapper">
-                  {routerImg ? (
-                    <img
-                      src={routerImg}
-                      className="landing-router-img"
-                      alt="Router"
-                    />
-                  ) : (
-                    <div className="landing-router-fallback-icon">
-                      <Cpu size={22} color="var(--primary)" />
-                    </div>
-                  )}
-                  <div
-                    className={`landing-router-status-dot ${isOnline ? 'online' : 'offline'}`}
-                  />
-                </div>
-
-                {/* Column 2: Router Content Div */}
-                <div className="landing-router-content">
-                  {/* Top Row: Name & Dropdown Menu */}
-                  <div className="landing-router-top">
-                    <h3 className="landing-router-name">
-                      {router.name || 'MikroTik Router'}
-                    </h3>
-
-                    {/* 3-dots Dropdown Menu Container */}
-                    <div className="landing-router-menu-container">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setOpenMenuRouterId(openMenuRouterId === router.id ? null : (router.id || null));
-                        }}
-                        title="Quick Actions"
-                        className={`landing-router-menu-btn ${openMenuRouterId === router.id ? 'active' : ''}`}
-                      >
-                        <MoreVertical size={16} />
-                      </button>
-
-                      {/* Dropdown Menu Popup */}
-                      {openMenuRouterId === router.id && (
-                        <div
-                          className={`landing-router-dropdown ${isRtl ? 'rtl' : 'ltr'}`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                        >
-                          {/* WebFig */}
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (routerIp) {
-                                window.open(`http://${routerIp}`, '_blank', 'noopener,noreferrer');
-                              }
-                              setOpenMenuRouterId(null);
-                            }}
-                            disabled={!routerIp}
-                            className="landing-dropdown-item"
-                          >
-                            <Globe size={14} color="var(--primary)" className="flex-shrink-0" />
-                            <span className="flex-1">WebFig</span>
-                            <ExternalLink size={12} className="opacity-50 flex-shrink-0" />
-                          </button>
-
-                          {/* SSH */}
-                          <button
-                            onClick={(e) => handleCopySsh(e, sshCmd, router.id || routerIp)}
-                            disabled={!routerIp}
-                            className={`landing-dropdown-item ${isSshCopied ? 'text-emerald-500' : ''}`}
-                          >
-                            {isSshCopied ? (
-                              <Check size={14} color="var(--success)" className="flex-shrink-0" />
-                            ) : (
-                              <Terminal size={14} color="var(--primary)" className="flex-shrink-0" />
-                            )}
-                            <span className="flex-1">
-                              {isSshCopied ? (t('common.copied') || 'Copied SSH!') : 'SSH Command'}
-                            </span>
-                          </button>
-
-                          {/* Copy IP */}
-                          <button
-                            onClick={(e) => handleCopyIp(e, routerIp, router.id || routerIp)}
-                            disabled={!routerIp}
-                            className={`landing-dropdown-item ${isIpCopied ? 'text-emerald-500' : ''}`}
-                          >
-                            {isIpCopied ? (
-                              <Check size={14} color="var(--success)" className="flex-shrink-0" />
-                            ) : (
-                              <Copy size={14} color="var(--primary)" className="flex-shrink-0" />
-                            )}
-                            <span className="flex-1">
-                              {isIpCopied ? (t('common.copied') || 'Copied IP!') : (routerIp ? `Copy IP (${routerIp})` : 'Copy IP')}
-                            </span>
-                          </button>
+                {/* Row 1: Router Image + Name | Users | Uptime (3-column grid aligned with Row 2) */}
+                <div className="landing-router-header">
+                  <div className="landing-router-brand">
+                    <div className="landing-router-img-wrapper">
+                      {routerImg ? (
+                        <img
+                          src={routerImg}
+                          className="landing-router-img"
+                          alt="Router"
+                        />
+                      ) : (
+                        <div className="landing-router-fallback-icon">
+                          <Cpu size={18} color="var(--primary)" />
                         </div>
                       )}
+                      <div
+                        className={`landing-router-status-dot ${isOnline ? 'online' : 'offline'}`}
+                      />
+                    </div>
+
+                    <div className="landing-router-identity">
+                      <h3 className="landing-router-name">
+                        {router.name || 'MikroTik Router'}
+                      </h3>
                     </div>
                   </div>
 
-                  {/* Bottom Row: Telemetry Stats Strip */}
-                  <div className="landing-router-telemetry">
-                    <div className="landing-telemetry-item" title="Active Hotspot Users">
-                      <Users size={13} color="var(--primary)" />
-                      <span className="font-bold">{isOnline && status ? (status.activeUsers || 0) : '0'}</span>
-                    </div>
-
-                    <span className="landing-telemetry-sep">|</span>
-
-                    <div className="landing-telemetry-item" title="CPU Usage">
-                      <Activity size={13} color="var(--primary)" />
-                      <span className="font-bold">{isOnline && status ? (status.cpuLoad_display || (status.cpuLoad !== undefined ? `${status.cpuLoad}%` : '—')) : '—'}</span>
-                    </div>
-
-                    <span className="landing-telemetry-sep">|</span>
-
-                    <div className="landing-telemetry-item" title="RAM Usage">
-                      <Cpu size={13} color="var(--primary)" />
-                      <span className="font-bold">
-                        {isOnline && status && typeof status.totalMemory === 'number' && status.totalMemory > 0 && typeof status.freeMemory === 'number'
-                          ? `${Math.round(((status.totalMemory - status.freeMemory) / status.totalMemory) * 100)}%`
-                          : '—'}
+                  <div className="landing-stat-mini">
+                    <div className="landing-stat-mini-top">
+                      <span className="landing-stat-mini-label">
+                        <Users size={13} />
+                        <span>{language === 'ar' ? 'المتصلون' : 'Users'}</span>
                       </span>
+                      <span className="landing-stat-mini-value">{activeUsersDisplay}</span>
                     </div>
+                  </div>
 
-                    <span className="landing-telemetry-sep">|</span>
-
-                    <div className="landing-telemetry-item" title="Router Temperature">
-                      <Thermometer size={13} color="var(--primary)" />
-                      <span className="font-bold">{isOnline && status ? (status.temperature_display || (status.temperature != null ? `${status.temperature}°C` : '—')) : '—'}</span>
+                  <div className="landing-stat-mini">
+                    <div className="landing-stat-mini-top">
+                      <span className="landing-stat-mini-label">
+                        <Clock size={13} />
+                        <span>{t('header.uptime') || 'Uptime'}</span>
+                      </span>
+                      <span className="landing-stat-mini-value">{uptimeDisplay}</span>
                     </div>
+                  </div>
+                </div>
 
-                    <span className="landing-telemetry-sep">|</span>
-
-                    <div className="landing-telemetry-item" title="System Uptime">
-                      <Clock size={13} color="var(--primary)" />
-                      <span className="font-bold text-[11px]">{isOnline && status ? formatUptimeAPI(status.uptime || status.uptime_display) : '—'}</span>
+                {/* Row 2: CPU, RAM, Temperature */}
+                <div className="landing-stats-resources">
+                  <div className="landing-stat-mini">
+                    <div className="landing-stat-mini-top">
+                      <span className="landing-stat-mini-label">
+                        <Activity size={13} />
+                        <span>{t('header.cpu') || 'CPU'}</span>
+                      </span>
+                      <span className={`landing-stat-mini-value ${cpuTone}`}>{cpuDisplay}</span>
                     </div>
+                    <progress
+                      className={`landing-stat-progress ${cpuTone}`}
+                      value={isOnline && !Number.isNaN(rawCpu) ? cpuPct : 0}
+                      max={100}
+                    />
+                  </div>
+
+                  <div className="landing-stat-mini">
+                    <div className="landing-stat-mini-top">
+                      <span className="landing-stat-mini-label">
+                        <Cpu size={13} />
+                        <span>{t('header.ram') || 'RAM'}</span>
+                      </span>
+                      <span className={`landing-stat-mini-value ${ramTone}`}>{ramDisplay}</span>
+                    </div>
+                    <progress
+                      className={`landing-stat-progress ${ramTone}`}
+                      value={ramPct !== null ? ramPct : 0}
+                      max={100}
+                    />
+                  </div>
+
+                  <div className="landing-stat-mini">
+                    <div className="landing-stat-mini-top">
+                      <span className="landing-stat-mini-label">
+                        <Thermometer size={13} />
+                        <span>{t('header.temp') || 'Temp'}</span>
+                      </span>
+                      <span className={`landing-stat-mini-value ${tempTone}`}>{tempDisplay}</span>
+                    </div>
+                    <progress
+                      className={`landing-stat-progress ${tempTone}`}
+                      value={isOnline && !Number.isNaN(rawTemp) ? tempPct : 0}
+                      max={100}
+                    />
                   </div>
                 </div>
               </Link>

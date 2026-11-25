@@ -48,18 +48,20 @@ export const revalidateRouterCache = (routerId: string, keys?: string[]) => {
   }
   mutate(`active-users-${routerId}`);
   mutate(`network-clients-${routerId}`);
+  mutate(`batch-list-${routerId}`);
   mutate(`voucher-batches-${routerId}`);
   mutate(`voucher-profiles-${routerId}`);
   mutate(`router-profiles-${routerId}`);
   mutate((key: any) => typeof key === 'string' && key.includes(`batch-detail-${routerId}`), undefined, { revalidate: true });
 };
 
-export const deleteVouchersAPI = async (routerId: string, ids: string[]): Promise<void> => {
+export const deleteVouchersAPI = async (routerId: string, ids: string[], sync = false): Promise<void> => {
   if (!ids || ids.length === 0) return;
-  await apiCall('/vouchers/delete', {
+  await apiCall(sync ? '/vouchers/delete?sync=true' : '/vouchers/delete', {
     method: 'POST',
     body: { ids },
     routerId,
+    timeoutMs: sync ? 120_000 : 30_000,
   });
 };
 

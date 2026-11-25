@@ -1,22 +1,34 @@
 import React, { createContext, useContext, useState } from 'react';
-import { ShieldCheck, AlertTriangle, HelpCircle, X, RefreshCw } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, HelpCircle, Trash2, X, RefreshCw } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 import '../components/layout/shell.css';
 
+export interface ConfirmOptions {
+  confirmLabel?: string;
+  variant?: 'primary' | 'danger';
+}
+
 export interface ModalContextType {
   showAlert: (title: string, message: string, type?: 'success' | 'error' | 'warning') => void;
-  showConfirm: (title: string, message: string, onConfirm: () => void | Promise<void>) => void;
+  showConfirm: (
+    title: string,
+    message: string,
+    onConfirm: () => void | Promise<void>,
+    options?: ConfirmOptions
+  ) => void;
 }
 
 export const ModalContext = createContext<ModalContextType | undefined>(undefined);
 
 export function ModalProvider({ children }: { children: React.ReactNode }) {
-  const { t } = useLanguage();
+  const { t, isRtl } = useLanguage();
   const [modal, setModal] = useState<{
     isOpen: boolean;
     title: string;
     message: string;
     type: 'success' | 'error' | 'warning' | 'confirm';
+    variant?: 'primary' | 'danger';
+    confirmLabel?: string;
     onConfirm?: () => void | Promise<void>;
   }>({
     isOpen: false,
@@ -31,9 +43,22 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
     setModal({ isOpen: true, title, message, type });
   };
 
-  const showConfirm = (title: string, message: string, onConfirm: () => void | Promise<void>) => {
+  const showConfirm = (
+    title: string,
+    message: string,
+    onConfirm: () => void | Promise<void>,
+    options?: ConfirmOptions
+  ) => {
     setIsSubmitting(false);
-    setModal({ isOpen: true, title, message, type: 'confirm', onConfirm });
+    setModal({
+      isOpen: true,
+      title,
+      message,
+      type: 'confirm',
+      variant: options?.variant || 'primary',
+      confirmLabel: options?.confirmLabel,
+      onConfirm,
+    });
   };
 
   const handleClose = () => {
@@ -58,42 +83,59 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const badgeType = modal.type === 'confirm' && modal.variant === 'danger' ? 'danger' : modal.type;
+
   return (
     <ModalContext.Provider value={{ showAlert, showConfirm }}>
       {children}
       {modal.isOpen && (
-        <div className="modal-overlay z-[9999] flex items-center justify-center p-5">
-          <div className="shell-modal-content max-w-[400px] w-full text-left">
-            <div className="flex justify-between items-center w-full">
-              <div className="flex items-center gap-2">
-                {modal.type === 'success' && <ShieldCheck size={20} className="text-emerald" />}
-                {modal.type === 'error' && <AlertTriangle size={20} className="text-red" />}
-                {modal.type === 'warning' && <AlertTriangle size={20} className="text-amber" />}
-                {modal.type === 'confirm' && <HelpCircle size={20} className="text-blue" />}
-                <h4 className="m-0 text-sm font-bold text-foreground">{modal.title}</h4>
+        <div
+          className="app-modal-overlay"
+          dir={isRtl ? 'rtl' : 'ltr'}
+          onClick={handleClose}
+        >
+          <div
+            className="app-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="app-modal-header">
+              <div className="app-modal-title-group">
+                <div className={`app-modal-icon-badge ${badgeType}`}>
+                  {modal.type === 'success' && <ShieldCheck size={18} />}
+                  {modal.type === 'error' && <AlertTriangle size={18} />}
+                  {modal.type === 'warning' && <AlertTriangle size={18} />}
+                  {modal.type === 'confirm' && modal.variant === 'danger' && <Trash2 size={18} />}
+                  {modal.type === 'confirm' && modal.variant !== 'danger' && <HelpCircle size={18} />}
+                </div>
+                <h4 className="app-modal-title">{modal.title}</h4>
               </div>
               <button
+                type="button"
                 onClick={handleClose}
                 disabled={isSubmitting}
-                className="bg-transparent border-none text-muted cursor-pointer p-1"
+                className="app-modal-close-btn"
                 aria-label="Close dialog"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
-            <p className="m-0 text-xs text-muted leading-relaxed w-full">{modal.message}</p>
-            <div className="flex gap-2 w-full mt-1">
+
+            <p className="app-modal-message">{modal.message}</p>
+
+            <div className="app-modal-actions">
               {modal.type === 'confirm' ? (
                 <>
                   <button
-                    className="btn-solid-slate flex-1 py-2.5 rounded-lg text-xs"
+                    type="button"
+                    className="btn-solid-slate app-modal-btn"
                     disabled={isSubmitting}
                     onClick={handleClose}
                   >
                     {t('common.cancel')}
                   </button>
                   <button
-                    className="btn-solid-blue flex-1 py-2.5 rounded-lg text-xs"
+                    type="button"
+                    className={`${modal.variant === 'danger' ? 'btn-solid-red' : 'btn-solid-blue'} app-modal-btn`}
                     disabled={isSubmitting}
                     onClick={handleProceed}
                   >
@@ -103,13 +145,14 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
                         <span>{t('common.loading') || 'Processing...'}</span>
                       </>
                     ) : (
-                      t('common.proceed')
+                      modal.confirmLabel || t('common.proceed')
                     )}
                   </button>
                 </>
               ) : (
                 <button
-                  className="btn-solid-blue flex-1 py-2.5 rounded-lg text-xs"
+                  type="button"
+                  className="btn-solid-blue app-modal-btn"
                   onClick={handleClose}
                 >
                   {t('common.ok')}

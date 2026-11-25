@@ -128,14 +128,14 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
         try {
           setIsDeletingBatch(true);
           await onDeleteBatch(selectedBatch);
-          showToast(t('batch.batchDeletedSuccess'), 'success');
           onClose();
         } catch (err: any) {
           showToast(err?.message || t('batch.noBatchesFound'), 'error');
         } finally {
           setIsDeletingBatch(false);
         }
-      }
+      },
+      { variant: 'danger', confirmLabel: t('common.delete') }
     );
   };
 

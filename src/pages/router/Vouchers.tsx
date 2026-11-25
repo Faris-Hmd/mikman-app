@@ -265,6 +265,8 @@ export default function VouchersPage() {
 
   const handleDeleteBatch = async (batch: VoucherBatch) => {
     if (!routerId) return;
+    let idsToDelete: string[] = [];
+
     const res = await getVoucherCodesAPI(
       routerId,
       batch.profile,
@@ -273,9 +275,22 @@ export default function VouchersPage() {
       'all',
       batch.batchId
     );
-    const codes = res?.codes || [];
-    if (codes.length > 0) {
-      await deleteVouchersAPI(routerId, codes);
+    idsToDelete = res?.codes || [];
+
+    // Fallback to loaded batchDetail IDs if codes endpoint returned empty
+    if (idsToDelete.length === 0 && isMatchingBatchDetail && batchDetail) {
+      const detailVouchers = [
+        ...(batchDetail.unusedVouchers || []),
+        ...(batchDetail.activeVouchers || []),
+        ...(batchDetail.expiredVouchers || []),
+      ];
+      idsToDelete = detailVouchers
+        .map((v) => v['.id'] || v.id || v.name)
+        .filter((val): val is string => Boolean(val));
+    }
+
+    if (idsToDelete.length > 0) {
+      await deleteVouchersAPI(routerId, idsToDelete, true);
     }
     revalidateRouterCache(routerId);
     await mutateBatches();

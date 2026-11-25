@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import '../components/layout/shell.css';
+import LoadingScreen from '../components/ui/LoadingScreen';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -13,10 +13,5 @@ export default function AuthCallback() {
     navigate('/', { replace: true });
   }, [user, accountInfo, isSubLoading, navigate]);
 
-  return (
-    <div className="shell-loading-center">
-      <div className="spinner" />
-      <p className="text-muted text-sm m-0">Completing sign in...</p>
-    </div>
-  );
+  return <LoadingScreen loadingTitle="Completing sign in..." />;
 }

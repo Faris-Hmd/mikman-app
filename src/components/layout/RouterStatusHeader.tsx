@@ -160,8 +160,9 @@ export default function RouterStatusHeader() {
                     );
                   })
                 ) : (
-                  <div className="p-2 text-xs text-muted text-center">
-                    {t('common.loading') || 'Loading...'}
+                  <div className="flex flex-col gap-1 p-1">
+                    <div className="skeleton shell-dropdown-skeleton" />
+                    <div className="skeleton shell-dropdown-skeleton" />
                   </div>
                 )}
               </div>
@@ -186,7 +187,15 @@ export default function RouterStatusHeader() {
 
       {/* Right: Quick Telemetry */}
       <div className="shell-telemetry-strip">
-        {status?.activeUsers != null && (
+        {isStatusLoading && !status ? (
+          <>
+            <div className="skeleton shell-telemetry-skeleton" />
+            <div className="skeleton shell-telemetry-skeleton hide-on-mobile" />
+            <div className="skeleton shell-telemetry-skeleton" />
+          </>
+        ) : (
+          <>
+            {status?.activeUsers != null && (
           <div className="shell-telemetry-badge" title={t('dashboard.activeSessions')}>
             <Users size={13} className="text-blue-400" />
             <strong>{status.activeUsers}</strong>
@@ -221,6 +230,8 @@ export default function RouterStatusHeader() {
             <Thermometer size={13} className="text-red-400" />
             <strong>{status.temperature}°C</strong>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

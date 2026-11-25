@@ -152,7 +152,7 @@ export default function RegisterRouterPage() {
     return (
       <div className={`register-container ${isRtl ? 'rtl' : 'ltr'}`}>
         <div className="register-loading-screen">
-          <div className="spinner mx-auto mb-4" />
+          <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin mx-auto mb-4" />
           <h2 className="text-base font-bold text-foreground mb-2">
             {t('dashboard.submittingConfig') || 'Submitting router configuration...'}
           </h2>

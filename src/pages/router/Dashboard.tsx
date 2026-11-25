@@ -7,7 +7,6 @@ import {
 } from '../../api';
 import { useLanguage } from '../../context/LanguageContext';
 import { getRouterImage, cleanDisplayName } from '../../lib/helpers';
-import LoadingScreen from '../../components/ui/LoadingScreen';
 import SystemHealthGrid from '../../components/dashboard/SystemHealthGrid';
 import QuickActionsGrid from '../../components/dashboard/QuickActionsGrid';
 import './Dashboard.css';
@@ -89,7 +88,54 @@ export default function RouterDashboardPage() {
   }, [now, status?.timezone]);
 
   if (isStatusLoading) {
-    return <LoadingScreen compact loadingTitle={t('common.loading') || 'Loading router status...'} />;
+    return (
+      <div className="responsive-container dash-container" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="responsive-card dash-hero-card">
+          <div className="dash-hero-visual">
+            <div className="skeleton dash-hero-img-fallback" />
+          </div>
+          <div className="dash-hero-content">
+            <div className="dash-hero-identity">
+              <div className="skeleton dash-skeleton-status" />
+              <div className="skeleton dash-skeleton-title" />
+            </div>
+            <div className="dash-hero-meta-row">
+              <div className="skeleton dash-skeleton-meta" />
+              <div className="skeleton dash-skeleton-meta" />
+            </div>
+          </div>
+        </div>
+
+        <section>
+          <div className="dash-section-header">
+            <div className="skeleton dash-skeleton-section" />
+          </div>
+          <div className="dash-bento-grid">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="responsive-card dash-gauge-card">
+                <div className="skeleton dash-skeleton-gauge-head" />
+                <div className="skeleton dash-skeleton-gauge-body" />
+                <div className="skeleton dash-skeleton-gauge-foot" />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div>
+          <div className="dash-section-header">
+            <div className="skeleton dash-skeleton-section" />
+          </div>
+          <div className="quick-actions-grid">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="responsive-card dash-quick-link">
+                <div className="skeleton dash-quick-icon-box" />
+                <div className="skeleton dash-skeleton-action-label" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

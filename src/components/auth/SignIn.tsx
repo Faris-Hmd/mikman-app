@@ -187,6 +187,7 @@ export default function SignIn() {
         <button
           type="button"
           onClick={handleGoogleSignIn}
+          disabled={authLoading || loading}
           className="flex items-center justify-center gap-3 w-full h-12 font-bold text-[14px] rounded-xl border border-glass bg-[var(--input-bg)] text-[var(--foreground)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 hover:border-primary/50 transition-all"
         >
           {loading ? (
