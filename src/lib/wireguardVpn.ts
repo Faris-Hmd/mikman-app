@@ -106,7 +106,12 @@ function curve25519(scalarBytes: Uint8Array): Uint8Array {
   return out;
 }
 
+const publicKeyCache = new Map<string, string>();
+
 export function getPublicKeyFromPrivateKey(privBase64: string): string {
+  if (!privBase64) return '';
+  const cached = publicKeyCache.get(privBase64);
+  if (cached) return cached;
   try {
     const binary = atob(privBase64);
     const bytes = new Uint8Array(32);
@@ -118,7 +123,9 @@ export function getPublicKeyFromPrivateKey(privBase64: string): string {
     for (let i = 0; i < 32; i++) {
       pubBinary += String.fromCharCode(pub[i]);
     }
-    return btoa(pubBinary);
+    const result = btoa(pubBinary);
+    publicKeyCache.set(privBase64, result);
+    return result;
   } catch (e) {
     console.error('Error deriving Curve25519 public key:', e);
     return '';
@@ -308,7 +315,8 @@ export async function generateUserVpnConfig(
   deviceSlot = 'pc',
   customPrivateKey?: string,
   customClientIp?: string,
-  customAllowedIps?: string
+  customAllowedIps?: string,
+  generateQr = true
 ): Promise<VpnClientConfig> {
   const normalizedEmail = userEmail.toLowerCase().trim();
 
@@ -355,12 +363,11 @@ export async function generateUserVpnConfig(
   const clientCidr = rawClientIp.includes('/') ? rawClientIp.split('/')[1].trim() : '24';
   const clientAddress = `${clientIpOnly}/${clientCidr}`;
 
-  // Standard clean WireGuard INI config (No leading comments so official mobile app parses without "Unknown config" errors)
+  // Standard clean WireGuard INI config (No DNS override so split-tunnel never hijacks host internet DNS)
   const confText = [
     '[Interface]',
     `PrivateKey = ${privateKey}`,
     `Address = ${clientAddress}`,
-    'DNS = 1.1.1.1',
     'MTU = 1280',
     '',
     '[Peer]',
@@ -371,20 +378,22 @@ export async function generateUserVpnConfig(
     '',
   ].join('\n');
 
-  // Generate high-contrast QR Code Data URL for mobile WireGuard scanning
+  // Generate high-contrast QR Code Data URL only when needed (Phone slot)
   let qrDataUrl = '';
-  try {
-    qrDataUrl = await QRCode.toDataURL(confText, {
-      errorCorrectionLevel: 'M',
-      margin: 2,
-      width: 360,
-      color: {
-        dark: '#000000',
-        light: '#ffffff',
-      },
-    });
-  } catch (err) {
-    console.error('Failed to generate VPN QR code:', err);
+  if (generateQr) {
+    try {
+      qrDataUrl = await QRCode.toDataURL(confText, {
+        errorCorrectionLevel: 'M',
+        margin: 2,
+        width: 360,
+        color: {
+          dark: '#000000',
+          light: '#ffffff',
+        },
+      });
+    } catch (err) {
+      console.error('Failed to generate VPN QR code:', err);
+    }
   }
 
   return {

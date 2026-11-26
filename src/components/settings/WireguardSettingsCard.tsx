@@ -5,9 +5,6 @@ import {
   Copy,
   Check,
   Terminal,
-  ChevronDown,
-  ChevronUp,
-  FileCode,
   RefreshCw,
   Laptop,
   Smartphone,
@@ -30,6 +27,7 @@ import {
   VpnClientConfig,
   getOrCreateUserPrivateKey,
   getPublicKeyFromPrivateKey,
+  resetUserPrivateKey,
 } from '../../lib/wireguardVpn';
 import type { RouterConfig } from '../../store';
 import '../ui/vpn-modal.css';
@@ -37,13 +35,10 @@ import '../ui/vpn-modal.css';
 interface WireguardSettingsCardProps {
   routerId?: string;
   routerVpnIp?: string | null;
-  routerName?: string;
 }
 
 export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
-  routerId,
   routerVpnIp,
-  routerName,
 }) => {
   const { user } = useAuth();
   const { t, isRtl } = useLanguage();
@@ -51,14 +46,13 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
   const currentUserEmail = user?.email || '';
 
   const [activeSlot, setActiveSlot] = useState<'pc' | 'phone'>('pc');
-  const [vpnConfig, setVpnConfig] = useState<VpnClientConfig | null>(null);
+  const [slotConfigs, setSlotConfigs] = useState<Partial<Record<'pc' | 'phone', VpnClientConfig>>>({});
+  const [keyVersion, setKeyVersion] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [copiedConf, setCopiedConf] = useState(false);
-  const [copiedLinuxCmd, setCopiedLinuxCmd] = useState(false);
-  const [copiedIp, setCopiedIp] = useState(false);
-  const [copiedSsh, setCopiedSsh] = useState(false);
-  const [showLinuxCmd, setShowLinuxCmd] = useState(false);
-  const [showRawConf, setShowRawConf] = useState(false);
+
+  const vpnConfig = slotConfigs[activeSlot] || null;
+
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const [deviceName, setDeviceName] = useState('Admin PC');
   const [savedDeviceName, setSavedDeviceName] = useState('Admin PC');
@@ -67,8 +61,17 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
   const [isDeletingPeer, setIsDeletingPeer] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const triggerCopy = async (id: string, value?: string | null) => {
+    if (!value) return;
+    await navigator.clipboard.writeText(value);
+    setCopiedKey(id);
+    setTimeout(() => {
+      setCopiedKey((prev) => (prev === id ? null : prev));
+    }, 2000);
+  };
+
   useEffect(() => {
-    const email = (currentUserEmail || '').toLowerCase().trim();
+    const email = currentUserEmail.toLowerCase().trim();
     if (!email) return;
     const defaultName = activeSlot === 'phone' ? 'Admin Phone' : 'Admin PC';
     const saved =
@@ -78,8 +81,13 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
     setDeviceName(saved);
   }, [currentUserEmail, activeSlot]);
 
-  const normalizedEmail = (currentUserEmail || '').toLowerCase().trim();
-  const { data: peersList, mutate: mutatePeersList } = useSWR(
+  const normalizedEmail = currentUserEmail.toLowerCase().trim();
+
+  const {
+    data: peersList,
+    isValidating: isValidatingPeers,
+    mutate: mutatePeersList,
+  } = useSWR(
     normalizedEmail ? ['user-vpn-peers-telemetry', normalizedEmail] : null,
     async () => {
       try {
@@ -87,13 +95,14 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
       } catch {
         return [];
       }
-    }
+    },
+    { refreshInterval: 10000, revalidateOnFocus: true }
   );
 
   const currentPrivKey = useMemo(() => {
     if (!currentUserEmail) return '';
     return getOrCreateUserPrivateKey(currentUserEmail, activeSlot);
-  }, [currentUserEmail, activeSlot]);
+  }, [currentUserEmail, activeSlot, keyVersion]);
 
   const currentPubKey = useMemo(() => {
     if (!currentPrivKey) return '';
@@ -104,7 +113,7 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
     if (!Array.isArray(peersList) || !currentPubKey) return null;
     return (
       peersList.find(
-        (p: any) =>
+        (p) =>
           Boolean(p.publicKey && p.publicKey.trim().length > 20) &&
           (p.publicKey.trim() === currentPubKey.trim() || p.deviceType === activeSlot)
       ) || null
@@ -114,7 +123,7 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
   const isPeerRegistered = Boolean(registeredPeer);
 
   const { data: profilesResponse, isLoading: isLoadingProfiles } = useSWR(
-    'router-profiles-user',
+    'router-profiles',
     fetchRouterProfilesWithUserAPI,
     { revalidateOnFocus: false }
   );
@@ -123,11 +132,14 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
     return profilesResponse?.profiles || [];
   }, [profilesResponse]);
 
-  const loadPersistentConfig = async (slot: 'pc' | 'phone') => {
-    const email = (currentUserEmail || '').toLowerCase().trim();
+  const loadPersistentConfig = async (slot: 'pc' | 'phone', forceSpinner = false) => {
+    const email = currentUserEmail.toLowerCase().trim();
     if (!email) return;
 
-    setIsGenerating(true);
+    const hasCached = Boolean(slotConfigs[slot]);
+    if (!hasCached || forceSpinner) {
+      setIsGenerating(true);
+    }
     try {
       const defaultName = slot === 'phone' ? 'Admin Phone' : 'Admin PC';
       const savedName =
@@ -156,14 +168,18 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
         slot,
         privKey,
         serverConfig?.clientIp,
-        serverConfig?.allowedIps
+        serverConfig?.allowedIps,
+        slot === 'phone'
       );
 
-      setVpnConfig({
-        ...config,
-        clientIp: serverConfig?.clientIp || config.clientIp,
-        allowedIps: serverConfig?.allowedIps || config.allowedIps,
-      });
+      setSlotConfigs((prev) => ({
+        ...prev,
+        [slot]: {
+          ...config,
+          clientIp: serverConfig?.clientIp || config.clientIp,
+          allowedIps: serverConfig?.allowedIps || config.allowedIps,
+        },
+      }));
     } catch (err) {
       console.error('Error loading persistent VPN config:', err);
     } finally {
@@ -173,10 +189,10 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
 
   useEffect(() => {
     loadPersistentConfig(activeSlot);
-  }, [activeSlot, currentUserEmail, profiles]);
+  }, [activeSlot, currentUserEmail, keyVersion]);
 
   const handleSaveDeviceName = async () => {
-    const email = (currentUserEmail || '').toLowerCase().trim();
+    const email = currentUserEmail.toLowerCase().trim();
     if (!email || isSavingName) return;
 
     const defaultName = activeSlot === 'phone' ? 'Admin Phone' : 'Admin PC';
@@ -192,6 +208,9 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
       const pubKey = getPublicKeyFromPrivateKey(privKey);
 
       const serverConfig = await fetchUserVpnConfigAPI(pubKey, nameToSave, activeSlot, true);
+      if (!serverConfig?.success) {
+        throw new Error('Failed to register WireGuard peer on server');
+      }
 
       const config = await generateUserVpnConfig(
         email,
@@ -202,17 +221,20 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
         activeSlot,
         privKey,
         serverConfig?.clientIp,
-        serverConfig?.allowedIps
+        serverConfig?.allowedIps,
+        activeSlot === 'phone'
       );
 
-      setVpnConfig({
-        ...config,
-        clientIp: serverConfig?.clientIp || config.clientIp,
-        allowedIps: serverConfig?.allowedIps || config.allowedIps,
-      });
+      setSlotConfigs((prev) => ({
+        ...prev,
+        [activeSlot]: {
+          ...config,
+          clientIp: serverConfig?.clientIp || config.clientIp,
+          allowedIps: serverConfig?.allowedIps || config.allowedIps,
+        },
+      }));
 
       await mutatePeersList();
-      mutate(['user-vpn-peers-telemetry', email]);
       mutate('user-vpn-peers-status');
 
       setSavedDeviceName(nameToSave);
@@ -234,13 +256,13 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
   };
 
   const handleDeletePeer = () => {
-    const email = (currentUserEmail || '').toLowerCase().trim();
+    const email = currentUserEmail.toLowerCase().trim();
     const targetPubKey = (registeredPeer?.publicKey || currentPubKey || '').trim();
     const targetIp = registeredPeer?.clientIp || vpnConfig?.clientIp;
     if (!email || !targetPubKey || isDeletingPeer) return;
 
     showConfirm(
-      t('common.delete') || 'Delete Tunnel',
+      t('vpnModal.deleteTunnel') || 'Delete Tunnel',
       isRtl
         ? `هل أنت متأكد من حذف نفق WireGuard (${deviceName})؟`
         : `Are you sure you want to delete the WireGuard tunnel (${deviceName})?`,
@@ -249,8 +271,15 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
         setSaveError(null);
         try {
           await deleteUserVpnPeerAPI(targetPubKey, targetIp);
+          // Rotate local keypair so the deleted device's .conf / QR can never reconnect if slot is re-registered
+          resetUserPrivateKey(email, activeSlot);
+          setSlotConfigs((prev) => {
+            const next = { ...prev };
+            delete next[activeSlot];
+            return next;
+          });
+          setKeyVersion((v) => v + 1);
           await mutatePeersList();
-          mutate(['user-vpn-peers-telemetry', email]);
           mutate('user-vpn-peers-status');
         } catch (err: any) {
           setSaveError(err?.message || 'Failed to delete WireGuard peer');
@@ -261,85 +290,94 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
     );
   };
 
-  const handleCopyConf = async () => {
-    if (!vpnConfig?.confText) return;
-    await navigator.clipboard.writeText(vpnConfig.confText);
-    setCopiedConf(true);
-    setTimeout(() => setCopiedConf(false), 2000);
-  };
-
-  const handleCopyIp = async (ip: string) => {
-    if (!ip) return;
-    await navigator.clipboard.writeText(ip);
-    setCopiedIp(true);
-    setTimeout(() => setCopiedIp(false), 2000);
-  };
-
-  const handleCopySsh = async (ip: string) => {
-    if (!ip) return;
-    await navigator.clipboard.writeText(`ssh admin@${ip}`);
-    setCopiedSsh(true);
-    setTimeout(() => setCopiedSsh(false), 2000);
-  };
-
   const linuxQuickCmd = useMemo(() => {
     if (!vpnConfig?.confText) return '';
     const b64 = btoa(vpnConfig.confText);
-    return `echo "${b64}" | base64 -d | sudo tee /etc/wireguard/mikman.conf > /dev/null && sudo wg-quick up mikman`;
+    return `sudo wg-quick down mikman 2>/dev/null; echo "${b64}" | base64 -d | sudo tee /etc/wireguard/mikman.conf > /dev/null && sudo wg-quick up mikman`;
   }, [vpnConfig]);
+
+  const handshakeLabel = registeredPeer?.lastHandshakeHuman || (t('vpnModal.never') || 'Never');
+  const peerIsOnline = Boolean(registeredPeer?.isOnline);
+  const nameChanged = deviceName.trim() !== savedDeviceName.trim();
 
   return (
     <div className="settings-card" id="wireguard">
       {/* Section Header */}
-      <div className="settings-section-header">
-        <div className="settings-section-icon red">
-          <WireguardIcon size={16} />
+      <div className="wg-header-row">
+        <div className="wg-header-left">
+          <div className="settings-section-icon red">
+            <WireguardIcon size={16} />
+          </div>
+          <div>
+            <h3 className="settings-section-title">{t('vpnModal.title') || 'WireGuard VPN'}</h3>
+            <p className="settings-section-subtitle">
+              {t('vpnModal.subtitle') || 'Direct access to WinBox, WebFig & SSH'}
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="settings-section-title">{t('vpnModal.title') || 'WireGuard VPN'}</h3>
-          <p className="settings-section-subtitle">
-            {t('vpnModal.subtitle') || 'Direct WinBox & WebFig access to all your MikroTik routers'}
-          </p>
+
+        <div className="wg-header-actions">
+          {isPeerRegistered && (
+            <button
+              type="button"
+              onClick={handleDeletePeer}
+              disabled={isDeletingPeer}
+              title={t('vpnModal.deleteTunnel') || 'Delete Tunnel'}
+              className="btn-solid-red wg-header-btn"
+            >
+              {isDeletingPeer ? <RefreshCw size={13} className="spinner" /> : <Trash2 size={13} />}
+              <span className="hide-sm-only">{t('common.delete') || 'Delete'}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              mutatePeersList();
+              loadPersistentConfig(activeSlot);
+            }}
+            disabled={isValidatingPeers || isGenerating}
+            className="btn-solid-slate wg-header-btn"
+            title={t('common.refresh') || 'Refresh'}
+          >
+            <RefreshCw size={13} className={isValidatingPeers ? 'spinner' : ''} />
+            <span className="hide-sm-only">{t('common.refresh') || 'Refresh'}</span>
+          </button>
         </div>
       </div>
 
-      {/* Slots Switcher (PC / Phone) */}
-      <div className="vpn-modal-tabs rounded-lg mb-3">
+      {/* Client Device Slot Switcher */}
+      <div className="wg-slot-tabs">
         <button
           type="button"
           onClick={() => setActiveSlot('pc')}
-          className={`vpn-tab-btn ${activeSlot === 'pc' ? 'active-pc' : ''}`}
+          className={`wg-slot-btn ${activeSlot === 'pc' ? 'active-pc' : ''}`}
         >
-          <Laptop size={14} />
+          <Laptop size={15} />
           <span>{t('vpnModal.tabPc') || 'PC / WinBox'}</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveSlot('phone')}
-          className={`vpn-tab-btn ${activeSlot === 'phone' ? 'active-phone' : ''}`}
+          className={`wg-slot-btn ${activeSlot === 'phone' ? 'active-phone' : ''}`}
         >
-          <Smartphone size={14} />
+          <Smartphone size={15} />
           <span>{t('vpnModal.tabMobile') || 'Phone (QR)'}</span>
         </button>
       </div>
 
-      {isGenerating || isLoadingProfiles ? (
-        <div className="text-center py-8">
-          <div className="spinner mx-auto mb-2.5" />
-          <p className="text-xs text-muted m-0">
-            {t('vpnModal.generating') || 'Generating WireGuard tunnel...'}
-          </p>
+      {(isGenerating && !vpnConfig) || (isLoadingProfiles && !vpnConfig) ? (
+        <div className="wg-loading-box">
+          <RefreshCw size={20} className="spinner" />
+          <span>{t('vpnModal.generating') || 'Generating WireGuard tunnel...'}</span>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {/* Device Name Configuration */}
-          <div className="vpn-device-name-bar">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className="text-muted flex-shrink-0">
+        <>
+          {/* Device Name (Top) */}
+          <div className="wg-device-row">
+            <div className="wg-device-input-group">
+              <span className="wg-device-label">
                 {activeSlot === 'phone' ? <Smartphone size={14} /> : <Laptop size={14} />}
-              </span>
-              <span className="text-xs font-bold text-muted whitespace-nowrap">
-                {t('vpnModal.deviceName') || 'Device Name'}
+                <span>{t('vpnModal.deviceName') || 'Device Name'}</span>
               </span>
               <input
                 type="text"
@@ -348,7 +386,10 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
                   const val = e.target.value;
                   setDeviceName(val);
                   if (currentUserEmail) {
-                    localStorage.setItem(`@wg_dev_name_${activeSlot}_${currentUserEmail.toLowerCase().trim()}`, val);
+                    localStorage.setItem(
+                      `@wg_dev_name_${activeSlot}_${currentUserEmail.toLowerCase().trim()}`,
+                      val
+                    );
                   }
                 }}
                 onKeyDown={(e) => {
@@ -358,213 +399,167 @@ export const WireguardSettingsCard: React.FC<WireguardSettingsCardProps> = ({
                   }
                 }}
                 placeholder={activeSlot === 'phone' ? 'Admin Phone' : 'Admin PC'}
-                className="vpn-device-name-input"
+                className="wg-device-input"
               />
             </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {(isPeerRegistered && (deviceName.trim() !== savedDeviceName.trim() || isSavingName || isNameSaved)) && (
-                <button
-                  type="button"
-                  onClick={handleSaveDeviceName}
-                  disabled={isSavingName}
-                  title={t('common.save') || 'Save Device Name'}
-                  className={`${isNameSaved ? 'btn-solid-green' : 'btn-solid-blue'} px-3 py-1.5 text-xs rounded-lg`}
-                >
-                  {isSavingName ? <RefreshCw size={12} className="spinner" /> : isNameSaved ? <Check size={12} /> : null}
-                  <span>
-                    {isSavingName
-                      ? (t('common.saving') || 'Saving...')
-                      : isNameSaved
-                        ? (t('common.saved') || 'Saved')
-                        : (t('common.save') || 'Save')}
-                  </span>
-                </button>
-              )}
-              {isPeerRegistered && (
-                <button
-                  type="button"
-                  onClick={handleDeletePeer}
-                  disabled={isDeletingPeer}
-                  title={t('common.delete') || 'Delete Tunnel'}
-                  className="btn-solid-red px-2.5 py-1.5 text-xs rounded-lg"
-                >
-                  {isDeletingPeer ? <RefreshCw size={12} className="spinner" /> : <Trash2 size={12} />}
-                </button>
-              )}
-            </div>
+
+            {isPeerRegistered && (nameChanged || isSavingName || isNameSaved) && (
+              <button
+                type="button"
+                onClick={handleSaveDeviceName}
+                disabled={isSavingName}
+                className={`${isNameSaved ? 'btn-solid-green' : 'btn-solid-blue'} wg-action-btn`}
+              >
+                {isSavingName ? (
+                  <RefreshCw size={13} className="spinner" />
+                ) : isNameSaved ? (
+                  <Check size={13} />
+                ) : null}
+                <span>
+                  {isSavingName
+                    ? t('common.saving') || 'Saving...'
+                    : isNameSaved
+                      ? t('common.saved') || 'Saved'
+                      : t('common.save') || 'Save'}
+                </span>
+              </button>
+            )}
           </div>
 
           {!isPeerRegistered ? (
-            <div className="vpn-unregistered-box">
-              <div className="vpn-unregistered-icon">
-                {activeSlot === 'phone' ? <Smartphone size={20} /> : <Laptop size={20} />}
-              </div>
-              <div className="max-w-[340px]">
-                <div className="text-xs font-bold text-foreground mb-1">
-                  {activeSlot === 'phone' ? (t('vpnModal.tabMobile') || 'Admin Phone') : (t('vpnModal.tabPc') || 'Admin PC')}
-                </div>
-                <p className="m-0 text-xs text-muted leading-relaxed">
-                  {isRtl
-                    ? 'هذا النفق غير مسجل على السيرفر بعد. اضغط على زر (حفظ وتفعيل) لإنشاء النفق على السيرفر.'
-                    : 'This tunnel is not registered on the server yet. Click "Save & Activate" below to create it.'}
+            <div className="wg-unregistered-panel">
+              <div className="wg-unregistered-text">
+                <p className="wg-unregistered-title">
+                  {t('vpnModal.notRegistered') || 'Not registered on server'}
+                </p>
+                <p className="wg-unregistered-desc">
+                  {t('vpnModal.createPeerDesc') ||
+                    'Register this device to access your connected routers securely via WireGuard VPN.'}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleSaveDeviceName}
                 disabled={isSavingName}
-                className="btn-solid-blue px-4 py-2 text-xs rounded-lg inline-flex items-center gap-1.5"
+                className="btn-solid-blue wg-action-btn"
               >
-                {isSavingName ? <RefreshCw size={13} className="spinner" /> : <Check size={13} />}
-                <span>{isSavingName ? (t('common.saving') || 'Saving...') : (t('vpnModal.createPeerBtn') || 'Save & Activate Tunnel')}</span>
+                {isSavingName ? <RefreshCw size={14} className="spinner" /> : <Check size={14} />}
+                <span>
+                  {isSavingName
+                    ? t('common.saving') || 'Saving...'
+                    : t('vpnModal.createPeerBtn') || 'Register & Generate Tunnel'}
+                </span>
               </button>
-              {saveError && <p className="text-xs text-red-500 mt-1">{saveError}</p>}
             </div>
           ) : (
             <>
-              {/* Main Tunnel Panel */}
-              <div className={`vpn-tunnel-panel ${activeSlot === 'phone' ? 'with-qr' : ''}`}>
+              {/* Live Peer Status */}
+              <div className="wg-status-grid">
+                <div className="wg-stat-cell">
+                  <span className="wg-info-label">{t('vpnModal.peerStatus') || 'Peer Status'}</span>
+                  <div className="wg-info-value">
+                    <span className={`wg-status-dot ${peerIsOnline ? 'online' : 'offline'}`} />
+                    <span className={`wg-status-text ${peerIsOnline ? 'online' : 'offline'}`}>
+                      {peerIsOnline ? (t('vpnModal.online') || 'Online') : (t('vpnModal.offline') || 'Offline')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="wg-stat-cell">
+                  <span className="wg-info-label">{t('vpnModal.lastHandshake') || 'Last Handshake'}</span>
+                  <div className="wg-info-value">{handshakeLabel}</div>
+                </div>
+              </div>
+
+              {/* Router VPN IP Quick Access */}
+              {routerVpnIp && (
+                <div className="wg-router-ip-bar">
+                  <div className="wg-router-ip-meta">
+                    <span className="wg-info-label">{t('vpnModal.routerVpnIp') || 'Router VPN IP'}</span>
+                    <code className="wg-info-mono" dir="ltr">
+                      {routerVpnIp}
+                    </code>
+                  </div>
+                  <div className="wg-inline-actions">
+                    <button
+                      type="button"
+                      onClick={() => triggerCopy('router-ip', routerVpnIp)}
+                      className={`${copiedKey === 'router-ip' ? 'btn-solid-green' : 'btn-solid-slate'} wg-mini-btn`}
+                    >
+                      {copiedKey === 'router-ip' ? <Check size={11} /> : <Copy size={11} />}
+                      <span>{copiedKey === 'router-ip' ? (t('common.copied') || 'Copied') : 'IP'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => triggerCopy('router-ssh', `ssh admin@${routerVpnIp}`)}
+                      className={`${copiedKey === 'router-ssh' ? 'btn-solid-green' : 'btn-solid-slate'} wg-mini-btn`}
+                    >
+                      {copiedKey === 'router-ssh' ? <Check size={11} /> : <Terminal size={11} />}
+                      <span>{copiedKey === 'router-ssh' ? (t('common.copied') || 'Copied') : 'SSH'}</span>
+                    </button>
+                    <a
+                      href={`http://${routerVpnIp}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-solid-blue wg-mini-btn"
+                    >
+                      <ExternalLink size={11} />
+                      <span>WebFig</span>
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Direct Download (Windows/macOS) + Linux 1-Click Copy + Phone QR */}
+              <div className={`wg-config-layout ${activeSlot === 'phone' ? 'has-qr' : ''}`}>
                 {activeSlot === 'phone' && (
-                  <div className="vpn-qr-col">
-                    <div className="vpn-qr-box">
+                  <div className="wg-qr-col">
+                    <div className="wg-qr-box">
                       {vpnConfig?.qrDataUrl ? (
-                        <img
-                          src={vpnConfig.qrDataUrl}
-                          alt="WireGuard QR"
-                          className="w-[152px] h-[152px] block [image-rendering:crisp-edges]"
-                        />
+                        <img src={vpnConfig.qrDataUrl} alt="WireGuard QR" className="wg-qr-img" />
                       ) : (
-                        <div className="w-[152px] h-[152px] flex items-center justify-center text-muted text-xs">
+                        <div className="wg-qr-placeholder">
                           {t('vpnModal.qrUnavailable') || 'Loading QR...'}
                         </div>
                       )}
                     </div>
-                    <span className="text-[11px] text-muted text-center">
-                      {t('vpnModal.mobileTip') || 'Scan with WireGuard on your mobile phone'}
+                    <span className="wg-qr-caption">
+                      {t('vpnModal.mobileTip') || 'Scan this QR code in the WireGuard app to connect instantly.'}
                     </span>
                   </div>
                 )}
 
-                <div className="vpn-tunnel-details">
-                  {/* Tunnel & Router IPs */}
-                  <div className="vpn-ip-grid">
-                    {vpnConfig?.clientIp && (
-                      <div className="vpn-ip-tile">
-                        <span className="vpn-ip-label">{t('vpnModal.clientIp') || 'Client IP'}</span>
-                        <code className="vpn-ip-val" dir="ltr">{vpnConfig.clientIp}</code>
-                      </div>
-                    )}
-                    {routerVpnIp && (
-                      <div className="vpn-ip-tile">
-                        <span className="vpn-ip-label">{routerName || routerId || 'Router'}</span>
-                        <div className="vpn-ip-val-row">
-                          <code className="vpn-ip-val" dir="ltr">{routerVpnIp}</code>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleCopyIp(routerVpnIp)}
-                              className={`${copiedIp ? 'btn-solid-green' : 'btn-solid-slate'} px-2 py-1 text-[11px] rounded`}
-                              title={t('common.copy')}
-                            >
-                              {copiedIp ? <Check size={11} /> : <Copy size={11} />}
-                              <span>{copiedIp ? (t('common.copied') || 'Copied') : 'IP'}</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleCopySsh(routerVpnIp)}
-                              className={`${copiedSsh ? 'btn-solid-green' : 'btn-solid-slate'} px-2 py-1 text-[11px] rounded`}
-                              title="Copy SSH Command"
-                            >
-                              {copiedSsh ? <Check size={11} /> : <Terminal size={11} />}
-                              <span>{copiedSsh ? (t('common.copied') || 'Copied') : 'SSH'}</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                <div className={`wg-primary-actions ${activeSlot === 'phone' ? 'single' : ''}`}>
+                  <button
+                    type="button"
+                    onClick={handleDownloadConf}
+                    className="btn-solid-blue wg-primary-btn"
+                  >
+                    <Download size={14} />
+                    <span>{t('vpnModal.downloadConf') || 'Download .conf'}</span>
+                  </button>
 
-                  {/* Primary Action Buttons: Download & Copy */}
-                  <div className="vpn-actions-strip">
+                  {activeSlot === 'pc' && (
                     <button
                       type="button"
-                      onClick={handleDownloadConf}
-                      className="btn-solid-blue flex-1 py-2.5 text-xs rounded-lg"
+                      onClick={() => triggerCopy('linux-cmd', linuxQuickCmd)}
+                      className={`${copiedKey === 'linux-cmd' ? 'btn-solid-green' : 'btn-solid-slate'} wg-primary-btn`}
                     >
-                      <Download size={14} />
-                      <span>{t('vpnModal.downloadConf') || 'Download .conf'}</span>
+                      {copiedKey === 'linux-cmd' ? <Check size={14} /> : <Terminal size={14} />}
+                      <span>
+                        {copiedKey === 'linux-cmd'
+                          ? t('common.copied') || 'Copied!'
+                          : t('vpnModal.linuxTitle') || 'Linux (1-Click Auto-Connect)'}
+                      </span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleCopyConf}
-                      className={`${copiedConf ? 'btn-solid-green' : 'btn-solid-slate'} flex-1 py-2.5 text-xs rounded-lg`}
-                    >
-                      {copiedConf ? <Check size={14} /> : <Copy size={14} />}
-                      <span>{copiedConf ? (t('common.copied') || 'Copied!') : (t('vpnModal.copyConfig') || 'Copy Config')}</span>
-                    </button>
-                  </div>
-                  {saveError && <p className="text-xs text-red-500 mt-1">{saveError}</p>}
-                </div>
-              </div>
-
-              {/* Collapsible Advanced Tools (Linux 1-Click + Raw Config) */}
-              <div className="vpn-advanced-stack">
-                {activeSlot === 'pc' && (
-                  <div className="vpn-collapse-card">
-                    <div className="vpn-collapse-row">
-                      <button
-                        type="button"
-                        onClick={() => setShowLinuxCmd(!showLinuxCmd)}
-                        className="vpn-collapse-trigger"
-                      >
-                        <Terminal size={14} />
-                        <span>{t('vpnModal.linuxTitle') || 'Linux (1-Click Command)'}</span>
-                        {showLinuxCmd ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!linuxQuickCmd) return;
-                          await navigator.clipboard.writeText(linuxQuickCmd);
-                          setCopiedLinuxCmd(true);
-                          setTimeout(() => setCopiedLinuxCmd(false), 2000);
-                        }}
-                        className={`${copiedLinuxCmd ? 'btn-solid-green' : 'btn-solid-slate'} px-2.5 py-1 text-[11px] rounded-md flex-shrink-0`}
-                      >
-                        {copiedLinuxCmd ? <Check size={11} /> : <Copy size={11} />}
-                        <span>{copiedLinuxCmd ? (t('common.copied') || 'Copied!') : (t('common.copy') || 'Copy')}</span>
-                      </button>
-                    </div>
-                    {showLinuxCmd && (
-                      <code className="vpn-linux-code">
-                        {linuxQuickCmd || 'Loading command...'}
-                      </code>
-                    )}
-                  </div>
-                )}
-
-                <div className="vpn-collapse-card">
-                  <div className="vpn-collapse-row">
-                    <button
-                      type="button"
-                      onClick={() => setShowRawConf(!showRawConf)}
-                      className="vpn-collapse-trigger"
-                    >
-                      <FileCode size={14} />
-                      <span>{t('vpnModal.rawConfig') || 'Raw WireGuard Configuration'}</span>
-                      {showRawConf ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </button>
-                  </div>
-                  {showRawConf && vpnConfig?.confText && (
-                    <pre className="vpn-raw-pre mt-2 select-all">
-                      {vpnConfig.confText}
-                    </pre>
                   )}
                 </div>
               </div>
             </>
           )}
-        </div>
+
+          {saveError && <p className="wg-error-text">{saveError}</p>}
+        </>
       )}
     </div>
   );

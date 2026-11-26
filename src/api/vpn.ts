@@ -65,6 +65,9 @@ export const fetchUserVpnConfigAPI = async (
     const path = `/user/vpn-config${queryString ? `?${queryString}` : ''}`;
     return await apiCall<ServerVpnConfigResponse>(path, { cache: 'no-store' });
   } catch (e) {
+    if (register) {
+      throw e;
+    }
     return null;
   }
 };

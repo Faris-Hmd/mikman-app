@@ -119,7 +119,7 @@ export default function SettingsPage() {
   );
 
   const { data: profilesData, mutate: mutateProfiles } = useSWR(
-    'router-profiles-with-user',
+    'router-profiles',
     fetchRouterProfilesWithUserAPI,
     { dedupingInterval: 10000, revalidateOnFocus: false }
   );
@@ -432,7 +432,6 @@ export default function SettingsPage() {
       <WireguardSettingsCard
         routerId={routerId}
         routerVpnIp={routerVpnIp || null}
-        routerName={infoForm.name || currentRouter?.name}
       />
 
       {/* ─── Configuration Sections Grid: Router Identity & Authorized Admin Accounts ─── */}

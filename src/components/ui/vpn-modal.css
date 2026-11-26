@@ -1,398 +1,386 @@
 /* ==========================================================================
-   MikMan - WireGuard VPN Modal Styles
+   MikMan - WireGuard VPN Settings Section Styles
    ========================================================================== */
 
-.vpn-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 1100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  box-sizing: border-box;
-}
-
-.vpn-modal-card {
-  width: 100%;
-  max-width: 620px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--modal-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-  animation: fadeIn 0.2s ease-out;
-}
-
-.vpn-modal-header {
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--glass-border);
+.wg-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--glass-bg);
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
 }
 
-.vpn-modal-header-left {
+.wg-header-left {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
-.vpn-modal-logo {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background: var(--danger-bg-subtle);
-  border: 1px solid var(--danger-border-subtle);
+.wg-header-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   flex-shrink: 0;
 }
 
-.vpn-modal-close-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  background: var(--input-bg);
-  border: 1px solid var(--glass-border);
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.vpn-modal-tabs {
-  display: flex;
-  gap: 8px;
-  padding: 14px 20px 0 20px;
-  background: var(--card-bg);
-}
-
-.vpn-tab-btn {
-  flex: 1;
-  display: flex;
+.wg-header-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 9px 14px;
+  padding: 7px 12px;
   border-radius: 8px;
-  background-color: var(--input-bg);
-  color: var(--text-muted);
-  border: 1px solid var(--glass-border);
-  font-size: var(--font-base);
-  font-weight: 800;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  font-size: var(--font-xs);
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
-.vpn-tab-btn.active-pc {
-  background-color: var(--primary);
-  color: var(--white);
-  border: none;
+/* ─── Client Slot Switcher ─── */
+.wg-slot-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }
 
-.vpn-tab-btn.active-phone {
-  background-color: var(--success);
-  color: var(--white);
-  border: none;
-}
-
-.vpn-modal-content {
-  padding: 16px 20px;
-  overflow-y: auto;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.vpn-device-name-bar {
-  width: 100%;
+.wg-slot-btn {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border-radius: 9px;
+  background-color: var(--slate-btn-bg);
+  color: var(--slate-btn-text);
+  border: none;
+  font-size: var(--font-sm);
+  font-weight: 800;
+  cursor: pointer;
+  opacity: 0.72;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.wg-slot-btn:hover {
+  opacity: 0.92;
+}
+
+.wg-slot-btn.active-pc {
+  background-color: var(--primary);
+  color: var(--white);
+  opacity: 1;
+}
+
+.wg-slot-btn.active-phone {
+  background-color: var(--success);
+  color: var(--white);
+  opacity: 1;
+}
+
+/* ─── Loading State ─── */
+.wg-loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 16px;
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+}
+
+/* ─── Device Name Bar ─── */
+.wg-device-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wg-device-input-group {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   background: var(--input-bg);
   border: 1px solid var(--glass-border);
   border-radius: 8px;
-  padding: 6px 10px;
-  gap: 8px;
+  padding: 0 10px;
+  height: 38px;
   box-sizing: border-box;
 }
 
-.vpn-device-name-input {
+.wg-device-input-group:focus-within {
+  border-color: var(--primary);
+}
+
+.wg-device-label {
+  font-size: var(--font-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wg-device-input {
+  flex: 1;
+  min-width: 0;
   background: transparent;
   border: none;
   color: var(--foreground);
   font-size: var(--font-sm);
   font-weight: 700;
   outline: none;
-  flex: 1;
-  min-width: 0;
+  height: 100%;
 }
 
-.vpn-qr-box {
-  background: var(--white);
-  padding: 12px;
-  border-radius: 12px;
-  display: inline-flex;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
-}
-
-.vpn-actions-strip {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/* Rule 1: Solid high-contrast buttons */
-.vpn-btn-blue {
+.wg-action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 9px 16px;
+  height: 38px;
+  padding: 0 14px;
   border-radius: 8px;
-  background-color: var(--primary);
-  color: var(--white);
-  border: none;
-  font-size: var(--font-base);
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
+  font-size: var(--font-xs);
+  font-weight: 800;
 }
 
-.vpn-btn-blue:hover {
-  background-color: var(--primary-hover);
-  opacity: 0.95;
-}
-
-.vpn-btn-green {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 9px 16px;
-  border-radius: 8px;
-  background-color: var(--success);
-  color: var(--white);
-  border: none;
-  font-size: var(--font-base);
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-
-.vpn-btn-green:hover {
-  background-color: var(--success-hover);
-  opacity: 0.95;
-}
-
-.vpn-btn-slate {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 9px 16px;
-  border-radius: 8px;
-  background-color: var(--slate-btn-bg);
-  color: var(--slate-btn-text);
-  border: none;
-  font-size: var(--font-base);
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-
-.vpn-btn-slate:hover {
-  background-color: var(--slate-btn-hover);
-  opacity: 0.95;
-}
-
-.vpn-raw-code-box {
-  background: rgba(0, 0, 0, 0.35);
+/* ─── Unregistered State ─── */
+.wg-unregistered-panel {
+  background: var(--secondary);
   border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  padding: 12px;
-  font-family: monospace;
-  font-size: var(--font-sm);
-  color: var(--foreground);
-  max-height: 200px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.vpn-routers-table {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.vpn-router-row {
+  border-radius: 10px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
-  background: var(--input-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  font-size: var(--font-sm);
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
-/* ─── Redesigned WireGuard Settings Panel ─── */
-.vpn-unregistered-box {
-  padding: 20px;
-  text-align: center;
-  background: var(--secondary);
-  border-radius: 12px;
-  border: 1px dashed var(--glass-border);
+.wg-unregistered-text {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.vpn-unregistered-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: var(--primary-bg-subtle);
-  color: var(--primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.vpn-tunnel-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.vpn-tunnel-panel.with-qr {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: 16px;
-}
-
-.vpn-qr-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.vpn-tunnel-details {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  gap: 4px;
   min-width: 0;
+  flex: 1;
 }
 
-.vpn-ip-grid {
+.wg-unregistered-title {
+  font-size: var(--font-sm);
+  font-weight: 800;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.wg-unregistered-desc {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* ─── Status & Router IP Row ─── */
+.wg-status-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
-.vpn-ip-tile {
+.wg-stat-cell {
   background: var(--secondary);
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 9px;
+  padding: 9px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
 }
 
-.vpn-ip-label {
-  font-size: var(--font-2xs, 11px);
-  color: var(--text-muted);
+.wg-info-label {
+  font-size: var(--font-2xs);
   font-weight: 700;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
-.vpn-ip-val-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.vpn-ip-val {
-  font-family: monospace;
+.wg-info-value {
   font-size: var(--font-sm);
   font-weight: 800;
-  color: var(--primary-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.vpn-advanced-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.vpn-collapse-card {
-  background: var(--secondary);
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  padding: 8px 10px;
-}
-
-.vpn-collapse-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.vpn-collapse-trigger {
+  color: var(--foreground);
   display: flex;
   align-items: center;
   gap: 6px;
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--foreground);
-  font-size: var(--font-xs);
-  font-weight: 700;
-  cursor: pointer;
-  padding: 2px 0;
-  text-align: start;
+  min-width: 0;
 }
 
-.vpn-linux-code {
-  display: block;
-  margin-top: 8px;
-  background: rgba(0, 0, 0, 0.35);
+.wg-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.wg-status-dot.online {
+  background: var(--success);
+}
+
+.wg-status-dot.offline {
+  background: var(--danger);
+}
+
+.wg-status-text.online {
+  color: var(--success-text);
+}
+
+.wg-status-text.offline {
+  color: var(--danger-text);
+}
+
+/* ─── Router VPN IP Bar ─── */
+.wg-router-ip-bar {
+  background: var(--secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 9px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wg-router-ip-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.wg-info-mono {
+  font-family: var(--font-family-mono, monospace);
+  font-size: var(--font-sm);
+  font-weight: 800;
   color: var(--primary-text);
-  font-family: monospace;
-  font-size: 11px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  word-break: break-all;
-  user-select: all;
-  line-height: 1.5;
+}
+
+.wg-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wg-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: var(--font-2xs);
+  font-weight: 700;
+  text-decoration: none;
+  line-height: 1.1;
+}
+
+/* ─── QR + Actions Layout ─── */
+.wg-config-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wg-config-layout.has-qr {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 16px;
+  align-items: center;
 }
 
 @media (max-width: 640px) {
-  .vpn-tunnel-panel.with-qr {
+  .wg-config-layout.has-qr {
     grid-template-columns: 1fr;
   }
+}
+
+.wg-qr-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.wg-qr-box {
+  background: var(--white);
+  padding: 10px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.wg-qr-img {
+  width: 152px;
+  height: 152px;
+  display: block;
+  image-rendering: crisp-edges;
+}
+
+.wg-qr-placeholder {
+  width: 152px;
+  height: 152px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+}
+
+.wg-qr-caption {
+  font-size: var(--font-2xs);
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.35;
+}
+
+/* ─── Primary Actions ─── */
+.wg-primary-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.wg-primary-actions.single {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 480px) {
+  .wg-primary-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wg-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: var(--font-xs);
+  font-weight: 800;
+}
+
+.wg-error-text {
+  margin: 0;
+  font-size: var(--font-xs);
+  font-weight: 700;
+  color: var(--danger-text);
 }
