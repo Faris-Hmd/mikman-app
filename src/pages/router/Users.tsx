@@ -87,10 +87,11 @@ export default function UsersPage() {
     const term = searchTerm.toLowerCase().trim();
     return currentTabList.filter((c) => {
       const nameMatch = (c.dhcpHostName || c.name || '').toLowerCase().includes(term);
+      const userMatch = (c.user || c.voucherCode || '').toLowerCase().includes(term);
       const ipMatch = (c.ip || '').toLowerCase().includes(term);
       const macMatch = (c.mac || '').toLowerCase().includes(term);
       const profileMatch = (c.profile || '').toLowerCase().includes(term);
-      return nameMatch || ipMatch || macMatch || profileMatch;
+      return nameMatch || userMatch || ipMatch || macMatch || profileMatch;
     });
   }, [currentTabList, searchTerm]);
 

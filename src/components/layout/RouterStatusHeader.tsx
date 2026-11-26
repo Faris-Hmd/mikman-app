@@ -28,7 +28,7 @@ export default function RouterStatusHeader() {
   );
 
   const { data: profilesResponse } = useSWR(
-    'all-router-profiles',
+    'router-profiles',
     fetchRouterProfilesWithUserAPI,
     { dedupingInterval: 10000 }
   );

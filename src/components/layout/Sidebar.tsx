@@ -28,7 +28,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   const { data: routerProfilesResponse } = useSWR(
-    'router-profiles-with-user',
+    'router-profiles',
     fetchRouterProfilesWithUserAPI,
     { dedupingInterval: 30000, revalidateOnFocus: false }
   );

@@ -113,8 +113,9 @@ export const deleteRouterProfileAPI = async (id: string): Promise<{ success: boo
   const result = await apiCall<{ success: boolean; message: string }>(`/routers/${id}`, {
     method: 'DELETE',
   });
-  mutate('router-profiles-user');
-  mutate('user-routers');
+  mutate('router-profiles');
+  mutate('router-statuses');
+  mutate('all-routers-status');
   mutate((key: any) => typeof key === 'string' && key.includes(id), undefined, { revalidate: false });
   return result;
 };

@@ -41,7 +41,9 @@ export default function RouterDashboardPage() {
   }, [status]);
   const memTotal = useMemo(() => (status?.totalMemory != null ? Math.round(Number(status.totalMemory) / (1024 * 1024)) : null), [status]);
   const memPct = useMemo(
-    () => (status && status.totalMemory != null && status.freeMemory != null ? Math.round(((Number(status.totalMemory) - Number(status.freeMemory)) / Number(status.totalMemory)) * 100) : null),
+    () => (status && status.totalMemory != null && Number(status.totalMemory) > 0 && status.freeMemory != null
+      ? Math.round(((Number(status.totalMemory) - Number(status.freeMemory)) / Number(status.totalMemory)) * 100)
+      : null),
     [status]
   );
 

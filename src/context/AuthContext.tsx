@@ -65,6 +65,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   });
 
+  // SWR continuously polls every 15s or on window focus
+  const { data, isLoading: isSubLoading, mutate } = useSWR(
+    user ? 'router-profiles' : null,
+    async () => {
+      const result = await fetchRouterProfilesWithUserAPI();
+      return result;
+    },
+    {
+      refreshInterval: 15000,
+      revalidateOnFocus: true,
+      dedupingInterval: 5000,
+      keepPreviousData: true,
+    }
+  );
+
+  const checkStatus = useCallback(async () => {
+    try {
+      const res = await fetchRouterProfilesWithUserAPI();
+      if (res?.userData) {
+        setCachedUserData(res.userData);
+        try {
+          localStorage.setItem('@cached_user_data', JSON.stringify(res.userData));
+        } catch {}
+      }
+      await mutate(res, false);
+    } catch (e) {
+      console.warn('[Auth] Check status error:', e);
+    }
+  }, [mutate]);
+
   // Auth session tracking
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -110,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [checkStatus]);
 
   // Window event listeners for 403 Banned / Expired responses
   useEffect(() => {
@@ -157,21 +187,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
-  // SWR continuously polls every 15s or on window focus
-  const { data, isLoading: isSubLoading, mutate } = useSWR(
-    user ? 'router-profiles' : null,
-    async () => {
-      const result = await fetchRouterProfilesWithUserAPI();
-      return result;
-    },
-    {
-      refreshInterval: 15000,
-      revalidateOnFocus: true,
-      dedupingInterval: 5000,
-      keepPreviousData: true,
-    }
-  );
-
   useEffect(() => {
     if (data?.userData) {
       setCachedUserData(prev => {
@@ -199,21 +214,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const activeUserData = data?.userData || cachedUserData || (isSubLoading ? null : defaultUserData);
   const accountInfo = deriveAccountInfo(activeUserData);
-
-  const checkStatus = useCallback(async () => {
-    try {
-      const res = await fetchRouterProfilesWithUserAPI();
-      if (res?.userData) {
-        setCachedUserData(res.userData);
-        try {
-          localStorage.setItem('@cached_user_data', JSON.stringify(res.userData));
-        } catch {}
-      }
-      await mutate();
-    } catch (e) {
-      console.warn('[Auth] Check status error:', e);
-    }
-  }, [mutate]);
 
   const signOut = useCallback(async () => {
     try { localStorage.removeItem('@cached_user_data'); } catch {}

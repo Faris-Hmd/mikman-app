@@ -44,7 +44,7 @@ export default function AccountPage() {
   const { t, isRtl } = useLanguage();
   const { showAlert } = useModal();
   const { data: plansCatalog } = useSWR('plans-catalog', fetchPlansCatalogAPI);
-  useSWR('router-profiles-user', fetchRouterProfilesWithUserAPI);
+  useSWR('router-profiles', fetchRouterProfilesWithUserAPI);
   const [history, setHistory] = useState<SubscriptionHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);

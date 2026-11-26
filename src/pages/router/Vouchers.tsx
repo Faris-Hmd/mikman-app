@@ -87,7 +87,7 @@ export default function VouchersPage() {
 
   // Fetch Router Profiles for print branding / Wi-Fi name
   const { data: routerProfilesResponse } = useSWR(
-    'router-profiles-with-user',
+    'router-profiles',
     fetchRouterProfilesWithUserAPI,
     { dedupingInterval: 10000, revalidateOnFocus: false }
   );

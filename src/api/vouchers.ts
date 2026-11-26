@@ -48,6 +48,7 @@ export const revalidateRouterCache = (routerId: string, keys?: string[]) => {
   }
   mutate(`active-users-${routerId}`);
   mutate(`network-clients-${routerId}`);
+  mutate(`router-clients-${routerId}`);
   mutate(`batch-list-${routerId}`);
   mutate(`voucher-batches-${routerId}`);
   mutate(`voucher-profiles-${routerId}`);

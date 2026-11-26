@@ -344,8 +344,14 @@ export default function LandingPage() {
             const ramTone = ramPct === null ? '' : ramPct >= 90 ? 'crit' : ramPct >= 75 ? 'warn' : '';
 
             const rawTemp = isOnline && status && status.temperature != null ? Number(status.temperature) : NaN;
-            const tempDisplay = isOnline && status ? (status.temperature_display || (status.temperature != null ? `${status.temperature}°C` : '—')) : '—';
+            const tempDisplay = isOnline && status ? (status.temperature_display || (status.temperature != null ? `${status.temperature}°` : '—')) : '—';
+            const tempPct = !isOnline || Number.isNaN(rawTemp) ? 0 : Math.min(100, Math.max(0, rawTemp));
             const tempTone = !isOnline || Number.isNaN(rawTemp) ? '' : rawTemp >= 80 ? 'crit' : rawTemp >= 65 ? 'warn' : '';
+
+            const ringRadius = 15;
+            const ringCirc = 2 * Math.PI * ringRadius;
+            const ramRingFill = ramPct !== null ? (ramPct / 100) * ringCirc : 0;
+            const tempRingFill = tempPct > 0 ? (tempPct / 100) * ringCirc : 0;
 
             return (
               <Link
@@ -353,7 +359,7 @@ export default function LandingPage() {
                 to={`/${router.id}`}
                 className={`landing-router-card ${isOnline ? 'online' : 'offline'}`}
               >
-                {/* Left Column: Big Router Picture + Router Name */}
+                {/* Edge Column: Router Picture + Router Name */}
                 <div className="landing-router-identity-col">
                   <div className="landing-router-img-wrapper">
                     {routerImg ? (
@@ -364,7 +370,7 @@ export default function LandingPage() {
                       />
                     ) : (
                       <div className="landing-router-fallback-icon">
-                        <Cpu size={28} color="var(--primary)" />
+                        <Cpu size={26} color="var(--primary)" />
                       </div>
                     )}
                     <div
@@ -377,38 +383,70 @@ export default function LandingPage() {
                   </h3>
                 </div>
 
-                {/* Right Column: 2x2 Stats Grid (Users, Uptime, RAM, Temp) */}
-                <div className="landing-stats-grid-2x2">
-                  <div className="landing-stat-item">
-                    <span className="landing-stat-mini-label">
-                      <Users size={13} />
-                      <span>{language === 'ar' ? 'المتصلون' : 'Users'}</span>
-                    </span>
-                    <span className="landing-stat-mini-value">{activeUsersDisplay}</span>
+                {/* Stats Area: Top Horizontal Row (Users + Uptime), Bottom Row (RAM + Temp Rings) */}
+                <div className="landing-stats-panel">
+                  <div className="landing-stats-top-row">
+                    <div className="landing-stat-item">
+                      <span className="landing-stat-mini-label">
+                        <Users size={12} />
+                        <span>{language === 'ar' ? 'المتصلون' : 'Users'}</span>
+                      </span>
+                      <span className="landing-stat-mini-value" dir="ltr">{activeUsersDisplay}</span>
+                    </div>
+
+                    <div className="landing-stat-item">
+                      <span className="landing-stat-mini-label">
+                        <Clock size={12} />
+                        <span>{t('header.uptime') || 'Uptime'}</span>
+                      </span>
+                      <span className="landing-stat-mini-value" dir="ltr">{uptimeDisplay}</span>
+                    </div>
                   </div>
 
-                  <div className="landing-stat-item">
-                    <span className="landing-stat-mini-label">
-                      <Clock size={13} />
-                      <span>{t('header.uptime') || 'Uptime'}</span>
-                    </span>
-                    <span className="landing-stat-mini-value">{uptimeDisplay}</span>
-                  </div>
+                  <div className="landing-stats-rings-row">
+                    <div className="landing-ring-stat">
+                      <div className="landing-mini-ring">
+                        <svg className="landing-mini-ring-svg" viewBox="0 0 36 36" aria-hidden="true">
+                          <circle className="landing-mini-ring-track" cx={18} cy={18} r={ringRadius} />
+                          {ramRingFill > 0 && (
+                            <circle
+                              className={`landing-mini-ring-fill ${ramTone || 'normal'}`}
+                              cx={18}
+                              cy={18}
+                              r={ringRadius}
+                              strokeDasharray={`${ramRingFill} ${ringCirc}`}
+                            />
+                          )}
+                        </svg>
+                        <span className={`landing-mini-ring-val ${ramTone}`} dir="ltr">{ramDisplay}</span>
+                      </div>
+                      <span className="landing-stat-mini-label">
+                        <Cpu size={12} />
+                        <span>{t('header.ram') || 'RAM'}</span>
+                      </span>
+                    </div>
 
-                  <div className="landing-stat-item">
-                    <span className="landing-stat-mini-label">
-                      <Cpu size={13} />
-                      <span>{t('header.ram') || 'RAM'}</span>
-                    </span>
-                    <span className={`landing-stat-mini-value ${ramTone}`}>{ramDisplay}</span>
-                  </div>
-
-                  <div className="landing-stat-item">
-                    <span className="landing-stat-mini-label">
-                      <Thermometer size={13} />
-                      <span>{t('header.temp') || 'Temp'}</span>
-                    </span>
-                    <span className={`landing-stat-mini-value ${tempTone}`}>{tempDisplay}</span>
+                    <div className="landing-ring-stat">
+                      <div className="landing-mini-ring">
+                        <svg className="landing-mini-ring-svg" viewBox="0 0 36 36" aria-hidden="true">
+                          <circle className="landing-mini-ring-track" cx={18} cy={18} r={ringRadius} />
+                          {tempRingFill > 0 && (
+                            <circle
+                              className={`landing-mini-ring-fill temp ${tempTone || 'normal'}`}
+                              cx={18}
+                              cy={18}
+                              r={ringRadius}
+                              strokeDasharray={`${tempRingFill} ${ringCirc}`}
+                            />
+                          )}
+                        </svg>
+                        <span className={`landing-mini-ring-val ${tempTone}`} dir="ltr">{tempDisplay}</span>
+                      </div>
+                      <span className="landing-stat-mini-label">
+                        <Thermometer size={12} />
+                        <span>{t('header.temp') || 'Temp'}</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
               </Link>

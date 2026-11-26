@@ -39,10 +39,10 @@ export const TerminalScriptModal: React.FC<TerminalScriptModalProps> = ({
             </div>
             <div>
               <h3 className="aps-modal-title">
-                {t('settings.setupScriptTitle')}
+                {t('dashboard.setupScriptTitle')}
               </h3>
               <p className="aps-modal-subtitle">
-                {t('settings.setupScriptNotice')}
+                {t('dashboard.setupScriptNotice')}
               </p>
             </div>
           </div>
@@ -74,7 +74,7 @@ export const TerminalScriptModal: React.FC<TerminalScriptModalProps> = ({
               onClick={handleCopy}
             >
               {copied ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copied ? t('common.copied') : t('settings.copyScriptFinish')}</span>
+              <span>{copied ? t('common.copied') : t('dashboard.copyScriptFinish')}</span>
             </button>
           </div>
         </div>

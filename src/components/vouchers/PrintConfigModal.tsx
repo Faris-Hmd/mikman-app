@@ -226,7 +226,7 @@ export const PrintConfigModal: React.FC<PrintConfigModalProps> = ({
       }
 
       pdf.save(fileName);
-      showToast(t('batch.downloadStarted'), 'success');
+      showToast(t('batch.pdfDownloaded'), 'success');
     } catch (err: any) {
       console.error('PDF Generation Error:', err);
       showToast(err?.message || t('batch.failedGeneratePdf'), 'error');
@@ -327,7 +327,7 @@ export const PrintConfigModal: React.FC<PrintConfigModalProps> = ({
 
         {/* Info Box */}
         <div className="print-notice-box">
-          {t('batch.printLayoutTip')}
+          {t('batch.printLayoutDesc')}
         </div>
 
         {/* Action Buttons */}

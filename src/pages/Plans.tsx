@@ -51,7 +51,7 @@ export default function PlansPage() {
     revalidateOnFocus: false,
   });
 
-  const { data: dbPlans, isLoading: loadingPlans } = useSWR('system-plans-catalog', fetchPlansCatalogAPI, {
+  const { data: dbPlans, isLoading: loadingPlans } = useSWR('plans-catalog', fetchPlansCatalogAPI, {
     revalidateOnFocus: false,
   });
 

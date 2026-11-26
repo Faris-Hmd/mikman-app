@@ -20,8 +20,13 @@ export const setSupabaseIdToken = (token: string | null) => {
 
 const refreshAuthToken = async (): Promise<string | null> => {
   try {
-    const { data } = await supabase.auth.getSession();
-    const freshToken = data.session?.access_token ?? null;
+    const { data, error } = await supabase.auth.refreshSession();
+    if (!error && data.session?.access_token) {
+      supabaseIdToken = data.session.access_token;
+      return data.session.access_token;
+    }
+    const { data: fallback } = await supabase.auth.getSession();
+    const freshToken = fallback.session?.access_token ?? null;
     supabaseIdToken = freshToken;
     return freshToken;
   } catch {
