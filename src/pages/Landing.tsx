@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -16,7 +16,6 @@ import {
   Server,
   Plus,
   Users,
-  Activity,
   Cpu,
   Clock,
   RefreshCw,
@@ -25,6 +24,8 @@ import {
   Settings,
   KeyRound,
   ArrowUpDown,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 
 type RouterFilterMode = 'online-first' | 'default' | 'online-only';
@@ -35,6 +36,25 @@ export default function LandingPage() {
   const { t, language, isRtl } = useLanguage();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filterMode, setFilterMode] = useState<RouterFilterMode>('online-first');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filterOptions: { value: RouterFilterMode; label: string }[] = [
+    { value: 'online-first', label: language === 'ar' ? 'المتصل أولاً' : 'Online First' },
+    { value: 'default', label: language === 'ar' ? 'حسب الإضافة' : 'Default Order' },
+    { value: 'online-only', label: language === 'ar' ? 'المتصل فقط' : 'Online Only' },
+  ];
+  const activeFilterLabel = filterOptions.find((o) => o.value === filterMode)?.label || '';
 
   const { data: routerData, mutate: mutateRouters } = useSWR(
     'router-profiles',
@@ -213,24 +233,42 @@ export default function LandingPage() {
           </h3>
 
           {savedRouters.length > 0 && (
-            <div className="landing-filter-wrap">
-              <ArrowUpDown size={14} className="landing-filter-icon" />
-              <select
-                value={filterMode}
-                onChange={(e) => setFilterMode(e.target.value as RouterFilterMode)}
-                className="landing-filter-select"
-                aria-label={language === 'ar' ? 'ترتيب وتصفية الراوترات' : 'Sort and filter routers'}
+            <div className="landing-filter-wrap" ref={filterRef}>
+              <button
+                type="button"
+                onClick={() => setIsFilterOpen((prev) => !prev)}
+                className={`landing-filter-btn ${isFilterOpen ? 'open' : ''}`}
+                aria-haspopup="listbox"
+                aria-expanded={isFilterOpen}
               >
-                <option value="online-first">
-                  {language === 'ar' ? 'المتصل أولاً' : 'Online First'}
-                </option>
-                <option value="default">
-                  {language === 'ar' ? 'حسب الإضافة' : 'Default Order'}
-                </option>
-                <option value="online-only">
-                  {language === 'ar' ? 'المتصل فقط' : 'Online Only'}
-                </option>
-              </select>
+                <ArrowUpDown size={13} className="landing-filter-icon" />
+                <span>{activeFilterLabel}</span>
+                <ChevronDown size={13} className={`landing-filter-chevron ${isFilterOpen ? 'open' : ''}`} />
+              </button>
+
+              {isFilterOpen && (
+                <div className="landing-filter-menu" role="listbox">
+                  {filterOptions.map((opt) => {
+                    const isSelected = opt.value === filterMode;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        className={`landing-filter-option ${isSelected ? 'active' : ''}`}
+                        onClick={() => {
+                          setFilterMode(opt.value);
+                          setIsFilterOpen(false);
+                        }}
+                      >
+                        <span>{opt.label}</span>
+                        {isSelected && <Check size={14} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -241,20 +279,25 @@ export default function LandingPage() {
         {isInitialLoading ? (
           [1, 2].map(n => (
             <div key={n} className="landing-router-card pointer-events-none">
-              <div className="landing-router-header">
-                <div className="landing-router-brand">
-                  <div className="landing-router-img-wrapper">
-                    <div className="skeleton-box skeleton-avatar" />
-                  </div>
-                  <div className="skeleton-box skeleton-text-55" />
+              <div className="landing-router-identity-col">
+                <div className="landing-router-img-wrapper">
+                  <div className="skeleton-box skeleton-avatar" />
                 </div>
-                <div className="skeleton-box skeleton-stat-sm" />
-                <div className="skeleton-box skeleton-stat-sm" />
+                <div className="skeleton-box skeleton-text-60" />
               </div>
-              <div className="landing-stats-resources">
-                <div className="skeleton-box skeleton-stat-sm" />
-                <div className="skeleton-box skeleton-stat-sm" />
-                <div className="skeleton-box skeleton-stat-sm" />
+              <div className="landing-stats-grid-2x2">
+                <div className="landing-stat-item">
+                  <div className="skeleton-box skeleton-stat-sm" />
+                </div>
+                <div className="landing-stat-item">
+                  <div className="skeleton-box skeleton-stat-sm" />
+                </div>
+                <div className="landing-stat-item">
+                  <div className="skeleton-box skeleton-stat-sm" />
+                </div>
+                <div className="landing-stat-item">
+                  <div className="skeleton-box skeleton-stat-sm" />
+                </div>
               </div>
             </div>
           ))
@@ -293,11 +336,6 @@ export default function LandingPage() {
             const activeUsersDisplay = isOnline && status ? (status.activeUsers ?? 0) : '—';
             const uptimeDisplay = isOnline && status ? formatUptimeAPI(status.uptime || status.uptime_display) : '—';
 
-            const rawCpu = isOnline && status ? (typeof status.cpuLoad === 'number' ? status.cpuLoad : parseFloat(status.cpuLoad)) : NaN;
-            const cpuPct = !Number.isNaN(rawCpu) ? Math.min(100, Math.max(0, Math.round(rawCpu))) : 0;
-            const cpuDisplay = isOnline && status ? (status.cpuLoad_display || (status.cpuLoad !== undefined ? `${status.cpuLoad}%` : '—')) : '—';
-            const cpuTone = !isOnline || Number.isNaN(rawCpu) ? '' : cpuPct >= 90 ? 'crit' : cpuPct >= 70 ? 'warn' : '';
-
             const ramPct =
               isOnline && status && typeof status.totalMemory === 'number' && status.totalMemory > 0 && typeof status.freeMemory === 'number'
                 ? Math.min(100, Math.max(0, Math.round(((status.totalMemory - status.freeMemory) / status.totalMemory) * 100)))
@@ -306,7 +344,6 @@ export default function LandingPage() {
             const ramTone = ramPct === null ? '' : ramPct >= 90 ? 'crit' : ramPct >= 75 ? 'warn' : '';
 
             const rawTemp = isOnline && status && status.temperature != null ? Number(status.temperature) : NaN;
-            const tempPct = !Number.isNaN(rawTemp) ? Math.min(100, Math.max(0, Math.round(rawTemp))) : 0;
             const tempDisplay = isOnline && status ? (status.temperature_display || (status.temperature != null ? `${status.temperature}°C` : '—')) : '—';
             const tempTone = !isOnline || Number.isNaN(rawTemp) ? '' : rawTemp >= 80 ? 'crit' : rawTemp >= 65 ? 'warn' : '';
 
@@ -316,99 +353,62 @@ export default function LandingPage() {
                 to={`/${router.id}`}
                 className={`landing-router-card ${isOnline ? 'online' : 'offline'}`}
               >
-                {/* Row 1: Router Image + Name | Users | Uptime (3-column grid aligned with Row 2) */}
-                <div className="landing-router-header">
-                  <div className="landing-router-brand">
-                    <div className="landing-router-img-wrapper">
-                      {routerImg ? (
-                        <img
-                          src={routerImg}
-                          className="landing-router-img"
-                          alt="Router"
-                        />
-                      ) : (
-                        <div className="landing-router-fallback-icon">
-                          <Cpu size={18} color="var(--primary)" />
-                        </div>
-                      )}
-                      <div
-                        className={`landing-router-status-dot ${isOnline ? 'online' : 'offline'}`}
+                {/* Left Column: Big Router Picture + Router Name */}
+                <div className="landing-router-identity-col">
+                  <div className="landing-router-img-wrapper">
+                    {routerImg ? (
+                      <img
+                        src={routerImg}
+                        className="landing-router-img"
+                        alt="Router"
                       />
-                    </div>
-
-                    <div className="landing-router-identity">
-                      <h3 className="landing-router-name">
-                        {router.name || 'MikroTik Router'}
-                      </h3>
-                    </div>
+                    ) : (
+                      <div className="landing-router-fallback-icon">
+                        <Cpu size={28} color="var(--primary)" />
+                      </div>
+                    )}
+                    <div
+                      className={`landing-router-status-dot ${isOnline ? 'online' : 'offline'}`}
+                    />
                   </div>
 
-                  <div className="landing-stat-mini">
-                    <div className="landing-stat-mini-top">
-                      <span className="landing-stat-mini-label">
-                        <Users size={13} />
-                        <span>{language === 'ar' ? 'المتصلون' : 'Users'}</span>
-                      </span>
-                      <span className="landing-stat-mini-value">{activeUsersDisplay}</span>
-                    </div>
-                  </div>
-
-                  <div className="landing-stat-mini">
-                    <div className="landing-stat-mini-top">
-                      <span className="landing-stat-mini-label">
-                        <Clock size={13} />
-                        <span>{t('header.uptime') || 'Uptime'}</span>
-                      </span>
-                      <span className="landing-stat-mini-value">{uptimeDisplay}</span>
-                    </div>
-                  </div>
+                  <h3 className="landing-router-name">
+                    {router.name || 'MikroTik Router'}
+                  </h3>
                 </div>
 
-                {/* Row 2: CPU, RAM, Temperature */}
-                <div className="landing-stats-resources">
-                  <div className="landing-stat-mini">
-                    <div className="landing-stat-mini-top">
-                      <span className="landing-stat-mini-label">
-                        <Activity size={13} />
-                        <span>{t('header.cpu') || 'CPU'}</span>
-                      </span>
-                      <span className={`landing-stat-mini-value ${cpuTone}`}>{cpuDisplay}</span>
-                    </div>
-                    <progress
-                      className={`landing-stat-progress ${cpuTone}`}
-                      value={isOnline && !Number.isNaN(rawCpu) ? cpuPct : 0}
-                      max={100}
-                    />
+                {/* Right Column: 2x2 Stats Grid (Users, Uptime, RAM, Temp) */}
+                <div className="landing-stats-grid-2x2">
+                  <div className="landing-stat-item">
+                    <span className="landing-stat-mini-label">
+                      <Users size={13} />
+                      <span>{language === 'ar' ? 'المتصلون' : 'Users'}</span>
+                    </span>
+                    <span className="landing-stat-mini-value">{activeUsersDisplay}</span>
                   </div>
 
-                  <div className="landing-stat-mini">
-                    <div className="landing-stat-mini-top">
-                      <span className="landing-stat-mini-label">
-                        <Cpu size={13} />
-                        <span>{t('header.ram') || 'RAM'}</span>
-                      </span>
-                      <span className={`landing-stat-mini-value ${ramTone}`}>{ramDisplay}</span>
-                    </div>
-                    <progress
-                      className={`landing-stat-progress ${ramTone}`}
-                      value={ramPct !== null ? ramPct : 0}
-                      max={100}
-                    />
+                  <div className="landing-stat-item">
+                    <span className="landing-stat-mini-label">
+                      <Clock size={13} />
+                      <span>{t('header.uptime') || 'Uptime'}</span>
+                    </span>
+                    <span className="landing-stat-mini-value">{uptimeDisplay}</span>
                   </div>
 
-                  <div className="landing-stat-mini">
-                    <div className="landing-stat-mini-top">
-                      <span className="landing-stat-mini-label">
-                        <Thermometer size={13} />
-                        <span>{t('header.temp') || 'Temp'}</span>
-                      </span>
-                      <span className={`landing-stat-mini-value ${tempTone}`}>{tempDisplay}</span>
-                    </div>
-                    <progress
-                      className={`landing-stat-progress ${tempTone}`}
-                      value={isOnline && !Number.isNaN(rawTemp) ? tempPct : 0}
-                      max={100}
-                    />
+                  <div className="landing-stat-item">
+                    <span className="landing-stat-mini-label">
+                      <Cpu size={13} />
+                      <span>{t('header.ram') || 'RAM'}</span>
+                    </span>
+                    <span className={`landing-stat-mini-value ${ramTone}`}>{ramDisplay}</span>
+                  </div>
+
+                  <div className="landing-stat-item">
+                    <span className="landing-stat-mini-label">
+                      <Thermometer size={13} />
+                      <span>{t('header.temp') || 'Temp'}</span>
+                    </span>
+                    <span className={`landing-stat-mini-value ${tempTone}`}>{tempDisplay}</span>
                   </div>
                 </div>
               </Link>

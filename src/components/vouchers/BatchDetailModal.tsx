@@ -13,6 +13,7 @@ import {
   X,
   AlertCircle,
   LogIn,
+  Sparkles,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useModal } from '../../context/ModalContext';
@@ -40,6 +41,7 @@ interface BatchDetailModalProps {
   defaultWifiName?: string;
   onClose: () => void;
   onDeleteBatch?: (batch: VoucherBatch) => Promise<void>;
+  onCleanupExpired?: (batch: VoucherBatch) => Promise<{ deletedCount?: number; expiredCount?: number }>;
   onFetchCodes: (batch: VoucherBatch, filter: string) => Promise<string[]>;
 }
 
@@ -51,6 +53,7 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
   defaultWifiName,
   onClose,
   onDeleteBatch,
+  onCleanupExpired,
   onFetchCodes,
 }) => {
   const { t, isRtl } = useLanguage();
@@ -61,6 +64,7 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
   const [modalDisplayLimit, setModalDisplayLimit] = useState(60);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isDeletingBatch, setIsDeletingBatch] = useState(false);
+  const [isCleaningExpired, setIsCleaningExpired] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
@@ -139,6 +143,44 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
     );
   };
 
+  // Handle Clean Expired Vouchers from Batch
+  const handleCleanupExpired = async () => {
+    if (!selectedBatch || !onCleanupExpired) return;
+    const countToClean = selectedBatch.expiredCount ?? expiredVouchers.length;
+    if (countToClean <= 0) {
+      showToast(t('batch.cleanupNone') || 'No expired vouchers to clean.');
+      return;
+    }
+
+    const descTemplate =
+      t('batch.cleanupConfirmDesc') ||
+      'Permanently delete {count} expired voucher(s) from this batch? Active and unused vouchers will be kept.';
+
+    showConfirm(
+      t('batch.cleanupConfirmTitle') || 'Clean Expired Vouchers?',
+      descTemplate.replace('{count}', String(countToClean)),
+      async () => {
+        try {
+          setIsCleaningExpired(true);
+          const result = await onCleanupExpired(selectedBatch);
+          const removed = result?.deletedCount ?? result?.expiredCount ?? countToClean;
+          const successTemplate =
+            t('batch.cleanupSuccess') || 'Removed {count} expired voucher(s).';
+          showToast(successTemplate.replace('{count}', String(removed)), 'success');
+          if (activeTab === 'expired') {
+            setActiveTab('unused');
+          }
+          mutateDetail?.();
+        } catch (err: any) {
+          showToast(err?.message || 'Failed to clean expired vouchers', 'error');
+        } finally {
+          setIsCleaningExpired(false);
+        }
+      },
+      { variant: 'danger', confirmLabel: t('batch.cleanupExpired') || 'Clean Expired' }
+    );
+  };
+
   const tabs = [
     { key: 'unused' as const, label: t('batch.tabUnused') || t('batch.statusUnused') || 'Unused', count: selectedBatch.unusedCount ?? unusedVouchers.length },
     { key: 'active' as const, label: t('batch.tabActive') || t('batch.statusActive') || 'In Use', count: selectedBatch.activeCount ?? activeVouchers.length },
@@ -206,6 +248,23 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
                 <Printer size={15} />
                 <span>{t('batch.printBtn') || t('batch.printPdf') || 'Print'}</span>
               </button>
+
+              {/* Clean Expired Vouchers Button */}
+              {onCleanupExpired && expiredCount > 0 && (
+                <button
+                  onClick={handleCleanupExpired}
+                  disabled={isCleaningExpired || isDeletingBatch}
+                  title={t('batch.cleanupExpired') || 'Clean Expired'}
+                  className="batch-header-btn cleanup"
+                >
+                  {isCleaningExpired ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={15} />
+                  )}
+                  <span>{t('batch.cleanupExpired') || 'Clean Expired'}</span>
+                </button>
+              )}
 
               {/* Delete Batch Button */}
               {onDeleteBatch && (

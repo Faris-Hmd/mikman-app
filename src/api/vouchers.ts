@@ -65,6 +65,35 @@ export const deleteVouchersAPI = async (routerId: string, ids: string[], sync = 
   });
 };
 
+export interface CleanupExpiredBatchResponse {
+  success: boolean;
+  deletedCount?: number;
+  notFoundCount?: number;
+  expiredCount: number;
+  keptCount: number;
+  jobId?: string;
+  status?: string;
+  message?: string;
+}
+
+export const cleanupExpiredBatchVouchersAPI = async (
+  routerId: string,
+  params: {
+    profile: string;
+    comment?: string;
+    printLabel?: string;
+    batchId?: string;
+    dryRun?: boolean;
+  }
+): Promise<CleanupExpiredBatchResponse> => {
+  return apiCall<CleanupExpiredBatchResponse>('/vouchers/batches/cleanup', {
+    method: 'POST',
+    body: params,
+    routerId,
+    timeoutMs: 120_000,
+  });
+};
+
 export const enableVouchersAPI = async (routerId: string, names: string[]): Promise<{ success: boolean; enabledCount: number }> => {
   if (!names || names.length === 0) return { success: true, enabledCount: 0 };
   return apiCall<{ success: boolean; enabledCount: number }>('/vouchers/enable', {

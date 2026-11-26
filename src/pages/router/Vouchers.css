@@ -905,6 +905,19 @@
   box-shadow: none;
 }
 
+.batch-header-btn.cleanup {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: none;
+}
+
+.batch-header-btn.cleanup:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.24);
+  border-color: rgba(245, 158, 11, 0.55);
+  box-shadow: none;
+}
+
 .batch-header-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -1512,7 +1525,7 @@
 
 .print-card-preview {
   background: var(--white);
-  color: var(--foreground);
+  color: #0f172a;
   border-radius: 10px;
   padding: 12px;
   border: 2px dashed var(--primary);
@@ -1528,11 +1541,11 @@
   width: 100%;
   text-align: center;
   padding: 3px 0;
-  background: var(--card-bg-elevated);
+  background: #f1f5f9;
   border-radius: 4px;
   font-size: var(--font-sm);
   font-weight: 800;
-  color: var(--foreground);
+  color: #1e293b;
 }
 
 .print-preview-pin {
@@ -1540,14 +1553,14 @@
   font-size: var(--font-xl);
   font-weight: 900;
   letter-spacing: 2px;
-  color: var(--foreground);
+  color: #0f172a;
   padding: 4px 0;
 }
 
 .print-preview-profile {
   font-size: var(--font-xs);
   font-weight: 700;
-  color: var(--text-muted);
+  color: #64748b;
 }
 
 .print-notice-box {

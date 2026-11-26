@@ -61,20 +61,28 @@ export const PrintConfigModal: React.FC<PrintConfigModalProps> = ({
 
       // Page size A4 is 210 x 297 mm
       const canvasWidth = 1400;
-      const canvasHeight = Math.round(canvasWidth * (297 / 210));
+      const canvasHeight = Math.round(canvasWidth * (297 / 210)); // 1980
       const scale = canvasWidth / 210;
 
       const cols = 7;
-      const rows = 12;
-      const marginX = 7 * scale;
-      const marginY = 9 * scale;
-      const usableW = canvasWidth - marginX * 2;
-      const usableH = canvasHeight - marginY * 2;
-      const cardW = usableW / cols;
-      const cardH = usableH / rows;
+      const rows = 14;
+      const cardWidth = 26.5 * scale;
+      const cardHeight = 18.5 * scale;
+      const colGap = 1.2 * scale;
+      const rowGap = 0.8 * scale;
+      const startX = 8.6 * scale;
+      const startY = 16 * scale;
+      const itemsPerPage = cols * rows;
 
-      const cardsPerPage = cols * rows;
-      const totalPages = Math.ceil(codes.length / cardsPerPage);
+      const fontHeader = `${Math.round(2.8 * scale)}px "Cairo", system-ui, -apple-system, sans-serif`;
+      const fontWifiName = `bold ${Math.round(2.37 * scale)}px "Cairo", system-ui, -apple-system, sans-serif`;
+      const fontVoucherCode = `bold ${Math.round(3.73 * scale)}px "Cairo", system-ui, -apple-system, sans-serif`;
+      const fontProfile = `bold ${Math.round(2.37 * scale)}px "Cairo", system-ui, -apple-system, sans-serif`;
+
+      const pages: string[][] = [];
+      for (let i = 0; i < codes.length; i += itemsPerPage) {
+        pages.push(codes.slice(i, i + itemsPerPage));
+      }
 
       const { jsPDF } = await import('jspdf');
       const pdf = new jsPDF({
@@ -83,57 +91,126 @@ export const PrintConfigModal: React.FC<PrintConfigModalProps> = ({
         format: 'a4',
       });
 
-      for (let p = 0; p < totalPages; p++) {
-        if (p > 0) pdf.addPage();
+      const now = new Date();
+      const formattedDate = now.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+        const pageVouchers = pages[pageIdx];
 
         const canvas = document.createElement('canvas');
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
         const ctx = canvas.getContext('2d');
-        if (!ctx) continue;
+        if (!ctx) throw new Error('Could not get 2D context');
 
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        const pageCodes = codes.slice(p * cardsPerPage, (p + 1) * cardsPerPage);
+        // Header metadata bar
+        ctx.font = fontHeader;
+        ctx.fillStyle = '#505050';
+        ctx.textBaseline = 'top';
 
-        for (let i = 0; i < pageCodes.length; i++) {
-          const col = i % cols;
-          const row = Math.floor(i / cols);
-          const x = marginX + col * cardW;
-          const y = marginY + row * cardH;
+        ctx.textAlign = 'left';
+        ctx.fillText(
+          `WiFi: ${networkName} | Profile: ${profileName} | Vouchers: ${codes.length}`,
+          8.6 * scale,
+          9.5 * scale
+        );
 
-          ctx.strokeStyle = '#cbd5e1';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(x, y, cardW, cardH);
+        ctx.textAlign = 'right';
+        ctx.fillText(`Printed: ${formattedDate}`, (210 - 8.6) * scale, 9.5 * scale);
 
-          // Wi-Fi SSID
-          ctx.fillStyle = '#1e3a8a';
-          ctx.font = `bold ${Math.round(cardH * 0.16)}px sans-serif`;
+        ctx.strokeStyle = '#d5d5d5';
+        ctx.lineWidth = 0.2 * scale;
+        ctx.beginPath();
+        ctx.moveTo(8.6 * scale, 12.5 * scale);
+        ctx.lineTo((210 - 8.6) * scale, 12.5 * scale);
+        ctx.stroke();
+
+        pageVouchers.forEach((codeStr, index) => {
+          const colIndex = index % cols;
+          const rowIndex = Math.floor(index / cols);
+
+          const x = startX + colIndex * (cardWidth + colGap);
+          const y = startY + rowIndex * (cardHeight + rowGap);
+
+          ctx.strokeStyle = '#444444';
+          ctx.lineWidth = 0.25 * scale;
+          ctx.beginPath();
+          const rx = 1 * scale;
+          if (ctx.roundRect) {
+            ctx.roundRect(x, y, cardWidth, cardHeight, rx);
+          } else {
+            ctx.rect(x, y, cardWidth, cardHeight);
+          }
+          ctx.stroke();
+
+          // WiFi Icon & Name Header
+          ctx.font = fontWifiName;
+          const textWidth = ctx.measureText(networkName).width;
+          const iconWidth = 2.5 * scale;
+          const totalWidth = iconWidth + textWidth;
+          const wifiStartX = x + (cardWidth - totalWidth) / 2;
+          const iconCX = wifiStartX + 0.8 * scale;
+          const textX = wifiStartX + 2.5 * scale;
+
+          ctx.fillStyle = '#000000';
+          ctx.beginPath();
+          ctx.arc(iconCX, y + 4.2 * scale, 0.3 * scale, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 0.22 * scale;
+          ctx.lineCap = 'round';
+
+          ctx.beginPath();
+          ctx.moveTo(iconCX - 0.6 * scale, y + 3.6 * scale);
+          ctx.quadraticCurveTo(iconCX, y + 3.1 * scale, iconCX + 0.6 * scale, y + 3.6 * scale);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(iconCX - 1.1 * scale, y + 3.1 * scale);
+          ctx.quadraticCurveTo(iconCX, y + 2.4 * scale, iconCX + 1.1 * scale, y + 3.1 * scale);
+          ctx.stroke();
+
+          ctx.fillStyle = '#000000';
+          ctx.font = fontWifiName;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(networkName, textX, y + 4.2 * scale);
+
+          // Voucher Code PIN
+          ctx.fillStyle = '#000000';
+          ctx.font = fontVoucherCode;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(networkName, x + cardW / 2, y + cardH * 0.24);
+          ctx.fillText(codeStr, x + cardWidth / 2, y + 10.5 * scale);
 
-          // Voucher PIN Code
-          ctx.fillStyle = '#0f172a';
-          ctx.font = `900 ${Math.round(cardH * 0.28)}px monospace`;
-          ctx.fillText(pageCodes[i], x + cardW / 2, y + cardH * 0.52);
+          // Profile Name Footer (no cost/price label)
+          ctx.fillStyle = '#444444';
+          ctx.font = fontProfile;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(profileName, x + cardWidth / 2, y + 15.5 * scale);
+        });
 
-          // Profile Name & Details
-          ctx.fillStyle = '#475569';
-          ctx.font = `bold ${Math.round(cardH * 0.13)}px sans-serif`;
-          let displayProfile = profileName;
-          if (selectedBatch.formattedPrice) {
-            displayProfile = `${profileName} • ${selectedBatch.formattedPrice}`;
-          }
-          ctx.fillText(displayProfile, x + cardW / 2, y + cardH * 0.78);
+        if (pageIdx > 0) {
+          pdf.addPage();
         }
-
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+        const imgData = canvas.toDataURL('image/jpeg', 0.85);
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
       }
 
-      const fileName = `vouchers-${selectedBatch.profile}-${selectedBatch.batchId || 'batch'}.pdf`;
+      const safeWifiName = networkName.replace(/[\s|/\\:*?"<>|]/g, '_');
+      const safeProfileName = profileName.replace(/[\s|/\\:*?"<>|]/g, '_');
+      const fileName = `${safeWifiName}_${safeProfileName}_${codes.length}_vouchers.pdf`;
 
       if (mode === 'share' && navigator.canShare) {
         const blob = pdf.output('blob');
@@ -167,7 +244,7 @@ export const PrintConfigModal: React.FC<PrintConfigModalProps> = ({
     return selectedBatch.originalCount || selectedBatch.unusedCount || 0;
   }, [selectedBatch]);
 
-  const pageCount = Math.max(1, Math.ceil(cardCount / 84));
+  const pageCount = Math.ceil(cardCount / 98) || (cardCount > 0 ? 1 : 0);
 
   return (
     <div
@@ -244,7 +321,6 @@ export const PrintConfigModal: React.FC<PrintConfigModalProps> = ({
             </div>
             <div className="print-preview-profile">
               {selectedBatch.profile}
-              {selectedBatch.formattedPrice ? ` • ${selectedBatch.formattedPrice}` : ''}
             </div>
           </div>
         </div>

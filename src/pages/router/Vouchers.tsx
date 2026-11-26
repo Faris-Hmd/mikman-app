@@ -10,6 +10,7 @@ import {
   fetchVoucherJobStatusAPI,
   getVoucherCodesAPI,
   deleteVouchersAPI,
+  cleanupExpiredBatchVouchersAPI,
   revalidateRouterCache,
   type VoucherBatch,
   type VoucherBatchDetail,
@@ -294,6 +295,49 @@ export default function VouchersPage() {
     }
     revalidateRouterCache(routerId);
     await mutateBatches();
+  };
+
+  const handleCleanupExpiredBatch = async (batch: VoucherBatch) => {
+    if (!routerId) return { deletedCount: 0, expiredCount: 0 };
+    const res = await cleanupExpiredBatchVouchersAPI(routerId, {
+      profile: batch.profile,
+      comment: batch.comment,
+      printLabel: batch.printLabel,
+      batchId: batch.batchId,
+    });
+
+    if (res?.jobId) {
+      let done = false;
+      let attempts = 0;
+      while (!done && attempts < 180) {
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        attempts++;
+        const job = await fetchVoucherJobStatusAPI(routerId, res.jobId);
+        if (job.status === 'completed') {
+          done = true;
+        } else if (job.status === 'failed') {
+          throw new Error(job.error || 'Expired voucher cleanup failed on router');
+        }
+      }
+    }
+
+    setSelectedBatchModal((prev) => {
+      if (!prev) return prev;
+      const unused = prev.unusedCount ?? 0;
+      const active = prev.activeCount ?? 0;
+      return {
+        ...prev,
+        expiredCount: 0,
+        originalCount: unused + active,
+      };
+    });
+
+    revalidateRouterCache(routerId);
+    await Promise.all([mutateBatches(), mutateBatchDetail()]);
+    return {
+      deletedCount: res.deletedCount ?? res.expiredCount,
+      expiredCount: res.expiredCount,
+    };
   };
 
   const handleFetchCodes = async (
@@ -669,6 +713,7 @@ export default function VouchersPage() {
           defaultWifiName={defaultWifiName}
           onClose={handleCloseDetailModal}
           onDeleteBatch={handleDeleteBatch}
+          onCleanupExpired={handleCleanupExpiredBatch}
           onFetchCodes={handleFetchCodes}
         />
       )}
